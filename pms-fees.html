@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lowest PMS Fee — myAlternates</title>
+<meta name="description" content="A small PMS fee difference compounds into a large wealth difference. See how much a lower fee saves you, and run the full illustrative fee calculator.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  /* ---------- page-specific ---------- */
+  .impact{padding:84px 0; background:var(--paper);}
+  .impact .section-head{max-width:680px;}
+  .impact-grid{display:grid; grid-template-columns:340px 1fr; gap:44px; align-items:start;}
+  .impact-controls{
+    background:var(--paper-2); border:1px solid #e6dfcd; border-radius:14px; padding:26px 24px;
+  }
+  .ic-field{margin-bottom:22px;}
+  .ic-field:last-child{margin-bottom:0;}
+  .ic-field label{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:11.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:9px;
+  }
+  .ic-field label b{
+    font-family:'IBM Plex Mono', monospace; font-size:14px; font-weight:600;
+    color:var(--ink-text); letter-spacing:0;
+  }
+  .ic-field input[type=range]{
+    width:100%; height:5px; border-radius:3px; -webkit-appearance:none; appearance:none;
+    background:linear-gradient(90deg, var(--gold), var(--emerald-light)); outline:none;
+  }
+  .ic-field input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+    background:var(--ink); border:3px solid var(--paper); cursor:pointer;
+    box-shadow:0 2px 8px rgba(11,14,19,0.35);
+  }
+  .ic-field input[type=range]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background:var(--ink);
+    border:3px solid var(--paper); cursor:pointer;
+  }
+  .impact-result{
+    background:var(--ink); color:var(--paper); border-radius:16px; padding:36px 34px;
+    position:relative; overflow:hidden;
+  }
+  .impact-result::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:5px;
+    background:linear-gradient(90deg, var(--emerald), var(--gold) 55%, var(--gold-light));
+  }
+  .impact-result .ir-label{
+    font-size:12px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--gold-light); margin-bottom:12px;
+  }
+  .impact-result .ir-big{
+    font-family:'Fraunces', Georgia, serif; font-weight:500;
+    font-size:clamp(38px,6vw,58px); line-height:1; color:var(--paper); margin-bottom:10px;
+  }
+  .impact-result .ir-sub{color:var(--muted-light); font-size:14px; line-height:1.6; max-width:420px;}
+  .impact-compare{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:26px;
+  }
+  .impact-compare > div{
+    border:1px solid var(--line); border-radius:10px; padding:16px;
+  }
+  .impact-compare .ic-cap{font-size:11px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted-light); margin-bottom:6px;}
+  .impact-compare .ic-val{font-family:'Fraunces', Georgia, serif; font-size:22px; color:var(--paper);}
+  .impact-compare .low .ic-val{color:var(--emerald-light);}
+  .impact-note{font-size:12px; color:var(--muted); margin-top:18px; line-height:1.6;}
+  @media (max-width:820px){ .impact-grid{grid-template-columns:1fr; gap:28px;} }
+
+  /* ---------- fee calculator (adapted from the reference tool, themed) ---------- */
+  .calc{
+    font-family:'Manrope', -apple-system, sans-serif; font-size:13px; color:var(--ink-text);
+  }
+  .calc * { box-sizing:border-box; }
+  .calc .fee-type-wrapper{ display:flex; justify-content:center; margin-bottom:26px; }
+  .calc .section{ display:none; }
+  .calc .section.active{ display:block; padding-top:8px; }
+
+  .calc .field-group{
+    position:relative; border:1.5px solid var(--emerald); border-radius:8px;
+    padding:8px 14px; width:100%; max-width:320px; background:#fff;
+  }
+  .calc .field-group label{
+    position:absolute; top:-9px; left:12px; background:var(--paper); padding:0 6px;
+    font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--emerald);
+  }
+  .calc .field-group select, .calc .field-group input{
+    border:none; outline:none; font-size:15px; font-family:inherit; font-weight:600;
+    width:100%; background:transparent; color:var(--ink-text);
+    appearance:none; -webkit-appearance:none;
+  }
+  .calc .field-group select{ cursor:pointer; padding-right:24px; }
+  .calc .select-arrow{
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    pointer-events:none; color:var(--emerald); font-size:11px;
+  }
+
+  .calc .inputs-row{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:14px; }
+  @media (max-width:760px){ .calc .inputs-row{ grid-template-columns:1fr 1fr; gap:12px; } }
+  @media (max-width:480px){ .calc .inputs-row{ grid-template-columns:1fr; } }
+
+  .calc .input-field{
+    position:relative; border:1.5px solid #ded6c2; border-radius:8px; padding:9px 14px; background:#fff;
+  }
+  .calc .input-field label{
+    position:absolute; top:-9px; left:12px; background:var(--paper); padding:0 6px;
+    font-size:9.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 22px);
+  }
+  .calc .input-field input{
+    border:none; outline:none; font-size:14px; font-family:inherit; font-weight:600;
+    width:100%; background:transparent; color:var(--ink-text);
+  }
+  .calc .input-field .unit{ position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--muted); }
+  .calc .input-field.disabled{ background:#f1ece0; border-style:dashed; }
+  .calc .input-field.disabled input{ color:var(--muted-light); }
+
+  .calc .capital-words{
+    position:absolute; right:12px; top:50%; transform:translateY(-50%);
+    font-size:9px; color:var(--emerald); font-style:italic; white-space:nowrap;
+    pointer-events:none; max-width:48%; overflow:hidden; text-overflow:ellipsis;
+  }
+  .calc .capital-input-field input{ padding-right:4px; max-width:44%; }
+
+  .calc .table-scroll-wrapper{ width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; margin:18px 0 8px; border-radius:10px; }
+  .calc .scroll-hint{ display:none; font-size:11px; color:var(--muted-light); text-align:center; margin-bottom:6px; font-style:italic; }
+  @media (max-width:760px){ .calc .scroll-hint{ display:block; } }
+
+  .calc table.fee-table{ width:100%; min-width:600px; border-collapse:collapse; table-layout:fixed; }
+  .calc table.fee-table th, .calc table.fee-table td{
+    border:1px solid #e6dfcd; padding:8px 6px; text-align:center; font-size:11px; font-weight:700;
+    vertical-align:middle; word-wrap:break-word;
+  }
+  .calc table.fee-table th{ background:var(--paper-2); font-weight:700; }
+  .calc table.fee-table th.year-header{ color:var(--emerald); }
+  .calc table.fee-table th.col-fees-label{ width:30%; }
+  .calc table.fee-table th.year-header{ width:14%; }
+  .calc table.fee-table td.label-cell{ text-align:left; background:#fff; font-size:10.5px; color:var(--ink-text); line-height:1.45; }
+  .calc .label-suffix{ color:var(--muted-light); font-weight:400; font-size:9.5px; }
+  .calc .neg{ color:#c0392b; }
+  .calc .pos{ color:var(--ink-text); }
+  .calc .no-p{ color:var(--muted); font-style:italic; }
+
+  .calc .gain-input{
+    width:44px; border:1.5px solid #ded6c2; border-radius:5px; text-align:center;
+    font-size:11px; font-family:inherit; font-weight:700; padding:3px 2px; margin-right:1px; color:var(--ink-text);
+  }
+  .calc .gain-input:focus{ outline:none; border-color:var(--emerald); }
+
+  .calc .notes-section{ margin-top:28px; }
+  .calc .notes-section h3, .calc .disclosures-section h3{
+    font-family:'Fraunces', Georgia, serif; font-size:17px; font-weight:500; margin-bottom:12px; color:var(--ink-text);
+  }
+  .calc .disclosures-section{ margin-top:26px; }
+  .calc .notes-table{ width:100%; border-collapse:collapse; }
+  .calc .notes-table td{ border:1px solid #e6dfcd; padding:8px 11px; font-size:11.5px; vertical-align:top; color:#3a3f47; line-height:1.55; }
+  .calc .notes-table td:first-child{ width:34px; text-align:center; font-weight:700; background:var(--paper-2); color:var(--emerald); }
+
+  .calc .capital-error{ display:none; color:#c0392b; font-size:10px; margin-top:4px; font-style:italic; }
+  .calc .capital-error.visible{ display:block; }
+  .calc .input-field.capital-invalid{ border-color:#c0392b; background:#fdf3f2; }
+
+  .calc-shell{ background:var(--paper); border:1px solid #e6dfcd; border-radius:16px; padding:34px 30px; }
+  @media (max-width:600px){ .calc-shell{ padding:22px 16px; } }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand-group">
+      <a href="index.html" class="logo-link">
+        <img class="logo-img" src="assets/logo-myalternates.png" alt="myAlternates">
+      </a>
+      <span class="brand-divider"></span>
+      <div class="powered-by">
+        <span class="powered-by-label">Powered by</span>
+        <img class="pmsbazaar-img" src="assets/logo-pmsbazaar.png" alt="PMS Bazaar">
+      </div>
+    </div>
+    <nav class="links">
+      <a href="index.html#pillars">All Products</a>
+      <a href="about.html">About</a>
+      <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login</a>
+      <a href="pms.html#enquiry" class="nav-cta">Talk to an Expert</a>
+    </nav>
+    <button class="burger" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<div class="crumb">
+  <div class="wrap"><a href="pms.html">← Back to PMS</a></div>
+</div>
+
+<!-- ============ HERO ============ -->
+<section class="p-hero">
+  <div class="wrap">
+    <div class="eyebrow">PMS · Fees</div>
+    <h1>A small fee difference is a <em>large wealth difference.</em></h1>
+    <p class="lead">
+      Two portfolios with identical returns can leave you with very different amounts of money —
+      because fees compound too, year after year. myAlternates gives you PMS at the lowest fee on
+      the platform. Here's what that's worth.
+    </p>
+    <div class="hero-cta-row">
+      <a href="#calculator" class="btn-gold">Open the fee calculator ↓</a>
+      <a href="pms.html#enquiry" class="btn-ghost">Talk to an expert</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEE IMPACT ============ -->
+<section class="impact">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-tag">The compounding cost of fees</div>
+      <h2>See what 1% a year really costs you.</h2>
+    </div>
+
+    <div class="impact-grid">
+      <div class="impact-controls">
+        <div class="ic-field">
+          <label>Amount invested <b id="imp-amt-l">₹1.0 Cr</b></label>
+          <input type="range" id="imp-amt" min="50" max="1000" step="10" value="100">
+        </div>
+        <div class="ic-field">
+          <label>Annual return (gross) <b id="imp-ret-l">12%</b></label>
+          <input type="range" id="imp-ret" min="6" max="20" step="1" value="12">
+        </div>
+        <div class="ic-field">
+          <label>Time horizon <b id="imp-yrs-l">10 yrs</b></label>
+          <input type="range" id="imp-yrs" min="3" max="25" step="1" value="10">
+        </div>
+        <div class="ic-field">
+          <label>Typical PMS fee <b id="imp-hi-l">2.5%</b></label>
+          <input type="range" id="imp-hi" min="1" max="3" step="0.25" value="2.5">
+        </div>
+        <div class="ic-field">
+          <label>myAlternates fee <b id="imp-lo-l">1.5%</b></label>
+          <input type="range" id="imp-lo" min="0.5" max="2.5" step="0.25" value="1.5">
+        </div>
+      </div>
+
+      <div class="impact-result">
+        <div class="ir-label">Extra wealth kept with the lower fee</div>
+        <div class="ir-big" id="imp-saving">₹24.0 L</div>
+        <div class="ir-sub" id="imp-saving-sub">
+          Over 10 years, paying 1.5% instead of 2.5% a year leaves roughly this much more in your portfolio.
+        </div>
+        <div class="impact-compare">
+          <div class="high">
+            <div class="ic-cap">At the typical fee</div>
+            <div class="ic-val" id="imp-hi-val">₹2.72 Cr</div>
+          </div>
+          <div class="low">
+            <div class="ic-cap">At the myAlternates fee</div>
+            <div class="ic-val" id="imp-lo-val">₹2.96 Cr</div>
+          </div>
+        </div>
+        <p class="impact-note">
+          Illustrative only. Assumes the gross return is earned evenly each year and the fee is charged on
+          the year-end value. Not a projection or a scheme-level computation — use the detailed calculator
+          below for a fuller picture, and your scheme documents for actual terms.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY THROUGH US ============ -->
+<section class="whyus">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-tag">Why invest through myAlternates</div>
+      <h2>The lowest fee available on your chosen PMS.</h2>
+    </div>
+    <div class="feature-grid">
+      <div class="feature">
+        <div class="fnum">01</div>
+        <h4>Platform-negotiated pricing</h4>
+        <p>We pass through the most competitive fee structure available on each PMS strategy — no hidden mark-up between you and the manager.</p>
+      </div>
+      <div class="feature">
+        <div class="fnum">02</div>
+        <h4>Pay only on profit, where offered</h4>
+        <p>For strategies with a performance-fee option, you can choose a structure where the manager earns more only when you do.</p>
+      </div>
+      <div class="feature">
+        <div class="fnum">03</div>
+        <h4>Every cost, in one view</h4>
+        <p>Management fee, expenses, brokerage and performance fee — all visible on one dashboard alongside your MF, SIF, GIFT City and AIF holdings.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CALCULATOR ============ -->
+<section class="prose-section" id="calculator" style="background:var(--paper-2);">
+  <div class="wrap">
+    <div class="section-head" style="max-width:680px;">
+      <div class="section-tag">Illustrative tool</div>
+      <h2>PMS fee calculator</h2>
+      <p style="font-size:15px; line-height:1.65; color:var(--muted); margin-top:10px;">
+        Compare fixed, hybrid and performance fee structures across five years of gains and losses.
+        Every figure is an illustration built from your inputs — see the notes and disclosures below.
+      </p>
+    </div>
+
+    <div class="calc-shell">
+      <div class="calc">
+        <div class="fee-type-wrapper">
+          <div class="field-group">
+            <label>Fee type</label>
+            <select id="feeTypeSelect" onchange="switchTab(this.value)">
+              <option value="fixed">Fixed Fee Structure</option>
+              <option value="hybrid">Hybrid Fee Structure</option>
+              <option value="performance">Performance Fee Structure</option>
+            </select>
+            <span class="select-arrow">&#9660;</span>
+          </div>
+        </div>
+
+        <div id="section-fixed" class="section active">
+          <div class="inputs-row">
+            <div>
+              <div class="input-field capital-input-field" id="f-capital-field">
+                <label>Capital Contribution (Rs.)</label>
+                <input type="text" id="f-capital" value="50,00,000" oninput="onCapitalInput('f-capital','f-capital-words','f-capital-field','f-capital-err'); calcFixed()">
+                <span class="capital-words" id="f-capital-words">Fifty Lakhs Rupees</span>
+              </div>
+              <div class="capital-error" id="f-capital-err">Minimum capital contribution is 50 Lakhs</div>
+            </div>
+            <div class="input-field">
+              <label>Management Fee (%age per annum)</label>
+              <input type="text" id="f-mgmt" value="2.5" oninput="calcFixed()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Other Expenses (%age per annum)</label>
+              <input type="text" id="f-other" value="0.10" oninput="calcFixed()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field disabled">
+              <label>Performance Fee (%age per annum)</label>
+              <input type="text" value="0" disabled>
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field disabled">
+              <label>Hurdle Rate of Return (%age per annum)</label>
+              <input type="text" value="0" disabled>
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Brokerage and Transaction cost</label>
+              <input type="text" id="f-brok" value="0.10" oninput="calcFixed()">
+              <span class="unit">%</span>
+            </div>
+          </div>
+
+          <div class="scroll-hint">&#8596; Scroll table horizontally to see all years</div>
+          <div class="table-scroll-wrapper">
+            <table class="fee-table" id="fixed-table">
+              <thead>
+                <tr>
+                  <th class="col-fees-label">Fees</th>
+                  <th class="year-header">Year 1<br>Gain/Loss</th>
+                  <th class="year-header">Year 2<br>Gain/Loss</th>
+                  <th class="year-header">Year 3<br>Gain/Loss</th>
+                  <th class="year-header">Year 4<br>Gain/Loss</th>
+                  <th class="year-header">Year 5<br>Gain/Loss</th>
+                </tr>
+                <tr>
+                  <th></th>
+                  <th><input class="gain-input" id="f-g1" type="number" value="20" oninput="calcFixed()">%</th>
+                  <th><input class="gain-input" id="f-g2" type="number" value="-20" oninput="calcFixed()">%</th>
+                  <th><input class="gain-input" id="f-g3" type="number" value="10" oninput="calcFixed()">%</th>
+                  <th><input class="gain-input" id="f-g4" type="number" value="-15" oninput="calcFixed()">%</th>
+                  <th><input class="gain-input" id="f-g5" type="number" value="50" oninput="calcFixed()">%</th>
+                </tr>
+              </thead>
+              <tbody id="fixed-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="section-hybrid" class="section">
+          <div class="inputs-row">
+            <div>
+              <div class="input-field capital-input-field" id="h-capital-field">
+                <label>Capital Contribution (Rs.)</label>
+                <input type="text" id="h-capital" value="50,00,000" oninput="onCapitalInput('h-capital','h-capital-words','h-capital-field','h-capital-err'); calcHybrid()">
+                <span class="capital-words" id="h-capital-words">Fifty Lakhs Rupees</span>
+              </div>
+              <div class="capital-error" id="h-capital-err">Minimum capital contribution is &#8377;50 Lakhs</div>
+            </div>
+            <div class="input-field">
+              <label>Management Fee (%age per annum)</label>
+              <input type="text" id="h-mgmt" value="1" oninput="calcHybrid()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Other Expenses (%age per annum)</label>
+              <input type="text" id="h-other" value="0.10" oninput="calcHybrid()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Performance Fee (%age per annum)</label>
+              <input type="text" id="h-perf" value="15" oninput="calcHybrid()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Hurdle Rate of Return (%age per annum)</label>
+              <input type="text" id="h-hurdle" value="10" oninput="calcHybrid()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Brokerage and Transaction cost</label>
+              <input type="text" id="h-brok" value="0.10" oninput="calcHybrid()">
+              <span class="unit">%</span>
+            </div>
+          </div>
+
+          <div class="scroll-hint">&#8596; Scroll table horizontally to see all years</div>
+          <div class="table-scroll-wrapper">
+            <table class="fee-table" id="hybrid-table">
+              <thead>
+                <tr>
+                  <th class="col-fees-label">Fees</th>
+                  <th class="year-header">Year 1<br>Gain/Loss</th>
+                  <th class="year-header">Year 2<br>Gain/Loss</th>
+                  <th class="year-header">Year 3<br>Gain/Loss</th>
+                  <th class="year-header">Year 4<br>Gain/Loss</th>
+                  <th class="year-header">Year 5<br>Gain/Loss</th>
+                </tr>
+                <tr>
+                  <th></th>
+                  <th><input class="gain-input" id="h-g1" type="number" value="20" oninput="calcHybrid()">%</th>
+                  <th><input class="gain-input" id="h-g2" type="number" value="-20" oninput="calcHybrid()">%</th>
+                  <th><input class="gain-input" id="h-g3" type="number" value="10" oninput="calcHybrid()">%</th>
+                  <th><input class="gain-input" id="h-g4" type="number" value="-15" oninput="calcHybrid()">%</th>
+                  <th><input class="gain-input" id="h-g5" type="number" value="50" oninput="calcHybrid()">%</th>
+                </tr>
+              </thead>
+              <tbody id="hybrid-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="section-performance" class="section">
+          <div class="inputs-row">
+            <div>
+              <div class="input-field capital-input-field" id="p-capital-field">
+                <label>Capital Contribution (Rs.)</label>
+                <input type="text" id="p-capital" value="50,00,000" oninput="onCapitalInput('p-capital','p-capital-words','p-capital-field','p-capital-err'); calcPerf()">
+                <span class="capital-words" id="p-capital-words">Fifty Lakhs Rupees</span>
+              </div>
+              <div class="capital-error" id="p-capital-err">Minimum capital contribution is &#8377;50 Lakhs</div>
+            </div>
+            <div class="input-field disabled">
+              <label>Management Fee (%age per annum)</label>
+              <input type="text" value="0" disabled>
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Other Expenses (%age per annum)</label>
+              <input type="text" id="p-other" value="0.10" oninput="calcPerf()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Performance Fee (%age per annum)</label>
+              <input type="text" id="p-perf" value="20" oninput="calcPerf()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Hurdle Rate of Return (%age per annum)</label>
+              <input type="text" id="p-hurdle" value="8" oninput="calcPerf()">
+              <span class="unit">%</span>
+            </div>
+            <div class="input-field">
+              <label>Brokerage and Transaction cost</label>
+              <input type="text" id="p-brok" value="0.10" oninput="calcPerf()">
+              <span class="unit">%</span>
+            </div>
+          </div>
+
+          <div class="scroll-hint">&#8596; Scroll table horizontally to see all years</div>
+          <div class="table-scroll-wrapper">
+            <table class="fee-table" id="perf-table">
+              <thead>
+                <tr>
+                  <th class="col-fees-label">Fees</th>
+                  <th class="year-header">Year 1<br>Gain/Loss</th>
+                  <th class="year-header">Year 2<br>Gain/Loss</th>
+                  <th class="year-header">Year 3<br>Gain/Loss</th>
+                  <th class="year-header">Year 4<br>Gain/Loss</th>
+                  <th class="year-header">Year 5<br>Gain/Loss</th>
+                </tr>
+                <tr>
+                  <th></th>
+                  <th><input class="gain-input" id="p-g1" type="number" value="20" oninput="calcPerf()">%</th>
+                  <th><input class="gain-input" id="p-g2" type="number" value="-20" oninput="calcPerf()">%</th>
+                  <th><input class="gain-input" id="p-g3" type="number" value="10" oninput="calcPerf()">%</th>
+                  <th><input class="gain-input" id="p-g4" type="number" value="-15" oninput="calcPerf()">%</th>
+                  <th><input class="gain-input" id="p-g5" type="number" value="50" oninput="calcPerf()">%</th>
+                </tr>
+              </thead>
+              <tbody id="perf-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="notes-section">
+          <h3>Notes</h3>
+          <table class="notes-table">
+            <tr><td>1</td><td>Management fee frequency (annual/monthly/quarterly) is assumed only for illustration purposes. Actual fee frequency and computation methodology are scheme-specific and may differ across PMS/AIF products.</td></tr>
+            <tr><td>2</td><td>Management fees and other expenses in this illustration are calculated on an average portfolio value basis for simulation purposes and do not represent actual scheme-level computation methodology.</td></tr>
+            <tr><td>3</td><td>Returns in this illustration are assumed to be generated in a simplified manner and do not reflect actual market timing, intra-year volatility, or scheme-specific return computation methods.</td></tr>
+            <tr><td>4</td><td>Other expenses shown (including account opening charges, stamp duty, audit fee, bank charges, fund accounting, custody fee, demat charges, and miscellaneous expenses) are indicative for simulation purposes only and may vary significantly across schemes.</td></tr>
+            <tr><td>5</td><td>Brokerage and transaction costs in this illustration are assumed on average AUM for simulation purposes and actual charges are based on real trade activity and broker arrangements.</td></tr>
+            <tr><td>6</td><td>All fees, charges, and calculations in this illustration are subject to applicable taxes, GST, and statutory levies as per prevailing laws.</td></tr>
+            <tr><td>7</td><td>High Water Mark (HWM) is represented using illustrative simulation logic only and does not represent actual scheme-level HWM computation methodology.</td></tr>
+            <tr><td>8</td><td>Hurdle rate is represented as an illustrative parameter used for simulation purposes and may differ from actual scheme-defined hurdle structures.</td></tr>
+            <tr><td>9</td><td>Hurdle rate may be prorated for illustration purposes where the performance fee period is less than one year or where inflows/outflows occur during the computation period. Actual proration methodology is scheme-specific and may differ across PMS/AIF products.</td></tr>
+            <tr><td>10</td><td>Performance fee mechanics, including high water mark treatment, hurdle application, and profit allocation, are represented using simplified illustrative logic and are not actual scheme computation or trigger mechanisms.</td></tr>
+            <tr><td>11</td><td>Profit share/performance allocation shown is purely illustrative and does not represent actual PMS/AIF profit distribution, carried interest, or scheme-level performance fee computation.</td></tr>
+            <tr><td>12</td><td>Average daily portfolio value is calculated for illustration purposes only and may differ from actual valuation methodologies defined under scheme agreements.</td></tr>
+            <tr><td>13</td><td>All calculations assume a simplified direct-mode structure for illustration purposes only and may differ from actual investor-level fee application structures.</td></tr>
+            <tr><td>14</td><td>Any reference to exit load or post-performance fee deductions is illustrative only and may vary as per scheme-specific documents, offering memorandum, and investor agreements.</td></tr>
+          </table>
+        </div>
+
+        <div class="disclosures-section">
+          <h3>Important disclosures</h3>
+          <table class="notes-table">
+            <tr><td>1</td><td>This calculator is a comparative and illustrative tool provided by myAlternates for educational and informational purposes and does not represent or replicate any PMS or AIF scheme-level computation methodology.</td></tr>
+            <tr><td>2</td><td>All outputs are indicative in nature and are derived solely from user-entered assumptions and scenario inputs.</td></tr>
+            <tr><td>3</td><td>PMS/AIF fee structures, computation methodologies, and performance mechanisms vary across different portfolio managers, AIF sponsors, and schemes and are not replicated or computed as actual scheme logic in this tool.</td></tr>
+            <tr><td>4</td><td>This tool does not constitute investment advice, tax advice, legal advice, or any recommendation to invest in any PMS or AIF product.</td></tr>
+            <tr><td>5</td><td>Investors should refer to the respective Disclosure Document, Private Placement Memorandum (PPM), Contribution Agreement, or Investment Management Agreement for actual terms applicable to a specific scheme.</td></tr>
+            <tr><td>6</td><td>Performance fee mechanisms such as high-water mark, hurdle rates, catch-up provisions, equalization, crystallization frequency, and profit allocation logic are scheme-specific and are represented only through illustrative simulation logic in this calculator and may differ from actual scheme computation methodologies.</td></tr>
+            <tr><td>7</td><td>Management fee, performance fee, expense treatment, and profit allocation shown are illustrative approximations for comparison purposes only and do not represent actual scheme-level fee computation or trigger logic.</td></tr>
+            <tr><td>8</td><td>Actual investor outcomes may vary based on timing of investments, withdrawals, fee crystallization cycles, equalization adjustments, and scheme-specific accounting treatments.</td></tr>
+            <tr><td>9</td><td>Taxes, GST, and statutory levies may apply as per applicable laws and scheme terms.</td></tr>
+            <tr><td>10</td><td>myAlternates acts as a neutral information and comparison platform and distributor ecosystem facilitator, and does not control or determine PMS/AIF fee methodologies or scheme-level performance calculations.</td></tr>
+            <tr><td>11</td><td>In case of any conflict or discrepancy, the terms of the respective official scheme documents, PPM, and executed investor agreements shall prevail over this calculator and its outputs.</td></tr>
+            <tr><td>12</td><td>This calculator is not an official statement from any PMS or AIF manager and should not be interpreted as scheme-level computation, pricing mechanism, or fee trigger engine of any PMS/AIF product.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="about-cta" style="background:var(--ink); color:var(--paper); padding:80px 0; text-align:center;">
+  <div class="wrap">
+    <h2 style="font-family:'Fraunces',Georgia,serif; font-weight:500; font-size:clamp(26px,3vw,36px); margin-bottom:14px;">Check your lowest available PMS fee</h2>
+    <p style="color:var(--muted-light); font-size:15px; margin:0 auto 28px; max-width:520px;">Tell us which PMS you're considering and an expert will come back with the most competitive fee structure available on it.</p>
+    <a href="pms.html#enquiry" class="btn-gold">Talk to an expert →</a>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-logo"><img src="assets/logo-foot.png" alt="myAlternates"></div>
+        <p>Combined dashboard for PMS, MF, SIF, GIFT City and AIF — competitive pricing, plus a dedicated distributor dashboard to manage and track every client.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Products</h5>
+        <a href="pms.html">PMS</a>
+        <a href="mf.html">Mutual Funds</a>
+        <a href="sif.html">SIF</a>
+        <a href="gift-city.html">GIFT City</a>
+        <a href="aif.html">AIF</a>
+      </div>
+      <div class="foot-col">
+        <h5>Platform</h5>
+        <a href="about.html">About</a>
+        <a href="index.html#pillars">Offering</a>
+        <a href="pms.html#enquiry">Talk to an Expert</a>
+      </div>
+      <div class="foot-col">
+        <h5>Login</h5>
+        <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login</a>
+        <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 myAlternates. All rights reserved.</span>
+      <span>Powered by PMS Bazaar</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ---------- compact fee-impact widget ---------- */
+(function () {
+  var ids = ['imp-amt','imp-ret','imp-yrs','imp-hi','imp-lo'];
+  var els = {};
+  ids.forEach(function (id) { els[id] = document.getElementById(id); });
+
+  function fmtCr(n) {
+    // n in rupees
+    if (n >= 1e7) return '₹' + (n / 1e7).toFixed(2) + ' Cr';
+    return '₹' + (n / 1e5).toFixed(1) + ' L';
+  }
+  function grow(principal, grossRate, feeRate, years) {
+    var v = principal;
+    for (var y = 0; y < years; y++) {
+      v = v * (1 + grossRate);      // gross growth
+      v = v - v * feeRate;          // fee on year-end value
+    }
+    return v;
+  }
+  function render() {
+    var amt = +els['imp-amt'].value * 100000;      // lakhs -> rupees
+    var ret = +els['imp-ret'].value / 100;
+    var yrs = +els['imp-yrs'].value;
+    var hi = +els['imp-hi'].value / 100;
+    var lo = +els['imp-lo'].value / 100;
+
+    document.getElementById('imp-amt-l').textContent = amt >= 1e7 ? '₹' + (amt / 1e7).toFixed(1) + ' Cr' : '₹' + (amt / 1e5).toFixed(0) + ' L';
+    document.getElementById('imp-ret-l').textContent = els['imp-ret'].value + '%';
+    document.getElementById('imp-yrs-l').textContent = yrs + ' yrs';
+    document.getElementById('imp-hi-l').textContent = (+els['imp-hi'].value).toFixed(2).replace(/\.?0+$/, '') + '%';
+    document.getElementById('imp-lo-l').textContent = (+els['imp-lo'].value).toFixed(2).replace(/\.?0+$/, '') + '%';
+
+    var vHi = grow(amt, ret, hi, yrs);
+    var vLo = grow(amt, ret, lo, yrs);
+    var saving = Math.max(0, vLo - vHi);
+
+    document.getElementById('imp-hi-val').textContent = fmtCr(vHi);
+    document.getElementById('imp-lo-val').textContent = fmtCr(vLo);
+    document.getElementById('imp-saving').textContent = fmtCr(saving);
+    document.getElementById('imp-saving-sub').textContent =
+      'Over ' + yrs + ' years, paying ' + document.getElementById('imp-lo-l').textContent +
+      ' instead of ' + document.getElementById('imp-hi-l').textContent +
+      ' a year leaves roughly this much more in your portfolio.';
+  }
+  ids.forEach(function (id) { els[id].addEventListener('input', render); });
+  render();
+})();
+</script>
+
+<script>
+/* ---------- detailed fee calculator (engine unchanged from reference) ---------- */
+function lbl(main, suffix) {
+  if (!suffix) return main;
+  return main + ' <span class="label-suffix">(' + suffix + ')</span>';
+}
+
+function parseAmt(str) {
+  if (typeof str === 'number') return str;
+  var n = parseFloat(String(str).replace(/,/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+function parsePct(id) {
+  var el = document.getElementById(id);
+  if (!el) return 0;
+  var n = parseFloat(el.value);
+  return isNaN(n) ? 0 : n;
+}
+
+function fmtNum(n) {
+  if (n === 0) return '0';
+  var neg = n < 0;
+  var abs = Math.abs(Math.round(n));
+  var s = String(abs);
+  var result = '';
+  if (s.length <= 3) {
+    result = s;
+  } else {
+    result = s.slice(-3);
+    s = s.slice(0, -3);
+    while (s.length > 2) {
+      result = s.slice(-2) + ',' + result;
+      s = s.slice(0, -2);
+    }
+    result = s + ',' + result;
+  }
+  return (neg ? '-' : '') + result;
+}
+
+function fmtPct(n) { return n.toFixed(2) + '%'; }
+
+function cell(val, isNeg) {
+  var n = Math.round(val);
+  var cls = (n < 0 || isNeg) ? 'neg' : 'pos';
+  return '<td class="' + cls + '">' + fmtNum(n) + '</td>';
+}
+
+var ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+            'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+            'Seventeen', 'Eighteen', 'Nineteen'];
+var tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+function twoDigitWords(n) {
+  if (n < 20) return ones[n];
+  return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + ones[n % 10] : '');
+}
+
+function threeDigitWords(n) {
+  var h = Math.floor(n / 100);
+  var rem = n % 100;
+  var str = '';
+  if (h) str += ones[h] + ' Hundred';
+  if (rem) str += (str ? ' ' : '') + twoDigitWords(rem);
+  return str;
+}
+
+function numberToIndianWords(num) {
+  num = Math.floor(Math.abs(num));
+  if (num === 0) return 'Zero Rupees';
+  var crore  = Math.floor(num / 10000000);
+  var lakh   = Math.floor((num % 10000000) / 100000);
+  var thous  = Math.floor((num % 100000) / 1000);
+  var rem    = num % 1000;
+  var parts = [];
+  if (crore)  parts.push(threeDigitWords(crore)  + (crore  > 1 ? ' Crores'  : ' Crore'));
+  if (lakh)   parts.push(threeDigitWords(lakh)   + (lakh   > 1 ? ' Lakhs'   : ' Lakh'));
+  if (thous)  parts.push(threeDigitWords(thous)  + (thous  > 1 ? ' Thousands': ' Thousand'));
+  if (rem)    parts.push(threeDigitWords(rem));
+  return parts.join(' ') + ' Rupees';
+}
+
+var MIN_CAPITAL = 5000000;
+
+function onCapitalInput(inputId, wordsId, fieldId, errId) {
+  var el = document.getElementById(inputId);
+  var raw = el.value.replace(/,/g, '').replace(/[^0-9]/g, '');
+  var fieldEl = document.getElementById(fieldId);
+  var errEl   = document.getElementById(errId);
+  var formatted = '';
+  if (raw.length > 0) {
+    var num = parseInt(raw, 10);
+    if (!isNaN(num)) {
+      formatted = fmtNum(num);
+      document.getElementById(wordsId).textContent = numberToIndianWords(num);
+      if (num < MIN_CAPITAL) {
+        fieldEl.classList.add('capital-invalid');
+        errEl.classList.add('visible');
+      } else {
+        fieldEl.classList.remove('capital-invalid');
+        errEl.classList.remove('visible');
+      }
+    } else {
+      document.getElementById(wordsId).textContent = '';
+      fieldEl.classList.remove('capital-invalid');
+      errEl.classList.remove('visible');
+    }
+  } else {
+    document.getElementById(wordsId).textContent = '';
+    fieldEl.classList.remove('capital-invalid');
+    errEl.classList.remove('visible');
+  }
+  el.value = formatted;
+}
+
+function switchTab(val) {
+  document.querySelectorAll('.calc .section').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('section-' + val).classList.add('active');
+}
+
+document.getElementById('feeTypeSelect').addEventListener('change', function() {
+  switchTab(this.value);
+});
+
+var FIXED_LABELS = [
+  { main: 'Capital Contributed / AUM',                          suffix: 'User Input Assumption' },
+  { main: 'Gain / (Loss)',                                      suffix: 'Scenario-Based Assumption' },
+  { main: 'Gross Portfolio Value',                              suffix: 'Illustrative Computation' },
+  { main: 'Daily Weighted Average AUM',                         suffix: 'Derived Illustrative Value' },
+  { main: 'Other Expenses',                                     suffix: 'Estimated Expense - Illustrative' },
+  { main: 'Brokerage &amp; Transaction Cost',                   suffix: 'Estimated Transaction Cost - Illustrative' },
+  { main: 'Management Fees',                                    suffix: 'Illustrative Calculation Based on User Assumptions' },
+  { main: 'Total Charges',                                      suffix: 'Aggregate Illustrative Charges' },
+  { main: 'Net Portfolio Value',                                suffix: 'Indicative Value After Charges' },
+  { main: 'Portfolio Return %',                                 suffix: 'Indicative Return-Scenario-Based' }
+];
+
+var LONG_LABELS = [
+  { main: 'Capital Contributed / AUM',                          suffix: 'User Input Assumption' },
+  { main: 'Gain / (Loss)',                                      suffix: 'Scenario-Based Assumption' },
+  { main: 'Gross Portfolio Value',                              suffix: 'Illustrative Computation' },
+  { main: 'Daily Weighted Average AUM',                         suffix: 'Derived Illustrative Value' },
+  { main: 'Other Expenses',                                     suffix: 'Estimated Expense - Illustrative' },
+  { main: 'Brokerage &amp; Transaction Cost',                   suffix: 'Estimated Transaction Cost - Illustrative' },
+  { main: 'Management Fees',                                    suffix: 'Illustrative Calculation Based on User Assumptions' },
+  { main: 'Total Charges',                                      suffix: 'Aggregate Illustrative Charges' },
+  { main: 'Net Portfolio Value',                                suffix: 'Indicative Value After Charges' },
+  { main: 'High Water Mark',                                    suffix: 'HWM-Scheme-Specific Logic Used for Illustration Only, Not Actual Scheme Computation' },
+  { main: 'Hurdle Rate',                                        suffix: 'Scheme-Specific Threshold-Illustrative Assumption, Not Actual Scheme Parameter' },
+  { main: 'Portfolio Value in Excess of Hurdle Rate Return',    suffix: '' },
+  { main: 'Profit Share of PMS',                                suffix: 'Illustrative Performance Allocation-Not Actual Scheme Profit Distribution' },
+  { main: 'Profit Share To be Taken by PMS',                    suffix: '' },
+  { main: 'Performance Fee Applicability',                      suffix: 'Indicative Trigger Status Based on Illustrative Conditions' },
+  { main: 'Net Value After Fees',                               suffix: 'Indicative Portfolio Value After All Illustrative Charges' },
+  { main: 'Portfolio Return %',                                 suffix: 'Indicative Return-Scenario-Based' },
+  { main: 'High Water Mark Carried Forward',                    suffix: '' }
+];
+
+function calcFixed() {
+  var capital  = parseAmt(document.getElementById('f-capital').value);
+  if (capital < MIN_CAPITAL) capital = MIN_CAPITAL;
+  var mgmtPct  = parsePct('f-mgmt')  / 100;
+  var otherPct = parsePct('f-other') / 100;
+  var brokPct  = parsePct('f-brok')  / 100;
+  var gains = [1,2,3,4,5].map(function(n) {
+    var el = document.getElementById('f-g' + n);
+    return el ? (parseFloat(el.value) || 0) / 100 : 0;
+  });
+
+  var rows = [];
+  var i_val = capital;
+  for (var y = 0; y < 5; y++) {
+    var i   = Math.round(i_val);
+    var ii  = Math.round(i * gains[y]);
+    var iii = Math.round(i + ii);
+    var iv  = Math.round((iii + i) / 2);
+    var v   = -Math.abs(Math.round(iv * otherPct));
+    var vi  = -Math.abs(Math.round(iv * brokPct));
+    var vii = -Math.abs(Math.round((iv + v + vi) * mgmtPct));
+    var viii = Math.round(v + vi + vii);
+    var ix  = Math.round(iii + viii);
+    var x   = i !== 0 ? ((ix / i) - 1) * 100 : 0;
+    rows.push({ i, ii, iii, iv, v, vi, vii, viii, ix, x });
+    i_val = ix;
+  }
+
+  var tbody = document.getElementById('fixed-tbody');
+  tbody.innerHTML = '';
+  var defs = [
+    { key:'i' }, { key:'ii' }, { key:'iii' }, { key:'iv' },
+    { key:'v' }, { key:'vi' }, { key:'vii' }, { key:'viii' },
+    { key:'ix' }, { key:'x' }
+  ];
+  for (var r = 0; r < defs.length; r++) {
+    var d = defs[r];
+    var L = FIXED_LABELS[r];
+    var tr = document.createElement('tr');
+    var pctRow = (r === 9);
+    tr.innerHTML = '<td class="label-cell">' + lbl(L.main, L.suffix) + '</td>';
+    for (var y = 0; y < 5; y++) {
+      var val = rows[y][d.key];
+      if (pctRow) {
+        tr.innerHTML += '<td class="' + (val < 0 ? 'neg' : 'pos') + '">' + fmtPct(val) + '</td>';
+      } else {
+        tr.innerHTML += cell(val, val < 0);
+      }
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+function calcHybrid() {
+  var capital   = parseAmt(document.getElementById('h-capital').value);
+  if (capital < MIN_CAPITAL) capital = MIN_CAPITAL;
+  var mgmtPct   = parsePct('h-mgmt')   / 100;
+  var otherPct  = parsePct('h-other')  / 100;
+  var brokPct   = parsePct('h-brok')   / 100;
+  var perfPct   = parsePct('h-perf')   / 100;
+  var hurdlePct = parsePct('h-hurdle') / 100;
+  var gains = [1,2,3,4,5].map(function(n) {
+    var el = document.getElementById('h-g' + n);
+    return el ? (parseFloat(el.value) || 0) / 100 : 0;
+  });
+
+  var hwm = capital, prevClose = capital, results = [];
+  for (var y = 0; y < 5; y++) {
+    var i    = Math.round(prevClose);
+    var ii   = Math.round(i * gains[y]);
+    var iii  = Math.round(i + ii);
+    var iv   = Math.round((iii + i) / 2);
+    var v    = -Math.abs(Math.round(iv * otherPct));
+    var vi   = -Math.abs(Math.round(iv * brokPct));
+    var vii  = -Math.abs(Math.round((iv + v + vi) * mgmtPct));
+    var viii = Math.round(v + vi + vii);
+    var ix   = Math.round(iii + viii);
+    var x_hwm = Math.round(y === 0 ? capital : hwm);
+    var xi   = Math.round(Math.max(x_hwm, i) * hurdlePct);
+    var xii  = ix > (x_hwm + xi) ? Math.round(ix - x_hwm - xi) : 0;
+    var xiii = Math.round(xii * perfPct);
+    var xiv  = xiii;
+    var xv   = xiii > 0 ? 'Yes' : 'No Performance Fee';
+    var xvi  = Math.round(ix - xiii);
+    var xvii = i !== 0 ? ((xvi / i) - 1) * 100 : 0;
+    var prevHwm = y > 0 ? results[y-1].xviii : capital;
+    var xviii = (xv === 'Yes') ? ix : Math.max(ix, i, prevHwm);
+    results.push({ i, ii, iii, iv, v, vi, vii, viii, ix, x_hwm, xi, xii, xiii, xiv, xv, xvi, xvii, xviii });
+    hwm = xviii; prevClose = xvi;
+  }
+
+  var tbody = document.getElementById('hybrid-tbody');
+  tbody.innerHTML = '';
+  var defs = [
+    { key:'i' }, { key:'ii' }, { key:'iii' }, { key:'iv' },
+    { key:'v' }, { key:'vi' }, { key:'vii' }, { key:'viii' },
+    { key:'ix' }, { key:'x_hwm' }, { key:'xi' }, { key:'xii' },
+    { key:'xiii' }, { key:'xiv' }, { key:'xv' }, { key:'xvi' },
+    { key:'xvii' }, { key:'xviii' }
+  ];
+  for (var r = 0; r < defs.length; r++) {
+    var d = defs[r];
+    var L = LONG_LABELS[r];
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="label-cell">' + lbl(L.main, L.suffix) + '</td>';
+    for (var y = 0; y < 5; y++) {
+      var val = results[y][d.key];
+      if (d.key === 'xvii')      tr.innerHTML += '<td class="' + (val < 0 ? 'neg' : 'pos') + '">' + fmtPct(val) + '</td>';
+      else if (d.key === 'xv')   tr.innerHTML += '<td class="' + (val === 'Yes' ? 'pos' : 'no-p') + '">' + val + '</td>';
+      else if (typeof val === 'number') tr.innerHTML += cell(val, val < 0);
+      else tr.innerHTML += '<td>' + val + '</td>';
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+function calcPerf() {
+  var capital   = parseAmt(document.getElementById('p-capital').value);
+  if (capital < MIN_CAPITAL) capital = MIN_CAPITAL;
+  var otherPct  = parsePct('p-other')  / 100;
+  var brokPct   = parsePct('p-brok')   / 100;
+  var perfPct   = parsePct('p-perf')   / 100;
+  var hurdlePct = parsePct('p-hurdle') / 100;
+  var gains = [1,2,3,4,5].map(function(n) {
+    var el = document.getElementById('p-g' + n);
+    return el ? (parseFloat(el.value) || 0) / 100 : 0;
+  });
+
+  var hwm = capital, prevClose = capital, results = [];
+  for (var y = 0; y < 5; y++) {
+    var i    = Math.round(prevClose);
+    var ii   = Math.round(i * gains[y]);
+    var iii  = Math.round(i + ii);
+    var iv   = Math.round((iii + i) / 2);
+    var v    = -Math.abs(Math.round(iv * otherPct));
+    var vi   = -Math.abs(Math.round(iv * brokPct));
+    var vii  = 0;
+    var viii = Math.round(v + vi + vii);
+    var ix   = Math.round(iii + viii);
+    var x_hwm = Math.round(y === 0 ? capital : hwm);
+    var xi   = Math.round(Math.max(x_hwm, i) * hurdlePct);
+    var xii  = ix > (x_hwm + xi) ? Math.round(ix - x_hwm - xi) : 0;
+    var xiii = Math.round(xii * perfPct);
+    var xiv  = xiii;
+    var xv   = xiii > 0 ? 'Yes' : 'No Performance Fee';
+    var xvi  = Math.round(ix - xiii);
+    var xvii = i !== 0 ? ((xvi / i) - 1) * 100 : 0;
+    var prevHwm = y > 0 ? results[y-1].xviii : capital;
+    var xviii = (xv === 'Yes') ? ix : Math.max(ix, i, prevHwm);
+    results.push({ i, ii, iii, iv, v, vi, vii, viii, ix, x_hwm, xi, xii, xiii, xiv, xv, xvi, xvii, xviii });
+    hwm = xviii; prevClose = xvi;
+  }
+
+  var tbody = document.getElementById('perf-tbody');
+  tbody.innerHTML = '';
+  var defs = [
+    { key:'i' }, { key:'ii' }, { key:'iii' }, { key:'iv' },
+    { key:'v' }, { key:'vi' }, { key:'vii' }, { key:'viii' },
+    { key:'ix' }, { key:'x_hwm' }, { key:'xi' }, { key:'xii' },
+    { key:'xiii' }, { key:'xiv' }, { key:'xv' }, { key:'xvi' },
+    { key:'xvii' }, { key:'xviii' }
+  ];
+  for (var r = 0; r < defs.length; r++) {
+    var d = defs[r];
+    var L = LONG_LABELS[r];
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td class="label-cell">' + lbl(L.main, L.suffix) + '</td>';
+    for (var y = 0; y < 5; y++) {
+      var val = results[y][d.key];
+      if (d.key === 'xvii')      tr.innerHTML += '<td class="' + (val < 0 ? 'neg' : 'pos') + '">' + fmtPct(val) + '</td>';
+      else if (d.key === 'xv')   tr.innerHTML += '<td class="' + (val === 'Yes' ? 'pos' : 'no-p') + '">' + val + '</td>';
+      else if (typeof val === 'number') tr.innerHTML += cell(val, val < 0);
+      else tr.innerHTML += '<td>' + val + '</td>';
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+calcFixed();
+calcHybrid();
+calcPerf();
+</script>
+</body>
+</html>
