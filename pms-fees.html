@@ -150,12 +150,31 @@
   }
   .calc .gain-input:focus{ outline:none; border-color:var(--emerald); }
 
-  .calc .notes-section{ margin-top:28px; }
-  .calc .notes-section h3, .calc .disclosures-section h3{
-    font-family:'Fraunces', Georgia, serif; font-size:17px; font-weight:500; margin-bottom:12px; color:var(--ink-text);
+  .calc details.fold{
+    margin-top:20px; border:1px solid #e6dfcd; border-radius:12px;
+    background:var(--paper-2); overflow:hidden;
   }
-  .calc .disclosures-section{ margin-top:26px; }
-  .calc .notes-table{ width:100%; border-collapse:collapse; }
+  .calc details.fold summary{
+    list-style:none; cursor:pointer; padding:15px 20px;
+    font-family:'Fraunces', Georgia, serif; font-size:17px; font-weight:500; color:var(--ink-text);
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+  }
+  .calc details.fold summary::-webkit-details-marker{ display:none; }
+  .calc details.fold summary .fold-hint{
+    font-family:'Manrope', sans-serif; font-size:11px; font-weight:600;
+    letter-spacing:0.04em; text-transform:uppercase; color:var(--muted);
+    margin-left:auto; display:flex; align-items:center; gap:8px;
+  }
+  .calc details.fold summary .fold-hint::after{
+    content:'⌄'; font-size:18px; color:var(--emerald); line-height:1; transition:transform .2s ease;
+  }
+  .calc details.fold[open] summary .fold-hint::after{ transform:rotate(180deg); }
+  .calc details.fold[open] summary .fold-hint .lbl-closed{ display:none; }
+  .calc details.fold summary .fold-hint .lbl-open{ display:none; }
+  .calc details.fold[open] summary .fold-hint .lbl-open{ display:inline; }
+  .calc details.fold summary:hover{ color:var(--emerald); }
+  .calc details.fold .fold-body{ padding:0 20px 18px; }
+  .calc .notes-table{ width:100%; border-collapse:collapse; background:#fff; }
   .calc .notes-table td{ border:1px solid #e6dfcd; padding:8px 11px; font-size:11.5px; vertical-align:top; color:#3a3f47; line-height:1.55; }
   .calc .notes-table td:first-child{ width:34px; text-align:center; font-weight:700; background:var(--paper-2); color:var(--emerald); }
 
@@ -512,8 +531,9 @@
           </div>
         </div>
 
-        <div class="notes-section">
-          <h3>Notes</h3>
+        <details class="fold">
+          <summary>Notes <span class="fold-hint"><span class="lbl-closed">Show</span><span class="lbl-open">Hide</span></span></summary>
+          <div class="fold-body">
           <table class="notes-table">
             <tr><td>1</td><td>Management fee frequency (annual/monthly/quarterly) is assumed only for illustration purposes. Actual fee frequency and computation methodology are scheme-specific and may differ across PMS/AIF products.</td></tr>
             <tr><td>2</td><td>Management fees and other expenses in this illustration are calculated on an average portfolio value basis for simulation purposes and do not represent actual scheme-level computation methodology.</td></tr>
@@ -530,10 +550,12 @@
             <tr><td>13</td><td>All calculations assume a simplified direct-mode structure for illustration purposes only and may differ from actual investor-level fee application structures.</td></tr>
             <tr><td>14</td><td>Any reference to exit load or post-performance fee deductions is illustrative only and may vary as per scheme-specific documents, offering memorandum, and investor agreements.</td></tr>
           </table>
-        </div>
+          </div>
+        </details>
 
-        <div class="disclosures-section">
-          <h3>Important disclosures</h3>
+        <details class="fold">
+          <summary>Important disclosures <span class="fold-hint"><span class="lbl-closed">Show</span><span class="lbl-open">Hide</span></span></summary>
+          <div class="fold-body">
           <table class="notes-table">
             <tr><td>1</td><td>This calculator is a comparative and illustrative tool provided by myAlternates for educational and informational purposes and does not represent or replicate any PMS or AIF scheme-level computation methodology.</td></tr>
             <tr><td>2</td><td>All outputs are indicative in nature and are derived solely from user-entered assumptions and scenario inputs.</td></tr>
@@ -548,7 +570,8 @@
             <tr><td>11</td><td>In case of any conflict or discrepancy, the terms of the respective official scheme documents, PPM, and executed investor agreements shall prevail over this calculator and its outputs.</td></tr>
             <tr><td>12</td><td>This calculator is not an official statement from any PMS or AIF manager and should not be interpreted as scheme-level computation, pricing mechanism, or fee trigger engine of any PMS/AIF product.</td></tr>
           </table>
-        </div>
+          </div>
+        </details>
       </div>
     </div>
   </div>
