@@ -1,18 +1,32 @@
 /* ==========================================================================
    myAlternates — shared lead form for product pages.
-   Posts to the same Apps Script web app / Google Sheet as the main enquiry form.
 
-   Usage on a page:
-     <form id="leadForm" data-interest="Portfolio Management Services (PMS)"> ... </form>
-   The form must contain: #lf-name #lf-email #lf-mobile #lf-cc (mobile code select)
-   #lf-country (country select) #lf-pincode #lf-submit, plus a sibling
-   .form-success block with #lf-ok-title / #lf-ok-body.
+   - Posts to the same Apps Script web app / Google Sheet as index.html.
+   - Pincode auto-fills city/state via zipcodebase (same as index.html);
+     falls back to a manual city/state row when the pincode can't be resolved.
+   - Submit is optimistic: the lead POST fires immediately and the UI moves
+     straight to the full-screen "schedule a call" step, so the button never
+     appears to hang on the Apps Script round-trip.
+   - The schedule step mirrors index.html (date scroller / time grid / mode)
+     but is rendered as a full-screen page, not a small popup.
+
+   Page contract:
+     <form id="leadForm" data-interest="Portfolio Management Services (PMS)">
+       #lf-name #lf-email #lf-cc #lf-mobile #lf-country #lf-pincode #lf-submit
+     </form>
+     <div class="form-success"> #lf-ok-title #lf-ok-body </div>
    ========================================================================== */
 (function () {
   'use strict';
 
-  // Same deployed Apps Script /exec as the main site's enquiry form.
   var LEADS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzHAuxW3oxq7GX2fMa5YaMJDy_8jFSLsaob7A8VOdDMx_Hb3DsBnpAguCPyAtucw0Wt/exec';
+
+  // Same location service index.html uses.
+  var ZIPCODEBASE_API_KEY = 'e7760cf0-6fd0-11f1-85e2-ffa5f29d7b10';
+  var ZIPCODEBASE_URL = 'https://app.zipcodebase.com/api/v1/search';
+
+  var TIME_SLOTS = ['10:30 AM', '11:30 AM', '12:30 PM', '01:30 PM', '02:30 PM', '03:30 PM', '04:30 PM', '05:30 PM'];
+  var MODES = ['Phone Call', 'Zoom Call', 'Google Meet'];
 
   var COUNTRIES = [
     ['AF','Afghanistan'],['AL','Albania'],['DZ','Algeria'],['AD','Andorra'],['AO','Angola'],
@@ -80,78 +94,371 @@
     UZ:'+998',VU:'+678',VA:'+379',VE:'+58',VN:'+84',YE:'+967',ZM:'+260',ZW:'+263'
   };
 
-  function build() {
-    var form = document.getElementById('leadForm');
-    if (!form) return;
+  // ---- state shared across the flow ----
+  var form, countrySel, ccSel, pinInput, statusEl, manualRow, cityInput, stateInput;
+  var lead = null;               // the submitted enquiry
+  var submitPromise = null;      // in-flight initial POST (for the row number)
+  var detected = { area: '', city: '', state: '' };
+  var pinDebounce = null, pinReqId = 0;
 
-    var countrySel = document.getElementById('lf-country');
-    var ccSel = document.getElementById('lf-cc');
-    var i, opt, c;
-
-    for (i = 0; i < COUNTRIES.length; i++) {
-      c = COUNTRIES[i];
-      opt = document.createElement('option');
-      opt.value = c[0];
-      opt.textContent = c[1];
-      if (c[0] === 'IN') opt.selected = true;
-      countrySel.appendChild(opt);
-
-      opt = document.createElement('option');
-      opt.value = DIAL_CODES[c[0]] || '';
-      opt.textContent = c[0] + ' ' + (DIAL_CODES[c[0]] || '');
-      if (c[0] === 'IN') opt.selected = true;
-      ccSel.appendChild(opt);
-    }
-
-    countrySel.addEventListener('change', function () {
-      var d = DIAL_CODES[this.value];
-      if (d) ccSel.value = d;
-    });
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (!form.checkValidity()) { form.reportValidity(); return; }
-
-      var btn = document.getElementById('lf-submit');
-      btn.disabled = true;
-      var originalLabel = btn.textContent;
-      btn.textContent = 'Sending…';
-
-      var payload = {
-        role: 'Investor',
-        name: document.getElementById('lf-name').value.trim(),
-        email: document.getElementById('lf-email').value.trim(),
-        mobileCountryCode: ccSel.value,
-        mobile: document.getElementById('lf-mobile').value.trim(),
-        country: countrySel.options[countrySel.selectedIndex].textContent,
-        pincode: document.getElementById('lf-pincode').value.trim(),
-        city: '',
-        state: '',
-        interest: form.getAttribute('data-interest') || 'Not sure yet — need guidance'
-      };
-
-      send(payload).then(function (res) {
-        if (res && res.ok) {
-          form.style.display = 'none';
-          var ok = document.querySelector('.form-success');
-          if (ok) ok.classList.add('show');
-        } else {
-          btn.disabled = false;
-          btn.textContent = originalLabel;
-          alert('Sorry — we could not submit your request. Please try again, or email info@myalternates.com.'
-            + (res && res.error ? '\n\n(' + res.error + ')' : ''));
-        }
-      });
-    });
+  function el(tag, cls, html) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (html != null) n.innerHTML = html;
+    return n;
   }
 
   function send(payload) {
-    // text/plain avoids a CORS preflight; Apps Script returns JSON for simple requests.
     return fetch(LEADS_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     }).then(function (r) { return r.json(); }).catch(function () { return null; });
+  }
+
+  /* ---------------- pincode lookup ---------------- */
+
+  function setStatus(text, kind) {
+    if (!statusEl) return;
+    statusEl.textContent = text || '';
+    statusEl.className = 'field-status' + (kind ? ' ' + kind : '');
+  }
+
+  function showManual() {
+    if (manualRow) { manualRow.style.display = 'grid'; cityInput.required = true; stateInput.required = true; }
+  }
+  function hideManual() {
+    if (manualRow) { manualRow.style.display = 'none'; cityInput.required = false; stateInput.required = false; }
+  }
+  function clearLocation() {
+    detected = { area: '', city: '', state: '' };
+    if (cityInput) cityInput.value = '';
+    if (stateInput) stateInput.value = '';
+  }
+  function usableCity(v) {
+    v = (v || '').trim();
+    return v.length > 0 && v.toUpperCase() !== 'N';
+  }
+
+  function lookupPincode(code) {
+    var country = countrySel.value || 'IN';
+    var reqId = ++pinReqId;
+    setStatus('Looking up pincode…', 'loading');
+
+    fetch(ZIPCODEBASE_URL + '?codes=' + encodeURIComponent(code) + '&apikey=' + ZIPCODEBASE_API_KEY + '&country=' + encodeURIComponent(country))
+      .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); })
+      .then(function (data) { return (data && data.results && data.results[code]) || null; })
+      .catch(function () { return null; })
+      .then(function (entries) {
+        if (reqId !== pinReqId) return; // superseded
+        var m = (entries && entries.length) ? entries[0] : null;
+        if (!m || !usableCity(m.city)) {
+          clearLocation();
+          showManual();
+          setStatus('Enter your city and state below.', 'warn');
+          return;
+        }
+        // Response shape mirrors index.html: area <- city, city <- province, state <- state_en
+        detected.area = m.city || '';
+        detected.city = m.province || '';
+        detected.state = m.state_en || m.state || '';
+        if (cityInput) cityInput.value = detected.city;
+        if (stateInput) stateInput.value = detected.state;
+        hideManual();
+        setStatus([detected.city, detected.state].filter(Boolean).join(', '), 'ok');
+      });
+  }
+
+  function wirePincode() {
+    // status line + manual city/state row, injected right after the pincode field
+    var pinField = pinInput.closest('.field') || pinInput.parentNode;
+    statusEl = el('span', 'field-status');
+    statusEl.id = 'lf-status';
+    pinField.appendChild(statusEl);
+
+    var host = pinField.closest('.field-row') || pinField;
+    manualRow = el('div', 'field-row lf-manual',
+      '<div class="field"><label for="lf-city">City</label><input id="lf-city" type="text" placeholder="City"></div>' +
+      '<div class="field"><label for="lf-state">State</label><input id="lf-state" type="text" placeholder="State"></div>');
+    manualRow.style.display = 'none';
+    host.parentNode.insertBefore(manualRow, host.nextSibling);
+    cityInput = manualRow.querySelector('#lf-city');
+    stateInput = manualRow.querySelector('#lf-state');
+
+    pinInput.addEventListener('input', function () {
+      clearTimeout(pinDebounce);
+      setStatus('', '');
+      var v = this.value.trim();
+      if (v.length >= 3) {
+        pinDebounce = setTimeout(function () { lookupPincode(v); }, 400);
+      } else {
+        pinReqId++;
+        clearLocation();
+        hideManual();
+      }
+    });
+
+    countrySel.addEventListener('change', function () {
+      pinReqId++;
+      pinInput.value = '';
+      clearLocation();
+      hideManual();
+      setStatus('', '');
+      var d = DIAL_CODES[this.value];
+      if (d) ccSel.value = d;
+    });
+  }
+
+  /* ---------------- initial submit ---------------- */
+
+  function onSubmit(e) {
+    e.preventDefault();
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+
+    var btn = document.getElementById('lf-submit');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    lead = {
+      role: 'Investor',
+      name: document.getElementById('lf-name').value.trim(),
+      email: document.getElementById('lf-email').value.trim(),
+      mobileCountryCode: ccSel.value,
+      mobile: document.getElementById('lf-mobile').value.trim(),
+      country: countrySel.options[countrySel.selectedIndex].textContent,
+      pincode: pinInput.value.trim(),
+      city: (cityInput && cityInput.value.trim()) || detected.city || '',
+      state: (stateInput && stateInput.value.trim()) || detected.state || '',
+      interest: form.getAttribute('data-interest') || 'Not sure yet — need guidance',
+      rowNumber: null
+    };
+
+    // Optimistic: fire the lead POST but DON'T wait for it — move straight to
+    // the schedule step. The row number is picked up when it resolves; if the
+    // user schedules first, the backend matches the lead by email/mobile.
+    submitPromise = send(lead).then(function (res) {
+      if (res && res.row) lead.rowNumber = res.row;
+      return res;
+    });
+
+    openSchedule();
+  }
+
+  /* ---------------- full-screen schedule step ---------------- */
+
+  var sched = null;
+  var pick = { date: null, dateLabel: '', time: TIME_SLOTS[0], mode: MODES[0], page: 0 };
+
+  function nthDay(n) {
+    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1);
+    var c = 0;
+    while (true) {
+      if (d.getDay() !== 0) { if (c === n) return new Date(d); c++; }
+      d.setDate(d.getDate() + 1);
+    }
+  }
+  function datesForPage(p) {
+    var size = p === 0 ? 5 : 8;
+    var start = p === 0 ? 0 : 5 + (p - 1) * 8;
+    var out = [];
+    for (var i = 0; i < size; i++) out.push(nthDay(start + i));
+    return out;
+  }
+
+  function buildSchedule() {
+    sched = el('div', 'sched-page');
+    sched.innerHTML =
+      '<div class="sched-shell">' +
+        '<div class="sched-head">' +
+          '<div class="section-tag">Optional next step</div>' +
+          '<h2>Book a call with an expert</h2>' +
+          '<p>Pick a date, time and how you\'d like to connect. Prefer we just call you? Skip this step — your request is already in.</p>' +
+        '</div>' +
+        '<div class="sched-grid">' +
+          '<div class="sched-side">' +
+            '<h4>Your details</h4>' +
+            '<div class="sched-greet">Hi, <strong data-f="name">—</strong></div>' +
+            '<div class="sched-lock"><span>Email</span><strong data-f="email">—</strong></div>' +
+            '<div class="sched-lock"><span>Mobile</span><strong data-f="mobile">—</strong></div>' +
+            '<div class="sched-lock"><span>Interested in</span><strong data-f="interest">—</strong></div>' +
+          '</div>' +
+          '<div class="sched-main">' +
+            '<div class="sched-block"><div class="sched-block-label">Select date</div>' +
+              '<div class="date-row"><button type="button" class="date-nav" data-nav="-1" aria-label="Earlier">‹</button>' +
+              '<div class="date-track"></div>' +
+              '<button type="button" class="date-nav" data-nav="1" aria-label="Later">›</button></div></div>' +
+            '<div class="sched-block"><div class="sched-block-label">Select time (IST)</div><div class="time-grid"></div></div>' +
+            '<div class="sched-block"><div class="sched-block-label">Meeting mode</div><div class="mode-grid"></div></div>' +
+            '<div class="sched-block"><div class="sched-block-label">Anything else? (optional)</div>' +
+              '<textarea class="sched-note" placeholder="Type your message here…"></textarea></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="sched-actions">' +
+          '<button type="button" class="sched-skip">Skip for now</button>' +
+          '<button type="button" class="sched-go">Schedule call →</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(sched);
+
+    sched.querySelectorAll('.date-nav').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var dir = parseInt(b.getAttribute('data-nav'), 10);
+        if (pick.page + dir < 0) return;
+        pick.page += dir;
+        renderDates();
+      });
+    });
+    sched.querySelector('.sched-skip').addEventListener('click', function () { finish(false); });
+    sched.querySelector('.sched-go').addEventListener('click', doSchedule);
+  }
+
+  function renderDates() {
+    var track = sched.querySelector('.date-track');
+    var dates = datesForPage(pick.page);
+    track.innerHTML = '';
+    dates.forEach(function (d, i) {
+      var iso = d.toISOString().slice(0, 10);
+      var dow = d.toLocaleDateString('en-US', { weekday: 'short' });
+      var dnum = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+      var chip = el('button', 'date-chip' + (iso === pick.date ? ' active' : ''),
+        '<span class="dow">' + dow + '</span><span class="dnum">' + dnum + '</span>');
+      chip.type = 'button';
+      chip.addEventListener('click', function () {
+        track.querySelectorAll('.date-chip').forEach(function (c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+        pick.date = iso;
+        pick.dateLabel = dow + ', ' + dnum;
+      });
+      track.appendChild(chip);
+    });
+    if (pick.page === 0 && !dates.some(function (d) { return d.toISOString().slice(0, 10) === pick.date; })) {
+      var f = dates[0];
+      pick.date = f.toISOString().slice(0, 10);
+      pick.dateLabel = f.toLocaleDateString('en-US', { weekday: 'short' }) + ', ' + f.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+      var first = track.querySelector('.date-chip');
+      if (first) first.classList.add('active');
+    }
+    sched.querySelector('.date-nav[data-nav="-1"]').disabled = pick.page === 0;
+  }
+
+  function renderTimes() {
+    var grid = sched.querySelector('.time-grid');
+    grid.innerHTML = '';
+    TIME_SLOTS.forEach(function (t, i) {
+      var s = el('button', 'time-slot' + (i === 0 ? ' active' : ''), t);
+      s.type = 'button';
+      s.addEventListener('click', function () {
+        grid.querySelectorAll('.time-slot').forEach(function (x) { x.classList.remove('active'); });
+        s.classList.add('active');
+        pick.time = t;
+      });
+      grid.appendChild(s);
+    });
+    pick.time = TIME_SLOTS[0];
+  }
+
+  function renderModes() {
+    var grid = sched.querySelector('.mode-grid');
+    grid.innerHTML = '';
+    MODES.forEach(function (m, i) {
+      var c = el('button', 'mode-card' + (i === 0 ? ' active' : ''), '<span>' + m + '</span>');
+      c.type = 'button';
+      c.addEventListener('click', function () {
+        grid.querySelectorAll('.mode-card').forEach(function (x) { x.classList.remove('active'); });
+        c.classList.add('active');
+        pick.mode = m;
+      });
+      grid.appendChild(c);
+    });
+    pick.mode = MODES[0];
+  }
+
+  function openSchedule() {
+    if (!sched) buildSchedule();
+    sched.querySelector('[data-f="name"]').textContent = lead.name || '—';
+    sched.querySelector('[data-f="email"]').textContent = lead.email || '—';
+    sched.querySelector('[data-f="mobile"]').textContent = (lead.mobileCountryCode ? lead.mobileCountryCode + ' ' : '') + (lead.mobile || '—');
+    sched.querySelector('[data-f="interest"]').textContent = lead.interest || '—';
+    sched.querySelector('.sched-note').value = '';
+    pick.page = 0; pick.date = null;
+    renderDates(); renderTimes(); renderModes();
+    var go = sched.querySelector('.sched-go');
+    go.disabled = false; go.textContent = 'Schedule call →';
+    sched.classList.add('show');
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+  }
+
+  function doSchedule() {
+    var go = sched.querySelector('.sched-go');
+    go.disabled = true;
+    go.textContent = 'Scheduling…';
+
+    Promise.resolve(submitPromise).then(function () {
+      var payload = {};
+      for (var k in lead) if (lead.hasOwnProperty(k)) payload[k] = lead[k];
+      payload.action = 'update';
+      payload.rowNumber = lead.rowNumber;
+      payload.scheduleDate = pick.date || pick.dateLabel;
+      payload.scheduleTime = pick.time;
+      payload.meetingMode = pick.mode;
+      payload.additionalInfo = sched.querySelector('.sched-note').value.trim();
+
+      return send(payload);
+    }).then(function (res) {
+      if (!res || !res.ok) {
+        go.disabled = false;
+        go.textContent = 'Schedule call →';
+        alert('Could not save your schedule — please try again.' + (res && res.error ? '\n\n(' + res.error + ')' : ''));
+        return;
+      }
+      finish(true);
+    });
+  }
+
+  function finish(scheduled) {
+    if (sched) { sched.classList.remove('show'); sched.remove(); sched = null; }
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+
+    if (form) {
+      form.style.display = 'none';
+      var card = form.closest('.lead-card');
+      if (card) card.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
+    }
+    var ok = document.querySelector('.form-success');
+    if (ok) {
+      var t = document.getElementById('lf-ok-title');
+      var b = document.getElementById('lf-ok-body');
+      if (scheduled) {
+        if (t) t.textContent = 'Call scheduled';
+        if (b) b.textContent = "You're all set — we'll connect via " + pick.mode + ' on ' + pick.dateLabel + ' at ' + pick.time + ' (IST).';
+      }
+      ok.classList.add('show');
+      ok.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  /* ---------------- boot ---------------- */
+
+  function build() {
+    form = document.getElementById('leadForm');
+    if (!form) return;
+    countrySel = document.getElementById('lf-country');
+    ccSel = document.getElementById('lf-cc');
+    pinInput = document.getElementById('lf-pincode');
+
+    for (var i = 0; i < COUNTRIES.length; i++) {
+      var c = COUNTRIES[i], o;
+      o = new Option(c[1], c[0], c[0] === 'IN', c[0] === 'IN');
+      countrySel.appendChild(o);
+      o = new Option(c[0] + ' ' + (DIAL_CODES[c[0]] || ''), DIAL_CODES[c[0]] || '', c[0] === 'IN', c[0] === 'IN');
+      ccSel.appendChild(o);
+    }
+
+    if (pinInput) wirePincode();
+    form.addEventListener('submit', onSubmit);
   }
 
   if (document.readyState === 'loading') {
