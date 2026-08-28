@@ -260,7 +260,42 @@
   /* ---------------- full-screen schedule step ---------------- */
 
   var sched = null;
-  var pick = { date: null, dateLabel: '', time: TIME_SLOTS[0], mode: MODES[0] };
+  var PAGE_SIZE = 5;
+  var pick = { date: null, dateLabel: '', time: TIME_SLOTS[0], mode: MODES[0], page: 0 };
+
+  // Animated "advisor on a call" scene — no photo, pure SVG/CSS.
+  var EC_SCENE =
+    '<svg class="ec-svg" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+      '<defs><radialGradient id="ecGlow" cx="30%" cy="62%" r="72%">' +
+        '<stop offset="0" stop-color="#C9A24B" stop-opacity=".30"/>' +
+        '<stop offset="1" stop-color="#C9A24B" stop-opacity="0"/></radialGradient></defs>' +
+      '<rect width="320" height="200" fill="#12161D"/>' +
+      '<circle cx="92" cy="150" r="120" fill="url(#ecGlow)"/>' +
+      '<g class="ec-person">' +
+        '<path d="M18 200 C38 138 150 138 170 200 Z" fill="#242c39"/>' +
+        '<circle cx="94" cy="96" r="38" fill="#33404f"/>' +
+        '<path d="M56 92 A38 38 0 0 1 132 92" fill="none" stroke="#C9A24B" stroke-width="5" stroke-linecap="round"/>' +
+        '<rect x="127" y="90" width="9" height="20" rx="4" fill="#C9A24B"/>' +
+        '<path d="M132 108 q-6 16 -22 18" fill="none" stroke="#C9A24B" stroke-width="3" stroke-linecap="round"/>' +
+        '<circle cx="110" cy="126" r="3" fill="#E9D19E"/>' +
+      '</g>' +
+      '<g class="ec-talk">' +
+        '<circle cx="119" cy="126" r="2.6" fill="#4FA98C"/>' +
+        '<circle cx="128" cy="126" r="2.6" fill="#4FA98C"/>' +
+        '<circle cx="137" cy="126" r="2.6" fill="#4FA98C"/>' +
+      '</g>' +
+      '<g class="ec-card">' +
+        '<rect x="176" y="40" width="120" height="94" rx="10" fill="#1B212B" stroke="#2A3140"/>' +
+        '<rect x="188" y="52" width="54" height="6" rx="3" fill="#3a4454"/>' +
+        '<rect x="188" y="64" width="34" height="5" rx="2.5" fill="#2f3947"/>' +
+        '<rect class="ec-b ec-b1" x="190" y="90" width="12" height="34" rx="2" fill="#4FA98C"/>' +
+        '<rect class="ec-b ec-b2" x="208" y="90" width="12" height="34" rx="2" fill="#4FA98C"/>' +
+        '<rect class="ec-b ec-b3" x="226" y="90" width="12" height="34" rx="2" fill="#C9A24B"/>' +
+        '<rect class="ec-b ec-b4" x="244" y="90" width="12" height="34" rx="2" fill="#C9A24B"/>' +
+        '<rect class="ec-b ec-b5" x="262" y="90" width="12" height="34" rx="2" fill="#E9D19E"/>' +
+        '<path class="ec-line" d="M190 118 L212 108 L234 101 L256 88 L278 78" fill="none" stroke="#E9D19E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="150" stroke-dashoffset="150"/>' +
+      '</g>' +
+    '</svg>';
 
   // The next 10 bookable days from today, Sundays skipped — built once.
   var VALID_DAYS = (function (count) {
@@ -292,11 +327,11 @@
             '<div class="sched-lock"><span>Interested in</span><strong data-f="interest">—</strong></div>' +
             '<div class="expert-call" aria-hidden="true">' +
               '<div class="ec-frame">' +
-                '<img src="assets/team-hameed.jpg" alt="">' +
+                EC_SCENE +
                 '<span class="ec-live"><i></i>Live</span>' +
                 '<div class="ec-bars"><span></span><span></span><span></span><span></span><span></span></div>' +
               '</div>' +
-              '<div class="ec-cap">A myAlternates expert joins the call and walks you through the strategy that fits your goals.</div>' +
+              '<div class="ec-cap">An advisor walks you through it live — how the strategy works, what it costs, and what fits your goals.</div>' +
             '</div>' +
           '</div>' +
           '<div class="sched-main">' +
@@ -317,38 +352,35 @@
       '</div>';
     document.body.appendChild(sched);
 
-    var track = sched.querySelector('.date-track');
     sched.querySelectorAll('.date-nav').forEach(function (b) {
       b.addEventListener('click', function () {
         var dir = parseInt(b.getAttribute('data-nav'), 10);
-        track.scrollBy({ left: dir * Math.max(160, Math.round(track.clientWidth * 0.8)), behavior: 'smooth' });
+        var next = pick.page + dir;
+        if (next < 0 || next >= datePageCount()) return;
+        pick.page = next;
+        renderDates();
       });
     });
-    track.addEventListener('scroll', updateDateNav);
-    window.addEventListener('resize', updateDateNav);
     sched.querySelector('.sched-close').addEventListener('click', function () { finish(false); });
     sched.querySelector('.sched-skip').addEventListener('click', function () { finish(false); });
     sched.querySelector('.sched-go').addEventListener('click', doSchedule);
   }
 
-  function updateDateNav() {
-    if (!sched) return;
-    var track = sched.querySelector('.date-track');
-    var l = sched.querySelector('.date-nav[data-nav="-1"]');
-    var r = sched.querySelector('.date-nav[data-nav="1"]');
-    l.disabled = track.scrollLeft <= 2;
-    r.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
-  }
+  function datePageCount() { return Math.ceil(VALID_DAYS.length / PAGE_SIZE); }
 
   function renderDates() {
     var track = sched.querySelector('.date-track');
     track.innerHTML = '';
-    track.scrollLeft = 0;
-    VALID_DAYS.forEach(function (d, i) {
+    // default selection = the first available day
+    if (!pick.date) {
+      var f = VALID_DAYS[0];
+      pick.date = f.toISOString().slice(0, 10);
+      pick.dateLabel = f.toLocaleDateString('en-US', { weekday: 'short' }) + ', ' + f.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+    }
+    VALID_DAYS.slice(pick.page * PAGE_SIZE, pick.page * PAGE_SIZE + PAGE_SIZE).forEach(function (d) {
       var iso = d.toISOString().slice(0, 10);
       var dow = d.toLocaleDateString('en-US', { weekday: 'short' });
       var dnum = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
-      if (i === 0 && !pick.date) { pick.date = iso; pick.dateLabel = dow + ', ' + dnum; }
       var chip = el('button', 'date-chip' + (iso === pick.date ? ' active' : ''),
         '<span class="dow">' + dow + '</span><span class="dnum">' + dnum + '</span>');
       chip.type = 'button';
@@ -360,7 +392,8 @@
       });
       track.appendChild(chip);
     });
-    updateDateNav();
+    sched.querySelector('.date-nav[data-nav="-1"]').disabled = pick.page === 0;
+    sched.querySelector('.date-nav[data-nav="1"]').disabled = pick.page >= datePageCount() - 1;
   }
 
   function renderTimes() {
@@ -402,7 +435,7 @@
     sched.querySelector('[data-f="mobile"]').textContent = (lead.mobileCountryCode ? lead.mobileCountryCode + ' ' : '') + (lead.mobile || '—');
     sched.querySelector('[data-f="interest"]').textContent = lead.interest || '—';
     sched.querySelector('.sched-note').value = '';
-    pick.date = null;
+    pick.date = null; pick.page = 0;
     renderDates(); renderTimes(); renderModes();
     var go = sched.querySelector('.sched-go');
     go.disabled = false; go.textContent = 'Schedule call →';
