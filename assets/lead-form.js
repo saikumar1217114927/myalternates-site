@@ -260,28 +260,24 @@
   /* ---------------- full-screen schedule step ---------------- */
 
   var sched = null;
-  var pick = { date: null, dateLabel: '', time: TIME_SLOTS[0], mode: MODES[0], page: 0 };
+  var pick = { date: null, dateLabel: '', time: TIME_SLOTS[0], mode: MODES[0] };
 
-  function nthDay(n) {
-    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1);
-    var c = 0;
-    while (true) {
-      if (d.getDay() !== 0) { if (c === n) return new Date(d); c++; }
+  // The next N bookable days (from tomorrow, Sundays skipped), built once.
+  var VALID_DAYS = (function (count) {
+    var out = [], d = new Date();
+    d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1);
+    while (out.length < count) {
+      if (d.getDay() !== 0) out.push(new Date(d));
       d.setDate(d.getDate() + 1);
     }
-  }
-  function datesForPage(p) {
-    var size = p === 0 ? 5 : 8;
-    var start = p === 0 ? 0 : 5 + (p - 1) * 8;
-    var out = [];
-    for (var i = 0; i < size; i++) out.push(nthDay(start + i));
     return out;
-  }
+  })(45);
 
   function buildSchedule() {
     sched = el('div', 'sched-page');
     sched.innerHTML =
       '<div class="sched-shell">' +
+        '<button type="button" class="sched-close" aria-label="Close">✕</button>' +
         '<div class="sched-head">' +
           '<div class="section-tag">Optional next step</div>' +
           '<h2>Book a call with an expert</h2>' +
@@ -313,26 +309,38 @@
       '</div>';
     document.body.appendChild(sched);
 
+    var track = sched.querySelector('.date-track');
     sched.querySelectorAll('.date-nav').forEach(function (b) {
       b.addEventListener('click', function () {
         var dir = parseInt(b.getAttribute('data-nav'), 10);
-        if (pick.page + dir < 0) return;
-        pick.page += dir;
-        renderDates();
+        track.scrollBy({ left: dir * Math.max(160, Math.round(track.clientWidth * 0.8)), behavior: 'smooth' });
       });
     });
+    track.addEventListener('scroll', updateDateNav);
+    window.addEventListener('resize', updateDateNav);
+    sched.querySelector('.sched-close').addEventListener('click', function () { finish(false); });
     sched.querySelector('.sched-skip').addEventListener('click', function () { finish(false); });
     sched.querySelector('.sched-go').addEventListener('click', doSchedule);
   }
 
+  function updateDateNav() {
+    if (!sched) return;
+    var track = sched.querySelector('.date-track');
+    var l = sched.querySelector('.date-nav[data-nav="-1"]');
+    var r = sched.querySelector('.date-nav[data-nav="1"]');
+    l.disabled = track.scrollLeft <= 2;
+    r.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 2;
+  }
+
   function renderDates() {
     var track = sched.querySelector('.date-track');
-    var dates = datesForPage(pick.page);
     track.innerHTML = '';
-    dates.forEach(function (d, i) {
+    track.scrollLeft = 0;
+    VALID_DAYS.forEach(function (d, i) {
       var iso = d.toISOString().slice(0, 10);
       var dow = d.toLocaleDateString('en-US', { weekday: 'short' });
       var dnum = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+      if (i === 0 && !pick.date) { pick.date = iso; pick.dateLabel = dow + ', ' + dnum; }
       var chip = el('button', 'date-chip' + (iso === pick.date ? ' active' : ''),
         '<span class="dow">' + dow + '</span><span class="dnum">' + dnum + '</span>');
       chip.type = 'button';
@@ -344,14 +352,7 @@
       });
       track.appendChild(chip);
     });
-    if (pick.page === 0 && !dates.some(function (d) { return d.toISOString().slice(0, 10) === pick.date; })) {
-      var f = dates[0];
-      pick.date = f.toISOString().slice(0, 10);
-      pick.dateLabel = f.toLocaleDateString('en-US', { weekday: 'short' }) + ', ' + f.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
-      var first = track.querySelector('.date-chip');
-      if (first) first.classList.add('active');
-    }
-    sched.querySelector('.date-nav[data-nav="-1"]').disabled = pick.page === 0;
+    updateDateNav();
   }
 
   function renderTimes() {
@@ -393,7 +394,7 @@
     sched.querySelector('[data-f="mobile"]').textContent = (lead.mobileCountryCode ? lead.mobileCountryCode + ' ' : '') + (lead.mobile || '—');
     sched.querySelector('[data-f="interest"]').textContent = lead.interest || '—';
     sched.querySelector('.sched-note').value = '';
-    pick.page = 0; pick.date = null;
+    pick.date = null;
     renderDates(); renderTimes(); renderModes();
     var go = sched.querySelector('.sched-go');
     go.disabled = false; go.textContent = 'Schedule call →';

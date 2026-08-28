@@ -351,10 +351,10 @@
   .sched-head h3{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,3.2vw,38px); line-height:1.15; color:var(--ink-text); margin-bottom:10px;}
   .sched-head p{color:var(--muted); font-size:15px; line-height:1.6; max-width:560px;}
   .sched-body{
-    display:grid; grid-template-columns:0.8fr 1.2fr; gap:0;
+    display:grid; grid-template-columns:0.8fr minmax(0,1.2fr); gap:0;
     border:1px solid #e6dfcd; border-radius:14px; background:#fff; overflow:hidden;
   }
-  .sched-col{padding:24px 28px 26px;}
+  .sched-col{padding:24px 28px 26px; min-width:0;}
   .sched-col.details{border-right:1px solid #E9E3D4; background:var(--paper-2);}
   .sched-col-head{display:flex; align-items:flex-start; gap:10px; margin-bottom:12px;}
   .sched-col-icon{
@@ -383,9 +383,14 @@
   .sched-block:last-child{margin-bottom:0;}
   .sched-block-label{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); margin-bottom:8px;}
   .date-scroller{display:flex; align-items:center; gap:6px;}
-  .date-scroller-track{display:flex; flex-wrap:wrap; gap:6px; flex:1;}
+  .date-scroller-track{
+    display:flex; flex-wrap:nowrap; gap:6px; flex:1; min-width:0;
+    overflow-x:auto; scroll-behavior:smooth;
+    scrollbar-width:none; -ms-overflow-style:none;
+  }
+  .date-scroller-track::-webkit-scrollbar{display:none;}
   .date-chip{
-    flex:1 1 50px; min-width:50px; max-width:70px; text-align:center; cursor:pointer;
+    flex:0 0 auto; width:64px; text-align:center; cursor:pointer;
     border:1.5px solid #E3DCC9; background:#fff; border-radius:11px;
     padding:7px 4px; transition:border-color .18s ease, background .18s ease;
   }
@@ -400,16 +405,18 @@
   }
   .date-scroller-arrow:hover{border-color:var(--gold); color:var(--ink-text);}
   .date-scroller-arrow:disabled{opacity:0.35; cursor:default; pointer-events:none;}
-  .time-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;}
+  .time-grid{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:6px;}
   .time-slot{
+    min-width:0;
     text-align:center; cursor:pointer; font-size:11.5px; font-weight:600;
     border:1.5px solid #E3DCC9; background:#fff; color:var(--ink-text);
     border-radius:9px; padding:8px 4px; transition:border-color .18s ease, background .18s ease, color .18s ease;
   }
   .time-slot:hover{border-color:var(--gold-light);}
   .time-slot.active{border-color:var(--gold); background:var(--gold); color:var(--ink);}
-  .mode-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;}
+  .mode-grid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;}
   .mode-card{
+    min-width:0;
     border:1.5px solid #E3DCC9; background:#fff; border-radius:11px;
     padding:9px 6px; text-align:center; cursor:pointer;
     transition:border-color .18s ease, background .18s ease;
@@ -1551,42 +1558,34 @@
   let selectedDateLabel = ''; // display label
   let selectedTime = TIME_SLOTS[0];
   let selectedMode = 'Phone Call';
-  let datePageIndex = 0; // 0 = first page (5 days), 1+ = subsequent pages (8 days each)
 
-  // Nth bookable day starting from tomorrow (n=0 is the first), skipping Sundays.
-  function nthValidDayFromTomorrow(n){
-    const d = new Date();
-    d.setHours(0,0,0,0);
-    d.setDate(d.getDate() + 1); // start at tomorrow — today is never shown
-    let count = 0;
-    while(true){
-      if(d.getDay() !== 0){ // 0 = Sunday, excluded
-        if(count === n) return new Date(d);
-        count++;
-      }
+  // The next 45 bookable days from tomorrow, Sundays skipped — built once.
+  const VALID_DAYS = (() => {
+    const out = [], d = new Date();
+    d.setHours(0,0,0,0); d.setDate(d.getDate() + 1);
+    while(out.length < 45){
+      if(d.getDay() !== 0) out.push(new Date(d));
       d.setDate(d.getDate() + 1);
     }
-  }
+    return out;
+  })();
 
-  function datesForPage(pageIndex){
-    const size = pageIndex === 0 ? 5 : 8;
-    const offsetStart = pageIndex === 0 ? 0 : 5 + (pageIndex - 1) * 8;
-    const dates = [];
-    for(let i = 0; i < size; i++){ dates.push(nthValidDayFromTomorrow(offsetStart + i)); }
-    return dates;
+  function updateDateNav(){
+    dateScrollLeft.disabled  = dateTrack.scrollLeft <= 2;
+    dateScrollRight.disabled = dateTrack.scrollLeft + dateTrack.clientWidth >= dateTrack.scrollWidth - 2;
   }
 
   function renderDatePage(){
-    const dates = datesForPage(datePageIndex);
     dateTrack.innerHTML = '';
-    dates.forEach((d, i) => {
+    dateTrack.scrollLeft = 0;
+    VALID_DAYS.forEach((d, i) => {
       const iso = d.toISOString().slice(0,10);
       const dow = d.toLocaleDateString('en-US', { weekday:'short' });
       const dnum = d.toLocaleDateString('en-US', { day:'2-digit', month:'short' });
+      if(i === 0 && !selectedDate){ selectedDate = iso; selectedDateLabel = `${dow}, ${dnum}`; }
 
       const chip = document.createElement('div');
-      const isSelected = iso === selectedDate;
-      chip.className = 'date-chip' + (isSelected ? ' active' : '');
+      chip.className = 'date-chip' + (iso === selectedDate ? ' active' : '');
       chip.dataset.iso = iso;
       chip.innerHTML = `<span class="dow">${dow}</span><span class="dnum">${dnum}</span>`;
       chip.addEventListener('click', () => {
@@ -1597,27 +1596,16 @@
       });
       dateTrack.appendChild(chip);
     });
-
-    // On the very first render of the very first page, default-select the first date.
-    if(datePageIndex === 0 && !dates.some(d => d.toISOString().slice(0,10) === selectedDate)){
-      const first = dates[0];
-      selectedDate = first.toISOString().slice(0,10);
-      selectedDateLabel = `${first.toLocaleDateString('en-US',{weekday:'short'})}, ${first.toLocaleDateString('en-US',{day:'2-digit',month:'short'})}`;
-      dateTrack.querySelector('.date-chip')?.classList.add('active');
-    }
-
-    dateScrollLeft.disabled = datePageIndex === 0;
+    updateDateNav();
   }
 
-  dateScrollLeft.addEventListener('click', () => {
-    if(datePageIndex === 0) return;
-    datePageIndex -= 1;
-    renderDatePage();
-  });
-  dateScrollRight.addEventListener('click', () => {
-    datePageIndex += 1;
-    renderDatePage();
-  });
+  function scrollDates(dir){
+    dateTrack.scrollBy({ left: dir * Math.max(150, Math.round(dateTrack.clientWidth * 0.8)), behavior:'smooth' });
+  }
+  dateScrollLeft.addEventListener('click', () => scrollDates(-1));
+  dateScrollRight.addEventListener('click', () => scrollDates(1));
+  dateTrack.addEventListener('scroll', updateDateNav);
+  window.addEventListener('resize', updateDateNav);
 
   function buildTimeSlots(){
     timeGrid.innerHTML = '';
@@ -1649,7 +1637,6 @@
     schedEmail.textContent = leadRecord.email || '—';
     schedMobile.textContent = leadRecord.mobileCountryCode ? `${leadRecord.mobileCountryCode} ${leadRecord.mobile}` : (leadRecord.mobile || '—');
     document.getElementById('schedNote').value = '';
-    datePageIndex = 0;
     selectedDate = null;
     renderDatePage();
     buildTimeSlots();

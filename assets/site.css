@@ -326,7 +326,15 @@ nav.links a:hover::after{width:100%;}
 }
 .sched-page.show{display:block; animation:sched-in .25s ease;}
 @keyframes sched-in{from{opacity:0;} to{opacity:1;}}
-.sched-shell{max-width:940px; margin:0 auto;}
+.sched-shell{max-width:940px; margin:0 auto; position:relative;}
+.sched-close{
+  position:fixed; top:18px; right:20px; width:36px; height:36px; z-index:5;
+  border-radius:50%; border:1.5px solid #ded6c2; background:#fff; color:var(--muted);
+  font-size:15px; cursor:pointer; font-family:inherit;
+  display:flex; align-items:center; justify-content:center;
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.sched-close:hover{background:var(--paper-2); color:var(--ink-text); border-color:var(--gold);}
 .sched-head{margin-bottom:32px; max-width:640px;}
 .sched-head h2{
   font-family:'Fraunces', Georgia, serif; font-weight:500;
@@ -362,9 +370,14 @@ nav.links a:hover::after{width:100%;}
   color:var(--muted); margin-bottom:10px;
 }
 .date-row{display:flex; align-items:center; gap:8px;}
-.date-track{display:flex; flex-wrap:wrap; gap:8px; flex:1;}
+.date-track{
+  display:flex; flex-wrap:nowrap; gap:8px; flex:1; min-width:0;
+  overflow-x:auto; scroll-behavior:smooth;
+  scrollbar-width:none; -ms-overflow-style:none;
+}
+.date-track::-webkit-scrollbar{ display:none; }
 .date-chip{
-  flex:1 1 64px; min-width:64px; max-width:92px; text-align:center; cursor:pointer;
+  flex:0 0 auto; width:72px; text-align:center; cursor:pointer;
   border:1.5px solid #ded6c2; background:#fff; border-radius:10px;
   padding:9px 4px; font-family:inherit;
   transition:border-color .15s ease, background .15s ease;
@@ -432,7 +445,7 @@ nav.links a:hover::after{width:100%;}
   .sched-page{padding:32px 16px 48px;}
   .sched-grid{grid-template-columns:minmax(0,1fr); gap:22px;}
   .time-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
-  .date-chip{max-width:none;}
+  .sched-close{top:12px; right:12px;}
   .sched-actions{flex-direction:column-reverse; align-items:stretch; gap:10px;}
   .sched-go{text-align:center;}
 }
