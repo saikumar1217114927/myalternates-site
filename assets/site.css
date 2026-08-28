@@ -322,11 +322,11 @@ nav.links a:hover::after{width:100%;}
   position:fixed; inset:0; z-index:2000;
   background:var(--paper);
   display:none; overflow-x:hidden; overflow-y:auto;
-  padding:48px 24px 64px;
+  padding:44px 28px 60px;
 }
 .sched-page.show{display:block; animation:sched-in .25s ease;}
 @keyframes sched-in{from{opacity:0;} to{opacity:1;}}
-.sched-shell{max-width:940px; margin:0 auto; position:relative;}
+.sched-shell{max-width:1240px; margin:0 auto; position:relative;}
 .sched-close{
   position:fixed; top:18px; right:20px; width:36px; height:36px; z-index:5;
   border-radius:50%; border:1.5px solid #ded6c2; background:#fff; color:var(--muted);
@@ -342,12 +342,50 @@ nav.links a:hover::after{width:100%;}
 }
 .sched-head p{font-size:15px; line-height:1.65; color:var(--muted);}
 
-.sched-grid{display:grid; grid-template-columns:280px minmax(0,1fr); gap:32px; align-items:start;}
+.sched-grid{display:grid; grid-template-columns:340px minmax(0,1fr); gap:28px; align-items:stretch;}
 .sched-side,.sched-main{min-width:0;}
 .sched-side{
   background:var(--paper-2); border:1px solid #e6dfcd;
-  border-radius:12px; padding:22px 20px;
+  border-radius:12px; padding:24px 22px;
+  display:flex; flex-direction:column;
 }
+
+/* mock "expert on a call" visual — fills the details column */
+.expert-call{margin-top:auto; padding-top:22px;}
+.ec-frame{
+  position:relative; border-radius:12px; overflow:hidden;
+  aspect-ratio:16/10; max-height:200px; background:var(--ink);
+  box-shadow:0 18px 40px -18px rgba(11,14,19,0.5);
+}
+.ec-frame img{
+  width:100%; height:100%; object-fit:cover; display:block;
+  filter:saturate(1.05) contrast(1.03);
+  animation:ecPan 14s ease-in-out infinite alternate;
+}
+@keyframes ecPan{from{transform:scale(1.05) translate(0,0);} to{transform:scale(1.12) translate(-2%,-2%);}}
+.ec-live{
+  position:absolute; top:10px; left:10px; z-index:2;
+  display:flex; align-items:center; gap:6px;
+  background:rgba(11,14,19,0.72); color:#fff; font-size:10px; font-weight:700;
+  letter-spacing:0.08em; text-transform:uppercase; padding:4px 9px; border-radius:999px;
+  -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+}
+.ec-live i{width:7px; height:7px; border-radius:50%; background:#2ecc71; animation:ecPulse 1.4s ease-in-out infinite;}
+@keyframes ecPulse{0%,100%{opacity:1; box-shadow:0 0 0 0 rgba(46,204,113,0.6);} 50%{opacity:.5; box-shadow:0 0 0 6px rgba(46,204,113,0);}}
+.ec-bars{
+  position:absolute; bottom:10px; left:50%; transform:translateX(-50%); z-index:2;
+  display:flex; align-items:flex-end; gap:3px; height:20px;
+  background:rgba(11,14,19,0.5); padding:5px 9px; border-radius:999px;
+  -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+}
+.ec-bars span{width:3px; height:100%; border-radius:2px; background:var(--gold-light); transform-origin:bottom; animation:ecBar 1s ease-in-out infinite;}
+.ec-bars span:nth-child(1){animation-delay:-.1s;}
+.ec-bars span:nth-child(2){animation-delay:-.5s;}
+.ec-bars span:nth-child(3){animation-delay:-.2s;}
+.ec-bars span:nth-child(4){animation-delay:-.7s;}
+.ec-bars span:nth-child(5){animation-delay:-.35s;}
+@keyframes ecBar{0%,100%{transform:scaleY(.28);} 50%{transform:scaleY(1);}}
+.ec-cap{margin-top:12px; font-size:12px; line-height:1.55; color:var(--muted);}
 .sched-side h4{
   font-size:11.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
   color:var(--muted); margin-bottom:14px;

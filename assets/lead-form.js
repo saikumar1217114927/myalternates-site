@@ -262,16 +262,16 @@
   var sched = null;
   var pick = { date: null, dateLabel: '', time: TIME_SLOTS[0], mode: MODES[0] };
 
-  // The next N bookable days (from tomorrow, Sundays skipped), built once.
+  // The next 10 bookable days from today, Sundays skipped — built once.
   var VALID_DAYS = (function (count) {
     var out = [], d = new Date();
-    d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + 1);
+    d.setHours(0, 0, 0, 0);
     while (out.length < count) {
       if (d.getDay() !== 0) out.push(new Date(d));
       d.setDate(d.getDate() + 1);
     }
     return out;
-  })(45);
+  })(10);
 
   function buildSchedule() {
     sched = el('div', 'sched-page');
@@ -290,6 +290,14 @@
             '<div class="sched-lock"><span>Email</span><strong data-f="email">—</strong></div>' +
             '<div class="sched-lock"><span>Mobile</span><strong data-f="mobile">—</strong></div>' +
             '<div class="sched-lock"><span>Interested in</span><strong data-f="interest">—</strong></div>' +
+            '<div class="expert-call" aria-hidden="true">' +
+              '<div class="ec-frame">' +
+                '<img src="assets/team-hameed.jpg" alt="">' +
+                '<span class="ec-live"><i></i>Live</span>' +
+                '<div class="ec-bars"><span></span><span></span><span></span><span></span><span></span></div>' +
+              '</div>' +
+              '<div class="ec-cap">A myAlternates expert joins the call and walks you through the strategy that fits your goals.</div>' +
+            '</div>' +
           '</div>' +
           '<div class="sched-main">' +
             '<div class="sched-block"><div class="sched-block-label">Select date</div>' +

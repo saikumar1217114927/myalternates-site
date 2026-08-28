@@ -334,7 +334,7 @@
   }
   .sched-overlay.show{display:block; animation:sched-pop .25s ease;}
   .sched-modal{
-    background:transparent; width:100%; max-width:940px;
+    background:transparent; width:100%; max-width:1240px;
     margin:0 auto; position:relative; box-shadow:none; border-radius:0;
   }
   @keyframes sched-pop{from{opacity:0;} to{opacity:1;}}
@@ -351,11 +351,47 @@
   .sched-head h3{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,3.2vw,38px); line-height:1.15; color:var(--ink-text); margin-bottom:10px;}
   .sched-head p{color:var(--muted); font-size:15px; line-height:1.6; max-width:560px;}
   .sched-body{
-    display:grid; grid-template-columns:0.8fr minmax(0,1.2fr); gap:0;
+    display:grid; grid-template-columns:340px minmax(0,1fr); gap:0;
     border:1px solid #e6dfcd; border-radius:14px; background:#fff; overflow:hidden;
   }
-  .sched-col{padding:24px 28px 26px; min-width:0;}
-  .sched-col.details{border-right:1px solid #E9E3D4; background:var(--paper-2);}
+  .sched-col{padding:26px 30px 30px; min-width:0;}
+  .sched-col.details{border-right:1px solid #E9E3D4; background:var(--paper-2); display:flex; flex-direction:column;}
+
+  /* mock "expert on a call" visual — fills the details column */
+  .expert-call{margin-top:auto; padding-top:22px;}
+  .ec-frame{
+    position:relative; border-radius:12px; overflow:hidden;
+    aspect-ratio:16/10; max-height:200px; background:var(--ink);
+    box-shadow:0 18px 40px -18px rgba(11,14,19,0.5);
+  }
+  .ec-frame img{
+    width:100%; height:100%; object-fit:cover; display:block;
+    filter:saturate(1.05) contrast(1.03);
+    animation:ecPan 14s ease-in-out infinite alternate;
+  }
+  @keyframes ecPan{from{transform:scale(1.05) translate(0,0);} to{transform:scale(1.12) translate(-2%,-2%);}}
+  .ec-live{
+    position:absolute; top:10px; left:10px; z-index:2;
+    display:flex; align-items:center; gap:6px;
+    background:rgba(11,14,19,0.72); color:#fff; font-size:10px; font-weight:700;
+    letter-spacing:0.08em; text-transform:uppercase; padding:4px 9px; border-radius:999px;
+    backdrop-filter:blur(4px);
+  }
+  .ec-live i{width:7px; height:7px; border-radius:50%; background:#2ecc71; animation:ecPulse 1.4s ease-in-out infinite;}
+  @keyframes ecPulse{0%,100%{opacity:1; box-shadow:0 0 0 0 rgba(46,204,113,0.6);} 50%{opacity:.5; box-shadow:0 0 0 6px rgba(46,204,113,0);}}
+  .ec-bars{
+    position:absolute; bottom:10px; left:50%; transform:translateX(-50%); z-index:2;
+    display:flex; align-items:flex-end; gap:3px; height:20px;
+    background:rgba(11,14,19,0.5); padding:5px 9px; border-radius:999px; backdrop-filter:blur(3px);
+  }
+  .ec-bars span{width:3px; height:100%; border-radius:2px; background:var(--gold-light); transform-origin:bottom; animation:ecBar 1s ease-in-out infinite;}
+  .ec-bars span:nth-child(1){animation-delay:-.1s;}
+  .ec-bars span:nth-child(2){animation-delay:-.5s;}
+  .ec-bars span:nth-child(3){animation-delay:-.2s;}
+  .ec-bars span:nth-child(4){animation-delay:-.7s;}
+  .ec-bars span:nth-child(5){animation-delay:-.35s;}
+  @keyframes ecBar{0%,100%{transform:scaleY(.28);} 50%{transform:scaleY(1);}}
+  .ec-cap{margin-top:12px; font-size:12px; line-height:1.55; color:var(--muted);}
   .sched-col-head{display:flex; align-items:flex-start; gap:10px; margin-bottom:12px;}
   .sched-col-icon{
     width:32px; height:32px; border-radius:50%; background:rgba(201,162,75,0.14);
@@ -860,6 +896,15 @@
               <span id="schedMobile">—</span>
               <span class="lock-hint" title="Locked from your earlier submission">🔒</span>
             </div>
+          </div>
+
+          <div class="expert-call" aria-hidden="true">
+            <div class="ec-frame">
+              <img src="assets/team-hameed.jpg" alt="">
+              <span class="ec-live"><i></i>Live</span>
+              <div class="ec-bars"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+            <div class="ec-cap">A myAlternates expert joins the call and walks you through the strategy that fits your goals.</div>
           </div>
         </div>
         <div class="sched-col">
@@ -1559,11 +1604,11 @@
   let selectedTime = TIME_SLOTS[0];
   let selectedMode = 'Phone Call';
 
-  // The next 45 bookable days from tomorrow, Sundays skipped — built once.
+  // The next 10 bookable days from today, Sundays skipped — built once.
   const VALID_DAYS = (() => {
     const out = [], d = new Date();
-    d.setHours(0,0,0,0); d.setDate(d.getDate() + 1);
-    while(out.length < 45){
+    d.setHours(0,0,0,0);
+    while(out.length < 10){
       if(d.getDay() !== 0) out.push(new Date(d));
       d.setDate(d.getDate() + 1);
     }
