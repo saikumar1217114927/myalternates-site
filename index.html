@@ -1308,10 +1308,11 @@
     pincodeStatus.className = 'field-status' + (kind ? ' ' + kind : '');
   }
 
-  // "Blank", "N", or missing city response — fall back to manual entry.
-  function isUsableCity(cityVal){
-    const v = (cityVal || '').trim();
-    return v.length > 0 && v.toUpperCase() !== 'N';
+  // zipcodebase uses the literal string "N" as a "no data" placeholder —
+  // treat that (and blank / null) as no value.
+  function cleanLoc(val){
+    const v = (val == null ? '' : String(val)).trim();
+    return (!v || v.toUpperCase() === 'N') ? '' : v;
   }
 
   async function lookupPincode(code){
@@ -1334,28 +1335,37 @@
 
     const match = (entries && entries.length) ? entries[0] : null;
 
-    if(!match || !isUsableCity(match.city)){
-      // No response, blank, or "N" — pincode not available for lookup.
-      // Fall back to letting the user enter city & state manually.
-      clearLocationFields();
+    // Per response shape: area <- city, city <- province, state <- state_en.
+    const area  = match ? cleanLoc(match.city) : '';
+    const city  = match ? cleanLoc(match.province) : '';
+    const state = match ? (cleanLoc(match.state_en) || cleanLoc(match.state)) : '';
+
+    if(!city || !state){
+      // No response, blank, "N", or only a partial match — let the user
+      // enter / confirm city & state manually, pre-filling what we did get.
+      areaHidden.value = area;
+      cityInput.value  = city;
+      stateInput.value = state;
+      postalCodeHidden.value   = '';
+      stateCodeHidden.value    = '';
+      provinceCodeHidden.value = '';
       showManualLocation();
-      setStatus('', '');
+      setStatus((city || state) ? 'Please confirm your city and state below.' : '',
+        (city || state) ? 'warn' : '');
       return;
     }
 
     // Auto-detected — city/state stay out of the form fields (backend-only),
     // but confirm the match to the user in green below the pincode input.
-    // Per response shape: area <- city, city <- province, state <- state_en.
-    areaHidden.value  = match.city || '';
-    cityInput.value   = match.province || '';
-    stateInput.value  = match.state_en || match.state || '';
+    areaHidden.value  = area;
+    cityInput.value   = city;
+    stateInput.value  = state;
     postalCodeHidden.value   = match.postal_code || code;
-    stateCodeHidden.value    = match.state_code || '';
-    provinceCodeHidden.value = match.province_code || '';
+    stateCodeHidden.value    = cleanLoc(match.state_code);
+    provinceCodeHidden.value = cleanLoc(match.province_code);
 
     hideManualLocation();
-    const summary = [cityInput.value, stateInput.value].filter(Boolean).join(', ');
-    setStatus(summary, 'ok');
+    setStatus(city + ', ' + state, 'ok');
   }
 
   pincodeInput.addEventListener('input', function(){
