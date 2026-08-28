@@ -135,9 +135,11 @@
     if (cityInput) cityInput.value = '';
     if (stateInput) stateInput.value = '';
   }
-  function usableCity(v) {
-    v = (v || '').trim();
-    return v.length > 0 && v.toUpperCase() !== 'N';
+  // zipcodebase uses the literal string "N" as a "no data" placeholder — treat
+  // that (and blank / null) as no value.
+  function clean(v) {
+    v = (v == null ? '' : String(v)).trim();
+    return (!v || v.toUpperCase() === 'N') ? '' : v;
   }
 
   function lookupPincode(code) {
@@ -152,20 +154,31 @@
       .then(function (entries) {
         if (reqId !== pinReqId) return; // superseded
         var m = (entries && entries.length) ? entries[0] : null;
-        if (!m || !usableCity(m.city)) {
-          clearLocation();
+        // Response shape mirrors index.html: area <- city, city <- province, state <- state_en
+        var area = m ? clean(m.city) : '';
+        var city = m ? clean(m.province) : '';
+        var state = m ? (clean(m.state_en) || clean(m.state)) : '';
+
+        detected.area = area;
+        detected.city = city;
+        detected.state = state;
+
+        if (!city || !state) {
+          // Empty / "N" / partial — fall back to manual entry, pre-filling
+          // whatever we did get.
+          if (cityInput) cityInput.value = city;
+          if (stateInput) stateInput.value = state;
           showManual();
-          setStatus('Enter your city and state below.', 'warn');
+          setStatus((city || state)
+            ? 'Please confirm your city and state below.'
+            : 'Enter your city and state below.', 'warn');
           return;
         }
-        // Response shape mirrors index.html: area <- city, city <- province, state <- state_en
-        detected.area = m.city || '';
-        detected.city = m.province || '';
-        detected.state = m.state_en || m.state || '';
-        if (cityInput) cityInput.value = detected.city;
-        if (stateInput) stateInput.value = detected.state;
+
+        if (cityInput) cityInput.value = city;
+        if (stateInput) stateInput.value = state;
         hideManual();
-        setStatus([detected.city, detected.state].filter(Boolean).join(', '), 'ok');
+        setStatus(city + ', ' + state, 'ok');
       });
   }
 
