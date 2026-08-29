@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "myAlternates — India's Gateway to Alternate Investments",
+  "short_name": "myAlternates",
+  "description": "Explore PMS, AIF, Mutual Funds, SIF and GIFT City products, compare fees, and talk to an investment expert.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0B0E13",
+  "background_color": "#0B0E13",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["finance", "business"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Portfolio Management Services", "url": "./pms.html" },
+    { "name": "Alternative Investment Funds", "url": "./aif.html" },
+    { "name": "Lowest PMS Fee", "url": "./pms-fees.html" }
+  ]
+}
