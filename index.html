@@ -223,18 +223,16 @@
 
   /* Enquiry card */
   .enquiry-card{
-    background:var(--paper);
-    padding:38px 32px 34px;
+    background:
+      linear-gradient(var(--paper), var(--paper)) padding-box,
+      linear-gradient(100deg, var(--emerald), var(--gold) 55%, var(--gold-light)) border-box;
+    border:0 solid transparent;
+    border-top-width:5px;
+    padding:36px 32px 34px;
     position:relative; z-index:2;
-    border-radius:22px;
+    border-radius:20px;
     box-shadow:0 40px 90px -24px rgba(8,10,14,0.55), 0 14px 34px -10px rgba(8,10,14,0.25);
-    border:1px solid rgba(255,255,255,0.5);
     overflow:hidden;
-  }
-  .enquiry-card::before{
-    content:'';
-    position:absolute; top:0; left:0; right:0; height:5px;
-    background:linear-gradient(90deg, var(--emerald), var(--gold) 55%, var(--gold-light));
   }
   .enquiry-card h3{
     font-family:'Fraunces', serif; font-weight:500; font-size:24px;
