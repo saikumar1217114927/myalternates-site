@@ -9,7 +9,7 @@
  *
  * Bump CACHE_VERSION whenever precached files change so old caches are purged.
  */
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v11';
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 const FONTS = `fonts-${CACHE_VERSION}`;
@@ -24,9 +24,13 @@ const PRECACHE_URLS = [
   './mf.html',
   './sif.html',
   './gift-city.html',
+  './cagr.html',
+  './sip.html',
+  './xirr.html',
   './offline.html',
   './assets/site.css',
   './assets/lead-form.js',
+  './assets/product-metrics.js',
   './assets/logo-myalternates.png',
   './assets/logo-pmsbazaar.png',
   './assets/logo-foot.png',

@@ -41,9 +41,25 @@
       </div>
     </div>
     <nav class="links">
-      <a href="index.html#pillars">All Products</a>
       <a href="about.html">About</a>
-      <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login</a>
+      <div class="nav-products" tabindex="0">
+        <a href="index.html#pillars" class="nav-products-trigger">Products</a>
+        <div class="nav-menu">
+          <a href="pms.html">PMS</a>
+          <a href="aif.html">AIF</a>
+          <a href="mf.html">MF</a>
+          <a href="sif.html">SIF</a>
+          <a href="gift-city.html">GIFT IFSC</a>
+        </div>
+      </div>
+      <div class="nav-login" tabindex="0">
+        <span>Login</span>
+        <div class="login-menu">
+          <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login<small>Track your portfolio — login.myalternates.com</small></a>
+          <div class="login-menu-divider"></div>
+          <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login<small>Manage your book — backoffice.myalternates.com</small></a>
+        </div>
+      </div>
       <a href="#enquiry" class="nav-cta">Talk to an Expert</a>
     </nav>
     <button class="burger" aria-label="Menu">☰</button>
@@ -67,10 +83,14 @@
     </p>
     <div class="hero-cta-row">
       <a href="#enquiry" class="btn-gold">Talk to an expert →</a>
+      <a href="sip.html#lumpsum" class="btn-ghost">Lumpsum calculator</a>
       <a href="index.html#pillars" class="btn-ghost">See other products</a>
     </div>
   </div>
 </section>
+
+<!-- ================= LIVE PRODUCT METRICS ================= -->
+<section class="p-metrics" data-metrics="sif" aria-label="Live platform data for SIF"></section>
 
 <section class="prose-section">
   <div class="wrap">
@@ -209,7 +229,7 @@
     <div class="foot-grid">
       <div>
         <div class="foot-logo"><img src="assets/logo-foot.png" alt="myAlternates"></div>
-        <p>Combined dashboard for PMS, MF, SIF, GIFT City and AIF — competitive pricing, plus a dedicated distributor dashboard to manage and track every client.</p>
+        <p>Combined dashboard for PMS, MF, SIF, GIFT City and AIF — the lowest PMS fees on the platform, plus a dedicated distributor dashboard to manage and track every client.</p>
       </div>
       <div class="foot-col">
         <h5>Products</h5>
@@ -223,7 +243,16 @@
         <h5>Platform</h5>
         <a href="about.html">About</a>
         <a href="index.html#pillars">Offering</a>
+        <a href="index.html#partners">Partner AMCs</a>
         <a href="index.html#enquiry">Talk to an Expert</a>
+      </div>
+      <div class="foot-col">
+        <h5>Calculators</h5>
+        <a href="pms-fees.html">PMS Calculator</a>
+        <a href="cagr.html">CAGR Calculator</a>
+        <a href="sip.html">SIP Calculator</a>
+        <a href="sip.html#lumpsum">Lumpsum Calculator</a>
+        <a href="xirr.html">XIRR Calculator</a>
       </div>
       <div class="foot-col">
         <h5>Login</h5>
@@ -232,12 +261,13 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 myAlternates. All rights reserved.</span>
+      <span>&copy; 2026 myAlternates. All rights reserved.</span>
       <span>Powered by PMS Bazaar</span>
     </div>
   </div>
 </footer>
 
 <script src="assets/lead-form.js"></script>
+<script src="assets/product-metrics.js"></script>
 </body>
 </html>

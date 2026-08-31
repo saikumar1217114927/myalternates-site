@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XIRR Calculator — myAlternates</title>
+<meta name="description" content="Work out the XIRR of an investment with irregular cash flows — enter each contribution or withdrawal with its date and the current value.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .calc-section{padding:70px 0 90px; background:var(--paper);}
+  .calc-grid{display:grid; grid-template-columns:1.15fr 0.85fr; gap:44px; align-items:start; max-width:980px;}
+  .calc-inputs .field label{
+    display:block; font-size:11.5px; font-weight:700; letter-spacing:0.04em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:9px;
+  }
+  .calc-hint{font-size:12px; color:var(--muted-light); margin-top:10px; line-height:1.5;}
+
+  .xr-rows{display:grid; gap:8px;}
+  .xr-head, .xr-row{display:grid; grid-template-columns:1.1fr 1fr 1fr 32px; gap:8px; align-items:center;}
+  .xr-head span{font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted-light);}
+  .xr-row input, .xr-row select{
+    width:100%; min-width:0; padding:11px 10px; font-size:14px; font-family:inherit;
+    border:1px solid #d7d0c0; border-radius:3px; background:#fff; color:var(--ink-text);
+  }
+  .xr-row input:focus, .xr-row select:focus{outline:none; border-color:var(--gold);}
+  @media (max-width:560px){
+    .xr-head{display:none;}
+    .xr-row{grid-template-columns:1fr 1fr 32px; gap:6px;}
+    .xr-row .xr-date{grid-column:1 / -1;}
+  }
+  .xr-del{
+    width:30px; height:30px; border:1px solid #ded6c2; background:#fff; color:var(--muted);
+    border-radius:3px; cursor:pointer; font-size:12px; font-family:inherit;
+  }
+  .xr-del:hover{border-color:#D9846B; color:#D9846B;}
+  .xr-del:disabled{opacity:.35; cursor:default;}
+  .xr-add{
+    margin-top:12px; padding:10px 16px; border:1px dashed #c9bfa6; background:none;
+    color:var(--ink-text); font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; border-radius:3px;
+  }
+  .xr-add:hover{border-color:var(--gold); color:var(--gold);}
+
+  .calc-result{
+    background:var(--ink); color:var(--paper); padding:34px 30px; border-radius:14px;
+    box-shadow:0 30px 70px -22px rgba(8,10,14,0.4); position:sticky; top:96px;
+  }
+  .calc-result .cr-label{font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted-light); margin-bottom:10px;}
+  .calc-result .cr-big{
+    font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(42px,7vw,62px);
+    line-height:1; color:var(--gold); letter-spacing:-0.02em; font-variant-numeric:tabular-nums;
+  }
+  .calc-result .cr-big.neg{color:#D9846B;}
+  .calc-result .cr-sub{font-size:12.5px; color:var(--muted-light); margin-top:10px; line-height:1.5;}
+  .cr-rows{margin-top:24px; padding-top:20px; border-top:1px solid var(--line); display:grid; gap:14px;}
+  .cr-row{display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px;}
+  .cr-row span{color:var(--muted-light);}
+  .cr-row b{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:17px; color:var(--paper); font-variant-numeric:tabular-nums;}
+  .cr-row b.pos{color:var(--emerald-light);}
+  .cr-bar{display:flex; height:8px; margin-top:20px; background:var(--ink-3); overflow:hidden; border-radius:2px;}
+  .cr-bar i{display:block; height:100%;}
+  .cr-bar .p{background:var(--muted);}
+  .cr-bar .g{background:linear-gradient(90deg,var(--gold),var(--gold-light)); transition:width .35s ease;}
+  .calc-note{font-size:12px; color:var(--muted); line-height:1.6; max-width:720px; margin-top:36px;}
+
+  @media (max-width:820px){
+    .calc-grid{grid-template-columns:1fr; gap:32px;}
+    .calc-result{position:static;}
+  }
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B0E13">
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="assets/icons/favicon-16.png" sizes="16x16">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="myAlternates">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    });
+  }
+</script>
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand-group">
+      <a href="index.html" class="logo-link">
+        <img class="logo-img" src="assets/logo-myalternates.png" alt="myAlternates">
+      </a>
+      <span class="brand-divider"></span>
+      <div class="powered-by">
+        <span class="powered-by-label">Powered by</span>
+        <img class="pmsbazaar-img" src="assets/logo-pmsbazaar.png" alt="PMS Bazaar">
+      </div>
+    </div>
+    <nav class="links">
+      <a href="about.html">About</a>
+      <div class="nav-products" tabindex="0">
+        <a href="index.html#pillars" class="nav-products-trigger">Products</a>
+        <div class="nav-menu">
+          <a href="pms.html">PMS</a>
+          <a href="aif.html">AIF</a>
+          <a href="mf.html">MF</a>
+          <a href="sif.html">SIF</a>
+          <a href="gift-city.html">GIFT IFSC</a>
+        </div>
+      </div>
+      <div class="nav-login" tabindex="0">
+        <span>Login</span>
+        <div class="login-menu">
+          <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login<small>Track your portfolio — login.myalternates.com</small></a>
+          <div class="login-menu-divider"></div>
+          <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login<small>Manage your book — backoffice.myalternates.com</small></a>
+        </div>
+      </div>
+      <a href="#enquiry" class="nav-cta">Talk to an Expert</a>
+    </nav>
+    <button class="burger" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<div class="crumb">
+  <div class="wrap">
+    <a href="index.html">← Back to home</a>
+  </div>
+</div>
+
+<!-- ================= HERO ================= -->
+<section class="p-hero">
+  <div class="wrap">
+    <div class="eyebrow">Calculators</div>
+    <h1>XIRR <em>calculator.</em></h1>
+    <p class="lead">
+      When money goes in and comes out on irregular dates — top-ups, partial withdrawals,
+      SIP instalments — a single "CAGR" no longer describes the return. XIRR is the annualised
+      rate that accounts for the exact timing of every cash flow. For each line, pick
+      <b>Purchase</b>, <b>Redemption</b> or <b>Current value</b> and enter the amount — we
+      handle the plus or minus.
+    </p>
+  </div>
+</section>
+
+<!-- ================= CALCULATOR ================= -->
+<section class="calc-section">
+  <div class="wrap">
+    <div class="section-tag">Work it out</div>
+    <div class="calc-grid">
+      <div class="calc-inputs">
+        <div class="field">
+          <label>Cash flows</label>
+          <div class="xr-rows" id="xrRows">
+            <div class="xr-head"><span>Date</span><span>Type</span><span>Amount (₹)</span><span></span></div>
+          </div>
+          <button type="button" class="xr-add" id="xrAdd">+ Add cash flow</button>
+          <p class="calc-hint">
+            <b>Purchase</b> = money you invested. <b>Redemption</b> = money you took out.
+            <b>Current value</b> = what the holding is worth today — use this on the last row,
+            dated today, if you haven't fully exited.
+          </p>
+        </div>
+      </div>
+
+      <div class="calc-result">
+        <div class="cr-label">XIRR (annualised)</div>
+        <div class="cr-big" id="xr-rate">0.0%</div>
+        <div class="cr-sub" id="xr-sub">across your cash flows</div>
+        <div class="cr-rows">
+          <div class="cr-row"><span>Total invested</span><b id="xr-in">₹0</b></div>
+          <div class="cr-row"><span>Total received / value</span><b id="xr-out">₹0</b></div>
+          <div class="cr-row"><span>Net gain</span><b class="pos" id="xr-gain">₹0</b></div>
+        </div>
+        <div class="cr-bar"><i class="p" id="xr-barP" style="width:100%"></i><i class="g" id="xr-barG" style="width:0"></i></div>
+      </div>
+    </div>
+
+    <p class="calc-note">
+      For information only. XIRR assumes cash flows can be reinvested at the same rate and is
+      sensitive to the dates you enter; it ignores taxes and charges. Talk to a myAlternates
+      advisor for a proper read on your own portfolio's returns.
+    </p>
+  </div>
+</section>
+
+<!-- ================= ENQUIRY ================= -->
+<section class="enquiry" id="enquiry">
+  <div class="wrap enquiry-grid">
+    <div class="enquiry-copy">
+      <div class="section-tag">Talk to an expert</div>
+      <h2>Want an advisor to run these numbers on your portfolio?</h2>
+      <p>Share a few details and a myAlternates investment expert will call you back within one business day — no obligation.</p>
+      <ul>
+        <li>A read on how your investments have actually compounded</li>
+        <li>A clear view of costs, and how our pricing compares</li>
+        <li>Help with onboarding and paperwork, end to end</li>
+      </ul>
+    </div>
+
+    <div class="lead-card">
+      <h3>Request a callback</h3>
+      <div class="sub">Your enquiry goes straight to our investment team.</div>
+      <form id="leadForm" data-interest="Not sure yet — need guidance">
+        <div class="field">
+          <label for="lf-name">Full name</label>
+          <input id="lf-name" type="text" required placeholder="Your name">
+        </div>
+        <div class="field">
+          <label for="lf-email">Email</label>
+          <input id="lf-email" type="email" required placeholder="you@email.com">
+        </div>
+        <div class="field">
+          <label for="lf-mobile">Mobile</label>
+          <div class="mobile-group">
+            <select id="lf-cc" aria-label="Mobile country code"></select>
+            <input id="lf-mobile" type="tel" required pattern="[0-9]{6,14}" placeholder="Mobile number">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="lf-country">Country</label>
+            <select id="lf-country"></select>
+          </div>
+          <div class="field">
+            <label for="lf-pincode">Pincode / ZIP</label>
+            <input id="lf-pincode" type="text" required placeholder="Pincode / ZIP">
+          </div>
+        </div>
+        <button type="submit" class="submit-btn" id="lf-submit">Request a callback</button>
+        <p class="form-note">By submitting, you agree to be contacted by a myAlternates advisor.</p>
+      </form>
+      <div class="form-success">
+        <div class="check">✓</div>
+        <h4 id="lf-ok-title">Request received</h4>
+        <p id="lf-ok-body">Thank you — a myAlternates investment expert will call you within one business day.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MORE CALCULATORS ================= -->
+<section class="calc-more">
+  <div class="wrap">
+    <div class="section-tag">More calculators</div>
+    <div class="calc-more-grid">
+      <a href="pms-fees.html"><b>PMS fee calculator</b><span>See how a lower PMS fee compounds into more wealth</span></a>
+      <a href="cagr.html"><b>CAGR calculator</b><span>Annualised growth of a one-time investment</span></a>
+      <a href="sip.html"><b>SIP calculator</b><span>What a monthly plan could grow to</span></a>
+      <a href="sip.html#lumpsum"><b>Lumpsum calculator</b><span>What a one-time investment could grow to</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-logo"><img src="assets/logo-foot.png" alt="myAlternates"></div>
+        <p>Combined dashboard for PMS, MF, SIF, GIFT City and AIF — the lowest PMS fees on the platform, plus a dedicated distributor dashboard to manage and track every client.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Products</h5>
+        <a href="pms.html">PMS</a>
+        <a href="mf.html">Mutual Funds</a>
+        <a href="sif.html">SIF</a>
+        <a href="gift-city.html">GIFT City</a>
+        <a href="aif.html">AIF</a>
+      </div>
+      <div class="foot-col">
+        <h5>Platform</h5>
+        <a href="about.html">About</a>
+        <a href="index.html#pillars">Offering</a>
+        <a href="index.html#partners">Partner AMCs</a>
+        <a href="index.html#enquiry">Talk to an Expert</a>
+      </div>
+      <div class="foot-col">
+        <h5>Calculators</h5>
+        <a href="pms-fees.html">PMS Calculator</a>
+        <a href="cagr.html">CAGR Calculator</a>
+        <a href="sip.html">SIP Calculator</a>
+        <a href="sip.html#lumpsum">Lumpsum Calculator</a>
+        <a href="xirr.html">XIRR Calculator</a>
+      </div>
+      <div class="foot-col">
+        <h5>Login</h5>
+        <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login</a>
+        <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>&copy; 2026 myAlternates. All rights reserved.</span>
+      <span>Powered by PMS Bazaar</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var rowsEl = document.getElementById('xrRows');
+  var addBtn = document.getElementById('xrAdd');
+  var rateEl = document.getElementById('xr-rate');
+  var subEl = document.getElementById('xr-sub');
+  var inEl = document.getElementById('xr-in');
+  var outEl = document.getElementById('xr-out');
+  var gainEl = document.getElementById('xr-gain');
+  var barP = document.getElementById('xr-barP');
+  var barG = document.getElementById('xr-barG');
+
+  var DAY = 24 * 3600 * 1000;
+  function inr(n) { return '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN'); }
+
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function addRow(date, type, amount) {
+    type = type || 'purchase';
+    function opt(v, label) {
+      return '<option value="' + v + '"' + (type === v ? ' selected' : '') + '>' + label + '</option>';
+    }
+    var row = document.createElement('div');
+    row.className = 'xr-row';
+    row.innerHTML =
+      '<input type="date" class="xr-date" value="' + (date || '') + '">' +
+      '<select class="xr-type" aria-label="Cash flow type">' +
+        opt('purchase', 'Purchase') +
+        opt('redemption', 'Redemption') +
+        opt('current', 'Current value') +
+      '</select>' +
+      '<input type="text" class="xr-amt" inputmode="numeric" value="' + (amount || '') + '">' +
+      '<button type="button" class="xr-del" aria-label="Remove row">✕</button>';
+    rowsEl.appendChild(row);
+    row.querySelector('.xr-date').addEventListener('input', calc);
+    row.querySelector('.xr-type').addEventListener('change', calc);
+    row.querySelector('.xr-amt').addEventListener('input', function () {
+      var el = this;
+      var raw = el.value.replace(/[^0-9]/g, '');
+      el.value = raw ? parseInt(raw, 10).toLocaleString('en-IN') : '';
+      calc();
+    });
+    row.querySelector('.xr-del').addEventListener('click', function () {
+      if (rowsEl.querySelectorAll('.xr-row').length <= 2) return;
+      row.remove(); refreshDel(); calc();
+    });
+    refreshDel();
+  }
+
+  function refreshDel() {
+    var dels = rowsEl.querySelectorAll('.xr-del');
+    var disable = dels.length <= 2;
+    dels.forEach(function (b) { b.disabled = disable; });
+  }
+
+  function readFlows() {
+    var out = [];
+    rowsEl.querySelectorAll('.xr-row').forEach(function (r) {
+      var dv = r.querySelector('.xr-date').value;
+      var av = r.querySelector('.xr-amt').value;
+      var amt = parseFloat(av.replace(/[^0-9.]/g, '')) || 0;
+      if (r.querySelector('.xr-type').value === 'purchase') amt = -amt;
+      if (dv && amt !== 0) out.push({ t: new Date(dv).getTime(), amount: amt });
+    });
+    out.sort(function (a, b) { return a.t - b.t; });
+    return out;
+  }
+
+  function xnpv(rate, flows) {
+    var t0 = flows[0].t, s = 0;
+    for (var i = 0; i < flows.length; i++) {
+      s += flows[i].amount / Math.pow(1 + rate, (flows[i].t - t0) / DAY / 365);
+    }
+    return s;
+  }
+
+  function xirr(flows) {
+    var lo = -0.9999, hi = 10;
+    var fLo = xnpv(lo, flows), fHi = xnpv(hi, flows);
+    if (fLo * fHi > 0) { hi = 1000; fHi = xnpv(hi, flows); if (fLo * fHi > 0) return null; }
+    var rate;
+    for (var i = 0; i < 300; i++) {
+      rate = (lo + hi) / 2;
+      var f = xnpv(rate, flows);
+      if (Math.abs(f) < 1e-7 || (hi - lo) < 1e-10) break;
+      if (fLo * f < 0) { hi = rate; } else { lo = rate; fLo = f; }
+    }
+    return rate;
+  }
+
+  function calc() {
+    var flows = readFlows();
+    var invested = 0, received = 0;
+    flows.forEach(function (f) { if (f.amount < 0) invested += -f.amount; else received += f.amount; });
+
+    inEl.textContent = inr(invested);
+    outEl.textContent = inr(received);
+    var gain = received - invested;
+    gainEl.textContent = (gain >= 0 ? '' : '−') + inr(gain);
+    gainEl.classList.toggle('pos', gain >= 0);
+
+    var pw = (invested + Math.max(gain, 0)) > 0 ? (invested / (invested + Math.max(gain, 0))) * 100 : 100;
+    barP.style.width = Math.max(0, Math.min(100, pw)) + '%';
+    barG.style.width = Math.max(0, Math.min(100, 100 - pw)) + '%';
+
+    var hasNeg = flows.some(function (f) { return f.amount < 0; });
+    var hasPos = flows.some(function (f) { return f.amount > 0; });
+    if (flows.length < 2 || !hasNeg || !hasPos) {
+      rateEl.textContent = '—'; rateEl.className = 'cr-big';
+      subEl.textContent = 'Add at least one investment (−) and one positive cash flow';
+      return;
+    }
+
+    var r = xirr(flows);
+    if (r == null || !isFinite(r)) {
+      rateEl.textContent = '—'; rateEl.className = 'cr-big';
+      subEl.textContent = 'Couldn’t solve — check the dates and amounts';
+      return;
+    }
+    var pct = r * 100;
+    rateEl.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%';
+    rateEl.className = 'cr-big' + (pct < 0 ? ' neg' : '');
+    var first = new Date(flows[0].t), last = new Date(flows[flows.length - 1].t);
+    var yrs = (last - first) / DAY / 365;
+    subEl.textContent = 'annualised over ' + yrs.toFixed(1) + ' years, ' + flows.length + ' cash flows';
+  }
+
+  addBtn.addEventListener('click', function () {
+    var last = rowsEl.querySelectorAll('.xr-date');
+    addRow(last.length ? last[last.length - 1].value : todayISO(), 'purchase', '');
+    refreshDel();
+  });
+
+  // seed an illustrative example
+  addRow('2022-04-01', 'purchase', '2,00,000');
+  addRow('2022-10-01', 'purchase', '2,00,000');
+  addRow('2023-04-01', 'purchase', '2,00,000');
+  addRow('2023-10-01', 'purchase', '2,00,000');
+  addRow(todayISO(), 'current', '10,00,000');
+  calc();
+})();
+</script>
+<script src="assets/lead-form.js"></script>
+
+</body>
+</html>

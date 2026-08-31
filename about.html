@@ -66,6 +66,61 @@
     .leader-photo{width:160px; height:160px;}
   }
 
+  /* ---- Journey timeline (animates when scrolled into view) ---- */
+  .journey{background:var(--ink); color:var(--paper); padding:96px 0 104px; overflow:hidden;}
+  .journey .wrap{max-width:940px;}
+  .journey .section-tag{color:var(--gold-light);}
+  .journey h2{
+    font-family:'Fraunces', Georgia, serif; font-weight:500;
+    font-size:clamp(24px,3vw,36px); line-height:1.2; margin-bottom:14px; color:var(--paper);
+  }
+  .journey-sub{font-size:15px; line-height:1.7; color:#B7BCC4; max-width:600px; margin-bottom:54px;}
+
+  .timeline{position:relative; padding-left:46px;}
+  .tl-rail{position:absolute; left:15px; top:6px; bottom:6px; width:2px; background:var(--line);}
+  .tl-fill{
+    position:absolute; left:0; top:0; width:100%; height:0;
+    background:linear-gradient(var(--gold), var(--gold-light));
+  }
+  .tl-dot{
+    position:absolute; left:1px; top:0; width:11px; height:11px; margin:-6px 0 0 -5px;
+    border-radius:50%; background:var(--gold-light); box-shadow:0 0 0 4px rgba(233,209,158,0.16);
+  }
+  .journey.js-anim .tl-fill, .journey.js-anim .tl-dot{transition:all 2.6s cubic-bezier(.4,0,.2,1);}
+  .journey.js-anim.playing .tl-fill{height:100%;}
+  .journey.js-anim.playing .tl-dot{top:100%;}
+
+  .jm{position:relative; padding:0 0 44px;}
+  .jm:last-child{padding-bottom:0;}
+  .jm::before{
+    content:''; position:absolute; left:-37px; top:4px; width:12px; height:12px;
+    border-radius:50%; background:var(--ink); border:2px solid var(--line);
+  }
+  .journey.js-anim .jm{opacity:0; transform:translateY(24px); transition:opacity .6s ease, transform .6s ease;}
+  .journey.js-anim .jm::before{transition:border-color .5s ease, background .5s ease, box-shadow .5s ease;}
+  .journey.js-anim.playing .jm{opacity:1; transform:none;}
+  .journey.js-anim.playing .jm::before{border-color:var(--gold); background:var(--gold); box-shadow:0 0 0 5px rgba(201,162,75,0.14);}
+  .jm-year{
+    display:block; font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600;
+    letter-spacing:0.06em; color:var(--gold); margin-bottom:7px;
+  }
+  .jm-metric{display:flex; align-items:baseline; gap:8px 18px; flex-wrap:wrap; margin-bottom:4px;}
+  .jm-num{
+    font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(23px,3.2vw,33px);
+    color:var(--gold-light); line-height:1; font-variant-numeric:tabular-nums;
+  }
+  .jm-num small{font-size:.5em; color:var(--gold); margin-left:3px; letter-spacing:0.03em;}
+  .jm-sub{font-size:12px; color:var(--muted-light); letter-spacing:0.02em;}
+  .jm h4{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:17px; color:var(--paper); margin:8px 0 6px;}
+  .jm p{font-size:13.5px; line-height:1.66; color:#9DA3AC; max-width:520px;}
+
+  @media (max-width:640px){
+    .journey-sub{margin-bottom:40px;}
+    .timeline{padding-left:36px;}
+    .tl-rail{left:11px;}
+    .jm::before{left:-31px;}
+  }
+
   .about-cta{background:var(--ink); color:var(--paper); padding:80px 0; text-align:center;}
   .about-cta h2{
     font-family:'Fraunces', Georgia, serif; font-weight:500;
@@ -105,9 +160,25 @@
       </div>
     </div>
     <nav class="links">
-      <a href="index.html#pillars">All Products</a>
       <a href="about.html">About</a>
-      <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login</a>
+      <div class="nav-products" tabindex="0">
+        <a href="index.html#pillars" class="nav-products-trigger">Products</a>
+        <div class="nav-menu">
+          <a href="pms.html">PMS</a>
+          <a href="aif.html">AIF</a>
+          <a href="mf.html">MF</a>
+          <a href="sif.html">SIF</a>
+          <a href="gift-city.html">GIFT IFSC</a>
+        </div>
+      </div>
+      <div class="nav-login" tabindex="0">
+        <span>Login</span>
+        <div class="login-menu">
+          <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login<small>Track your portfolio — login.myalternates.com</small></a>
+          <div class="login-menu-divider"></div>
+          <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login<small>Manage your book — backoffice.myalternates.com</small></a>
+        </div>
+      </div>
       <a href="index.html#enquiry" class="nav-cta">Talk to an Expert</a>
     </nav>
     <button class="burger" aria-label="Menu">☰</button>
@@ -151,6 +222,97 @@
       leads to transparent pricing, long-term relationships and service standards
       personalised to the ever-changing needs of individuals and families.
     </p>
+  </div>
+</section>
+
+<!-- ============ JOURNEY (animated timeline) ============ -->
+<section class="journey" id="journey">
+  <div class="wrap">
+    <div class="section-tag">Our journey</div>
+    <h2>From a two-person idea in 2017 to ₹2,200 Cr on one dashboard.</h2>
+    <p class="journey-sub">Eight years of onboarding investors, renegotiating fees with AMCs and building both dashboards — here's how it added up.</p>
+
+    <div class="timeline">
+      <div class="tl-rail"><span class="tl-fill"></span><span class="tl-dot"></span></div>
+
+      <!-- Milestone data is illustrative — replace figures/copy with the real record. -->
+      <div class="jm">
+        <span class="jm-year">2017</span>
+        <div class="jm-metric"><span class="jm-num">Day one</span></div>
+        <h4>Two founders, one conviction</h4>
+        <p>Hameed Rahman and D. Rajesh Kumar lay the foundation stone for myAlternates under PMS Bazaar — seamless onboarding for investors, and a single live view for every alternate they hold.</p>
+      </div>
+
+      <div class="jm">
+        <span class="jm-year">2018</span>
+        <div class="jm-metric">
+          <span class="jm-num" data-to="160" data-prefix="₹" data-small="Cr">₹0<small>Cr</small></span>
+          <span class="jm-sub">~140 investors onboarded</span>
+        </div>
+        <h4>The first fee we ever renegotiated</h4>
+        <p>The first AMC pass-through deal is signed. Investors start keeping more of every rupee of return instead of losing it to mark-ups.</p>
+      </div>
+
+      <div class="jm">
+        <span class="jm-year">2019</span>
+        <div class="jm-metric">
+          <span class="jm-num" data-to="500" data-prefix="₹" data-small="Cr">₹0<small>Cr</small></span>
+          <span class="jm-sub">520 investors · distributor dashboard live</span>
+        </div>
+        <h4>Both sides of the table, one engine</h4>
+        <p>The distributor dashboard goes live and 25+ AMCs move to platform-negotiated pricing — passed straight through to investors, no hidden spread.</p>
+      </div>
+
+      <div class="jm">
+        <span class="jm-year">2020</span>
+        <div class="jm-metric">
+          <span class="jm-num" data-to="780" data-prefix="₹" data-small="Cr">₹0<small>Cr</small></span>
+          <span class="jm-sub">850+ investors · 98% stayed through the COVID drawdown</span>
+        </div>
+        <h4>Investors kept the faith</h4>
+        <p>Through the sharpest drawdown in a decade, almost no one exited — and inflows kept coming. GIFT City access was added so investors could diversify offshore from the same login.</p>
+      </div>
+
+      <div class="jm">
+        <span class="jm-year">2021</span>
+        <div class="jm-metric">
+          <span class="jm-num" data-to="1000" data-prefix="₹" data-small="Cr">₹0<small>Cr</small></span>
+          <span class="jm-sub">1,200 investors</span>
+        </div>
+        <h4>A research desk of our own</h4>
+        <p>Unbiased research is formalised and quarterly manager-access calls begin — investors speak directly to the people running the money.</p>
+      </div>
+
+      <div class="jm">
+        <span class="jm-year">2022</span>
+        <div class="jm-metric">
+          <span class="jm-num" data-to="1450" data-prefix="₹" data-small="Cr">₹0<small>Cr</small></span>
+          <span class="jm-sub">320+ distributor logins</span>
+        </div>
+        <h4>The lowest-PMS-fee commitment</h4>
+        <p>Every PMS on the platform is renegotiated with its AMC. The saving stops being a pitch and becomes a promise passed through to every investor.</p>
+      </div>
+
+      <div class="jm">
+        <span class="jm-year">2023</span>
+        <div class="jm-metric">
+          <span class="jm-num" data-to="1850" data-prefix="₹" data-small="Cr">₹0<small>Cr</small></span>
+          <span class="jm-sub">110+ AMC integrations</span>
+        </div>
+        <h4>SIF and AIF, made simple</h4>
+        <p>Onboarding for the newest categories is streamlined end-to-end, so specialised and private-market strategies sit in the same view as everything else.</p>
+      </div>
+
+      <div class="jm">
+        <span class="jm-year">2025</span>
+        <div class="jm-metric">
+          <span class="jm-num" data-to="2200" data-prefix="₹" data-small="Cr">₹0<small>Cr</small></span>
+          <span class="jm-sub">2,500+ investors · 600+ distributors</span>
+        </div>
+        <h4>Where we are now</h4>
+        <p>150+ partner AMCs. Five products. Two dashboards. One data engine — and the same alignment with investor outcomes we started with.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -219,7 +381,7 @@
     <div class="foot-grid">
       <div>
         <div class="foot-logo"><img src="assets/logo-foot.png" alt="myAlternates"></div>
-        <p>Combined dashboard for PMS, MF, SIF, GIFT City and AIF — competitive pricing, plus a dedicated distributor dashboard to manage and track every client.</p>
+        <p>Combined dashboard for PMS, MF, SIF, GIFT City and AIF — the lowest PMS fees on the platform, plus a dedicated distributor dashboard to manage and track every client.</p>
       </div>
       <div class="foot-col">
         <h5>Products</h5>
@@ -233,7 +395,16 @@
         <h5>Platform</h5>
         <a href="about.html">About</a>
         <a href="index.html#pillars">Offering</a>
+        <a href="index.html#partners">Partner AMCs</a>
         <a href="index.html#enquiry">Talk to an Expert</a>
+      </div>
+      <div class="foot-col">
+        <h5>Calculators</h5>
+        <a href="pms-fees.html">PMS Calculator</a>
+        <a href="cagr.html">CAGR Calculator</a>
+        <a href="sip.html">SIP Calculator</a>
+        <a href="sip.html#lumpsum">Lumpsum Calculator</a>
+        <a href="xirr.html">XIRR Calculator</a>
       </div>
       <div class="foot-col">
         <h5>Login</h5>
@@ -242,11 +413,66 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 myAlternates. All rights reserved.</span>
+      <span>&copy; 2026 myAlternates. All rights reserved.</span>
       <span>Powered by PMS Bazaar</span>
     </div>
   </div>
 </footer>
+
+<script>
+(function () {
+  var journey = document.getElementById('journey');
+  if (!journey) return;
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var items = [].slice.call(journey.querySelectorAll('.jm'));
+  var STAGGER = 260; // ms between milestones lighting up
+
+  // Only hide-then-reveal when we can actually animate + observe.
+  var canAnimate = !reduce && 'IntersectionObserver' in window;
+  if (canAnimate) journey.classList.add('js-anim');
+
+  function countUp(el, to, prefix, small, delay) {
+    setTimeout(function () {
+      var dur = 1100, t0 = performance.now();
+      (function frame(now) {
+        var p = Math.min((now - t0) / dur, 1);
+        var e = 1 - Math.pow(1 - p, 3);
+        var v = Math.round(to * e).toLocaleString('en-IN');
+        el.innerHTML = (prefix || '') + v + (small ? '<small>' + small + '</small>' : '');
+        if (p < 1) requestAnimationFrame(frame);
+      })(t0);
+    }, delay);
+  }
+
+  function play() {
+    journey.classList.add('playing');
+    items.forEach(function (item, i) {
+      var delay = i * STAGGER;
+      if (canAnimate) item.style.transitionDelay = (delay / 1000) + 's';
+      var num = item.querySelector('.jm-num[data-to]');
+      if (num) {
+        var to = parseInt(num.dataset.to, 10);
+        if (reduce) {
+          num.innerHTML = (num.dataset.prefix || '') + to.toLocaleString('en-IN') +
+            (num.dataset.small ? '<small>' + num.dataset.small + '</small>' : '');
+        } else {
+          countUp(num, to, num.dataset.prefix, num.dataset.small, delay + 220);
+        }
+      }
+    });
+  }
+
+  if (!canAnimate) { play(); return; }
+
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) { play(); io.disconnect(); }
+    });
+  }, { threshold: 0.25 });
+  io.observe(journey);
+})();
+</script>
 
 </body>
 </html>
