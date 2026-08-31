@@ -1152,7 +1152,7 @@
       <div class="pcard reveal">
         <div class="num">MF</div>
         <h3>Mutual Funds</h3>
-        <div class="tagline">Direct, tracked live</div>
+        <div class="tagline">Regular, tracked live</div>
         <p>mutual funds sitting alongside your alternates, so your full portfolio shows up in one place, not two.</p>
         <a href="mf.html" class="more">Explore MF →</a>
       </div>
@@ -1278,7 +1278,7 @@
         </div>
         <div class="dist-mock-row body"><div class="name">A. Mehta</div><div>PMS</div><div>₹1.4 Cr</div><div class="up">+14.2%</div></div>
         <div class="dist-mock-row body"><div class="name">R. Kapoor</div><div>AIF — Cat II</div><div>₹80 L</div><div class="up">+9.6%</div></div>
-        <div class="dist-mock-row body"><div class="name">S. Iyer</div><div>MF — Direct</div><div>₹32 L</div><div class="down">-1.1%</div></div>
+        <div class="dist-mock-row body"><div class="name">S. Iyer</div><div>MF — Regular</div><div>₹32 L</div><div class="down">-1.1%</div></div>
         <div class="dist-mock-row body"><div class="name">N. Verma</div><div>GIFT City</div><div>$120K</div><div class="up">+6.8%</div></div>
         <div class="dist-mock-row body"><div class="name">P. Shah</div><div>SIF</div><div>₹55 L</div><div class="up">+11.4%</div></div>
         <div class="dist-mock-foot">
@@ -1708,17 +1708,32 @@
     }
   });
 
-  countrySelect.addEventListener('change', function(){
-    // A new country means the previously entered pincode no longer applies.
+  function resetPincodeFields(){
     pincodeRequestId++; // invalidate any in-flight lookup
     pincodeInput.value = '';
     clearLocationFields();
     hideManualLocation();
     setStatus('', '');
+  }
+
+  countrySelect.addEventListener('change', function(){
+    // A new country means the previously entered pincode no longer applies.
+    resetPincodeFields();
 
     // Keep the mobile dial code in step with the selected country by default.
-    const dial = DIAL_CODES[this.value];
-    if(dial) mobileCountryCode.value = dial;
+    // Pick the exact per-country option, not just the first one sharing the code.
+    const match = Array.prototype.find.call(mobileCountryCode.options,
+      o => o.dataset.country === this.value);
+    if(match) mobileCountryCode.selectedIndex = match.index;
+  });
+
+  // Reverse direction: choosing a dial code updates the Country field to match.
+  // Runs only on real user input, so either field can still be changed afterwards.
+  mobileCountryCode.addEventListener('change', function(){
+    const iso = this.options[this.selectedIndex]?.dataset.country;
+    if(!iso || iso === countrySelect.value) return;
+    countrySelect.value = iso;
+    resetPincodeFields();
   });
 
   // ---------- Google Sheets lead logging ----------

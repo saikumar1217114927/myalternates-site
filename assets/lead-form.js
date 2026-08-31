@@ -217,8 +217,42 @@
       clearLocation();
       hideManual();
       setStatus('', '');
-      var d = DIAL_CODES[this.value];
-      if (d) ccSel.value = d;
+    });
+  }
+
+  /* ---------------- country <-> dial code ---------------- */
+  // Two-way sync: either field drives the other. Each only reacts to real
+  // user input (never a programmatic change), so whatever gets auto-selected
+  // stays fully editable — the lead can override it afterwards.
+  function wireCountryCode() {
+    function ccOptionForIso(iso) {
+      for (var i = 0; i < ccSel.options.length; i++) {
+        if (ccSel.options[i].getAttribute('data-iso') === iso) return ccSel.options[i];
+      }
+      return null;
+    }
+    function resetPincode() {
+      pinReqId++;
+      if (pinInput) pinInput.value = '';
+      clearLocation();
+      hideManual();
+      setStatus('', '');
+    }
+
+    // Country -> dial code (exact per-country option, not just the first
+    // option that shares the code).
+    countrySel.addEventListener('change', function () {
+      var o = ccOptionForIso(this.value);
+      if (o) ccSel.selectedIndex = o.index;
+    });
+
+    // Dial code -> country.
+    ccSel.addEventListener('change', function () {
+      var opt = ccSel.options[ccSel.selectedIndex];
+      var iso = opt && opt.getAttribute('data-iso');
+      if (!iso || iso === countrySel.value) return;
+      countrySel.value = iso;
+      resetPincode();
     });
   }
 
@@ -509,10 +543,12 @@
       o = new Option(c[1], c[0], c[0] === 'IN', c[0] === 'IN');
       countrySel.appendChild(o);
       o = new Option(c[0] + ' ' + (DIAL_CODES[c[0]] || ''), DIAL_CODES[c[0]] || '', c[0] === 'IN', c[0] === 'IN');
+      o.setAttribute('data-iso', c[0]);
       ccSel.appendChild(o);
     }
 
     if (pinInput) wirePincode();
+    wireCountryCode();
     form.addEventListener('submit', onSubmit);
   }
 
