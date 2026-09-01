@@ -9,7 +9,7 @@
  *
  * Bump CACHE_VERSION whenever precached files change so old caches are purged.
  */
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 const FONTS = `fonts-${CACHE_VERSION}`;
@@ -88,13 +88,21 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Navigations: network-first with cache + offline fallback
+  // Navigations: network-first with cache + offline fallback.
+  // Only cache clean, same-origin 200s — never a redirect or an error page,
+  // so a stray redirect (e.g. a stale custom-domain 301) can't get pinned here.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(RUNTIME).then((cache) => cache.put(request, copy));
+          if (
+            response.ok &&
+            !response.redirected &&
+            new URL(response.url).origin === self.location.origin
+          ) {
+            const copy = response.clone();
+            caches.open(RUNTIME).then((cache) => cache.put(request, copy));
+          }
           return response;
         })
         .catch(async () =>
