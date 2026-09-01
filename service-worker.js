@@ -9,24 +9,26 @@
  *
  * Bump CACHE_VERSION whenever precached files change so old caches are purged.
  */
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 const FONTS = `fonts-${CACHE_VERSION}`;
 
+// Extensionless paths — the site links to /pms, not /pms.html, and GitHub
+// Pages serves the .html file for either. Keeping these in step with the
+// links means navigations are served straight from the precache offline.
 const PRECACHE_URLS = [
   './',
-  './index.html',
-  './about.html',
-  './pms.html',
-  './pms-fees.html',
-  './aif.html',
-  './mf.html',
-  './sif.html',
-  './gift-city.html',
-  './cagr.html',
-  './sip.html',
-  './xirr.html',
+  './about',
+  './pms',
+  './pms-fees',
+  './aif',
+  './mf',
+  './sif',
+  './gift-city',
+  './cagr',
+  './sip',
+  './xirr',
   './offline.html',
   './assets/site.css',
   './assets/lead-form.js',
@@ -107,7 +109,7 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(async () =>
           (await caches.match(request)) ||
-          (await caches.match('./index.html')) ||
+          (await caches.match('./')) ||
           caches.match('./offline.html')
         )
     );
