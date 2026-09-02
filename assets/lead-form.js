@@ -588,6 +588,11 @@
     document.documentElement.style.overflow = '';
     document.body.style.overflow = '';
 
+    var wasReschedule = !!(lead && lead.rescheduleMeetingId);
+    // remove the returning-visitor / known-contact panels so no stale meeting shows
+    var lr = document.querySelector('.lead-returning'); if (lr) lr.remove();
+    var lk = document.querySelector('.lf-known'); if (lk) lk.remove();
+
     if (form) {
       form.style.display = 'none';
       var card = form.closest('.lead-card');
@@ -598,7 +603,7 @@
       var t = document.getElementById('lf-ok-title');
       var b = document.getElementById('lf-ok-body');
       if (scheduled) {
-        if (t) t.textContent = 'Call scheduled';
+        if (t) t.textContent = wasReschedule ? 'Call rescheduled' : 'Call scheduled';
         if (b) b.textContent = "You're all set — we'll connect via " + pick.mode + ' on ' + pick.dateLabel + ' at ' + pick.time + ' (IST).';
       }
       ok.classList.add('show');
@@ -660,8 +665,8 @@
 
     if (interest) {
       html += already
-        ? '<div class="lr-done">Your advisor already has <b>' + escHtml(interest) + '</b> on the list.</div>'
-        : '<div class="lr-ask">Want your advisor to cover <b>' + escHtml(interest) + '</b> ' + (hasMtg ? 'in this call' : 'when you speak') + ' too?' +
+        ? '<div class="lr-done">Your expert already has <b>' + escHtml(interest) + '</b> on the list.</div>'
+        : '<div class="lr-ask">Want your expert to cover <b>' + escHtml(interest) + '</b> ' + (hasMtg ? 'in this call' : 'when you speak') + ' too?' +
           '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
           '<button type="button" class="lr-link" data-no>Not now</button></div></div>';
     }
@@ -674,7 +679,7 @@
       yes.disabled = true; yes.textContent = 'Adding…';
       send({ action: 'addInterest', leadId: stored.leadId, email: stored.email, vid: getVid(), interest: interest, path: location.pathname })
         .then(function (r) {
-          if (r && r.ok && r.found) { rememberFlag(interest); if (ask) ask.innerHTML = '<div class="lr-done">Added — your advisor will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
+          if (r && r.ok && r.found) { rememberFlag(interest); if (ask) ask.innerHTML = '<div class="lr-done">Added — your expert will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
           else { yes.disabled = false; yes.textContent = 'Yes, add it'; }
         });
     };
