@@ -1803,11 +1803,69 @@
 
   let leadRecord = null; // holds the submitted enquiry (+ its sheet row number), reused by the schedule popup
 
+  // ---------- Recognise a returning visitor / new device ----------
+  function maRenderKnown(r){
+    if(document.querySelector('.ma-known')) return;
+    const m = r && r.upcomingMeeting;
+    if(!m || !m.date) return;
+    const d = new Date(m.date + 'T00:00:00');
+    const when = isNaN(d) ? m.date : d.toLocaleDateString('en-IN',{ weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+    const b = document.createElement('div');
+    b.className = 'ma-known';
+    b.style.cssText = 'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:14px 16px;margin-bottom:18px;font-size:13.5px;line-height:1.55;color:#f1ede1';
+    b.innerHTML = '<div><b>We found your details.</b> You have a call scheduled for <b>' + when + (m.time ? ' · ' + m.time + ' IST' : '') + '</b>' + (m.mode ? ' (' + m.mode + ')' : '') + '.</div>' +
+      '<div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">' +
+      '<button type="button" id="maKeep" style="background:none;border:0;color:#cbb98f;text-decoration:underline;font-size:13px;cursor:pointer">That\'s fine</button>' +
+      '<button type="button" id="maResch" style="background:#c9a24b;color:#1a1400;border:0;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer">Reschedule</button></div>';
+    card.parentNode.insertBefore(b, card);
+    document.getElementById('maKeep').onclick = () => b.remove();
+    document.getElementById('maResch').onclick = () => {
+      const intEl = document.getElementById('interest');
+      leadRecord = {
+        role:'Investor', name: r.name || '',
+        email: document.getElementById('email').value.trim(),
+        mobileCountryCode: document.getElementById('mobileCountryCode').value,
+        mobile: document.getElementById('mobile').value.trim(),
+        interest: intEl ? intEl.value : '',
+        leadId: r.leadId, visitorId: MA_VID, path: location.pathname,
+        rescheduleMeetingId: m.meetingId, rowNumber: null
+      };
+      card.classList.add('hide-form');
+      openScheduleModal();
+    };
+  }
+  async function maCheckKnown(){
+    const email = (document.getElementById('email').value || '').trim();
+    const mobile = (document.getElementById('mobile').value || '').trim();
+    if(email.indexOf('@') < 1 && mobile.length < 6) return;
+    const r = await sendToLeadsSheet({ action:'getLeadPublic', email, mobile, mobileCountryCode: document.getElementById('mobileCountryCode').value, vid: MA_VID });
+    if(!r || !r.found) return;
+    try{ localStorage.setItem('maLead', JSON.stringify({ leadId: r.leadId, name: r.name || '', email })); } catch(e){}
+    maRenderKnown(r);
+  }
+  (function wireKnown(){
+    const em = document.getElementById('email'), mo = document.getElementById('mobile');
+    let last = '';
+    const run = () => { const k = (em.value || '') + '|' + (mo ? mo.value : ''); if(k !== last){ last = k; maCheckKnown(); } };
+    if(em) em.addEventListener('blur', run);
+    if(mo) mo.addEventListener('blur', run);
+    const s = maStoredLead();
+    if(s && (s.email || s.leadId)){
+      sendToLeadsSheet({ action:'getLeadPublic', leadId: s.leadId, email: s.email, vid: MA_VID }).then(r => { if(r && r.found) maRenderKnown(r); });
+    }
+  })();
+
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     if(!form.checkValidity()){ form.reportValidity(); return; }
     btn.disabled = true;
     btn.textContent = 'Sending…';
+
+    // A fast submitter can beat the 400ms debounced pincode lookup — make sure
+    // it has finished so city/state are captured.
+    if(pincodeInput.value.trim() && !cityInput.value.trim()){
+      try{ await lookupPincode(pincodeInput.value.trim()); } catch(e){}
+    }
 
     leadRecord = {
       role: document.getElementById('role').value,

@@ -34,7 +34,16 @@
       '.lead-returning .btn-gold:disabled{opacity:.6;cursor:default}' +
       '.lead-returning .lr-link{background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline}' +
       '.lead-returning .lr-done{background:#eef7f0;border:1px solid #cbe6d3;border-radius:10px;padding:14px 16px;font-size:14px;color:#1f6f43;line-height:1.5}' +
-      '.lead-returning .lr-book{margin-top:16px}';
+      '.lead-returning .lr-book{margin-top:16px}' +
+      '.lead-returning .lr-body{margin-top:8px}' +
+      '.lead-returning .lr-meeting{background:#f6f4ee;border:1px solid #e6e1d3;border-radius:10px;padding:14px 16px;margin-bottom:14px}' +
+      '.lead-returning .lr-mlabel{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7c58;font-weight:700}' +
+      '.lead-returning .lr-mwhen{font-size:16px;font-weight:700;margin:4px 0}' +
+      '.lead-returning .lr-mmode{font-size:13px;color:#5b6270;margin-bottom:8px}' +
+      '.lf-known{background:#f6f4ee;border:1px solid #e6e1d3;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13.5px;line-height:1.5}' +
+      '.lf-known-actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}' +
+      '.lf-known .btn-gold{background:#c9a24b;color:#1a1400;border:0;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer}' +
+      '.lf-known .lr-link{background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline}';
     document.head.appendChild(s);
   })();
 
@@ -202,7 +211,7 @@
     var reqId = ++pinReqId;
     setStatus('Looking up pincode…', 'loading');
 
-    fetch(ZIPCODEBASE_URL + '?codes=' + encodeURIComponent(code) + '&apikey=' + ZIPCODEBASE_API_KEY + '&country=' + encodeURIComponent(country))
+    return fetch(ZIPCODEBASE_URL + '?codes=' + encodeURIComponent(code) + '&apikey=' + ZIPCODEBASE_API_KEY + '&country=' + encodeURIComponent(country))
       .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); })
       .then(function (data) { return (data && data.results && data.results[code]) || null; })
       .catch(function () { return null; })
@@ -321,32 +330,40 @@
     btn.disabled = true;
     btn.textContent = 'Submitting…';
 
-    lead = {
-      role: 'Investor',
-      name: document.getElementById('lf-name').value.trim(),
-      email: document.getElementById('lf-email').value.trim(),
-      mobileCountryCode: ccSel.value,
-      mobile: document.getElementById('lf-mobile').value.trim(),
-      country: countrySel.options[countrySel.selectedIndex].textContent,
-      pincode: pinInput.value.trim(),
-      city: (cityInput && cityInput.value.trim()) || detected.city || '',
-      state: (stateInput && stateInput.value.trim()) || detected.state || '',
-      interest: form.getAttribute('data-interest') || 'Not sure yet — need guidance',
-      visitorId: getVid(),
-      path: location.pathname,
-      rowNumber: null
-    };
+    function proceed() {
+      lead = {
+        role: 'Investor',
+        name: document.getElementById('lf-name').value.trim(),
+        email: document.getElementById('lf-email').value.trim(),
+        mobileCountryCode: ccSel.value,
+        mobile: document.getElementById('lf-mobile').value.trim(),
+        country: countrySel.options[countrySel.selectedIndex].textContent,
+        pincode: pinInput ? pinInput.value.trim() : '',
+        city: (cityInput && cityInput.value.trim()) || detected.city || '',
+        state: (stateInput && stateInput.value.trim()) || detected.state || '',
+        interest: form.getAttribute('data-interest') || 'Not sure yet — need guidance',
+        visitorId: getVid(),
+        path: location.pathname,
+        rowNumber: null
+      };
 
-    // Optimistic: fire the lead POST but DON'T wait for it — move straight to
-    // the schedule step. The row number is picked up when it resolves; if the
-    // user schedules first, the backend matches the lead by email/mobile.
-    submitPromise = send(lead).then(function (res) {
-      if (res && res.row) lead.rowNumber = res.row;
-      if (res && res.leadId) { lead.leadId = res.leadId; rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email }); }
-      return res;
-    });
+      submitPromise = send(lead).then(function (res) {
+        if (res && res.row) lead.rowNumber = res.row;
+        if (res && res.leadId) { lead.leadId = res.leadId; rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email }); }
+        return res;
+      });
 
-    openSchedule();
+      openSchedule();
+    }
+
+    // A fast submitter can beat the 400ms debounced pincode lookup — wait for it
+    // so city/state are captured.
+    var pin = pinInput ? pinInput.value.trim() : '';
+    if (pin && !detected.city && !(cityInput && cityInput.value.trim())) {
+      Promise.resolve(lookupPincode(pin)).then(proceed, proceed);
+    } else {
+      proceed();
+    }
   }
 
   /* ---------------- full-screen schedule step ---------------- */
@@ -591,7 +608,18 @@
 
   /* ---------------- boot ---------------- */
 
-  /* -------- returning visitor: skip the form, offer to add interest -------- */
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function fmtDate(iso) {
+    var d = new Date(String(iso || '') + 'T00:00:00');
+    if (isNaN(d)) return String(iso || '');
+    return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  /* -------- returning visitor: skip the form, show their call / offer interest -------- */
   function showReturning(stored) {
     var interest = (form.getAttribute('data-interest') || '').trim();
     var host = form.closest('.lead-card') || form.parentNode;
@@ -600,50 +628,69 @@
 
     var first = (stored.name || '').trim().split(/\s+/)[0];
     var box = el('div', 'lead-returning');
-    var already = interest && flaggedInterests().indexOf(interest) >= 0;
     box.innerHTML =
       '<div class="lr-title">Welcome back' + (first ? ', ' + escHtml(first) : '') + '</div>' +
-      '<p class="lr-sub">You\'ve already reached out to us — no need to fill the form again.</p>' +
-      (interest
-        ? (already
-          ? '<div class="lr-done">Your advisor already has <b>' + escHtml(interest) + '</b> on the list for your call.</div>'
-          : '<div class="lr-ask">Want your advisor to cover <b>' + escHtml(interest) + '</b> in your call too?' +
-            '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
-            '<button type="button" class="lr-link" data-no>Not now</button></div></div>')
-        : '') +
-      '<div class="lr-book"><button type="button" class="lr-link" data-book>Book or change your call →</button></div>';
+      '<div class="lr-body"><p class="lr-sub">Checking your details…</p></div>';
     host.appendChild(box);
 
-    var ask = box.querySelector('.lr-ask');
-    function markDone(msg) {
-      if (ask) ask.innerHTML = '<div class="lr-done">' + msg + '</div>';
+    send({ action: 'getLeadPublic', leadId: stored.leadId, email: stored.email, vid: getVid() })
+      .then(function (r) { renderReturning(box.querySelector('.lr-body'), stored, interest, (r && r.found) ? r.upcomingMeeting : null); })
+      .catch(function () { renderReturning(box.querySelector('.lr-body'), stored, interest, null); });
+  }
+
+  function renderReturning(bodyEl, stored, interest, mtg) {
+    var hasMtg = !!(mtg && mtg.date);
+    var already = interest && flaggedInterests().indexOf(interest) >= 0;
+    var html = '';
+
+    if (hasMtg) {
+      html += '<div class="lr-meeting">' +
+        '<div class="lr-mlabel">Your call is scheduled</div>' +
+        '<div class="lr-mwhen">' + escHtml(fmtDate(mtg.date)) + (mtg.time ? ' · ' + escHtml(mtg.time) + ' IST' : '') + '</div>' +
+        (mtg.mode ? '<div class="lr-mmode">' + escHtml(mtg.mode) + '</div>' : '') +
+        '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
+        '</div>';
+    } else {
+      html += '<p class="lr-sub">You\'ve already reached out — no need to fill the form again.</p>';
     }
-    var yes = box.querySelector('[data-yes]');
+
+    if (interest) {
+      html += already
+        ? '<div class="lr-done">Your advisor already has <b>' + escHtml(interest) + '</b> on the list.</div>'
+        : '<div class="lr-ask">Want your advisor to cover <b>' + escHtml(interest) + '</b> ' + (hasMtg ? 'in this call' : 'when you speak') + ' too?' +
+          '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
+          '<button type="button" class="lr-link" data-no>Not now</button></div></div>';
+    }
+    if (!hasMtg) html += '<div class="lr-book"><button type="button" class="lr-link" data-book>Book a call →</button></div>';
+    bodyEl.innerHTML = html;
+
+    var ask = bodyEl.querySelector('.lr-ask');
+    var yes = bodyEl.querySelector('[data-yes]');
     if (yes) yes.onclick = function () {
       yes.disabled = true; yes.textContent = 'Adding…';
       send({ action: 'addInterest', leadId: stored.leadId, email: stored.email, vid: getVid(), interest: interest, path: location.pathname })
         .then(function (r) {
-          if (r && r.ok && r.found) { rememberFlag(interest); markDone('Added — your advisor will cover <b>' + escHtml(interest) + '</b> as well.'); }
+          if (r && r.ok && r.found) { rememberFlag(interest); if (ask) ask.innerHTML = '<div class="lr-done">Added — your advisor will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
           else { yes.disabled = false; yes.textContent = 'Yes, add it'; }
         });
     };
-    var no = box.querySelector('[data-no]');
+    var no = bodyEl.querySelector('[data-no]');
     if (no) no.onclick = function () { if (ask) ask.style.display = 'none'; };
-    box.querySelector('[data-book]').onclick = function () {
+
+    function openBooking(rescheduleId) {
       lead = {
         role: 'Investor', name: stored.name || '', email: stored.email || '',
         mobileCountryCode: '', mobile: '', interest: interest || '',
-        leadId: stored.leadId, visitorId: getVid(), path: location.pathname, rowNumber: null
+        leadId: stored.leadId, visitorId: getVid(), path: location.pathname,
+        rescheduleMeetingId: rescheduleId || '', rowNumber: null
       };
       submitPromise = Promise.resolve();
       openSchedule();
-    };
-  }
-
-  function escHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-    });
+    }
+    var book = bodyEl.querySelector('[data-book]');
+    if (book) book.onclick = function () { openBooking(''); };
+    var resch = bodyEl.querySelector('[data-resch]');
+    if (resch) resch.onclick = function () { openBooking(mtg.meetingId); };
   }
 
   function build() {
@@ -668,7 +715,59 @@
 
     if (pinInput) wirePincode();
     wireCountryCode();
+    wireKnownContact();
     form.addEventListener('submit', onSubmit);
+  }
+
+  /* -------- new device: recognise by email / mobile, surface their call -------- */
+  function wireKnownContact() {
+    var emailEl = document.getElementById('lf-email');
+    var mobileEl = document.getElementById('lf-mobile');
+    if (!emailEl) return;
+    var checked = '';
+    function check() {
+      var email = emailEl.value.trim();
+      var mobile = mobileEl ? mobileEl.value.trim() : '';
+      var key = email + '|' + mobile;
+      if (key === checked) return;
+      if (!(email && email.indexOf('@') > 0) && mobile.length < 6) return;
+      checked = key;
+      send({ action: 'getLeadPublic', email: email, mobile: mobile, mobileCountryCode: ccSel ? ccSel.value : '', vid: getVid() })
+        .then(function (r) {
+          if (!r || !r.found) return;
+          rememberLead({ leadId: r.leadId, name: r.name || '', email: email });
+          if (r.upcomingMeeting && r.upcomingMeeting.date) showKnownBanner(r);
+        });
+    }
+    emailEl.addEventListener('blur', check);
+    if (mobileEl) mobileEl.addEventListener('blur', check);
+  }
+
+  function showKnownBanner(r) {
+    if (document.querySelector('.lf-known')) return;
+    var m = r.upcomingMeeting;
+    var host = form.closest('.lead-card') || form.parentNode;
+    var b = el('div', 'lf-known');
+    b.innerHTML =
+      '<div><b>We found your details.</b> You have a call scheduled for <b>' +
+        escHtml(fmtDate(m.date)) + (m.time ? ' · ' + escHtml(m.time) + ' IST' : '') + '</b>' +
+        (m.mode ? ' (' + escHtml(m.mode) + ')' : '') + '.</div>' +
+      '<div class="lf-known-actions">' +
+        '<button type="button" class="lr-link" data-keep>That\'s fine</button>' +
+        '<button type="button" class="btn-gold" data-resch>Reschedule</button></div>';
+    host.insertBefore(b, form);
+    b.querySelector('[data-keep]').onclick = function () { b.remove(); };
+    b.querySelector('[data-resch]').onclick = function () {
+      var mobileEl = document.getElementById('lf-mobile');
+      lead = {
+        role: 'Investor', name: r.name || '', email: document.getElementById('lf-email').value.trim(),
+        mobileCountryCode: ccSel ? ccSel.value : '', mobile: mobileEl ? mobileEl.value.trim() : '',
+        interest: form.getAttribute('data-interest') || '', leadId: r.leadId, visitorId: getVid(),
+        path: location.pathname, rescheduleMeetingId: m.meetingId, rowNumber: null
+      };
+      submitPromise = Promise.resolve();
+      openSchedule();
+    };
   }
 
   if (document.readyState === 'loading') {
