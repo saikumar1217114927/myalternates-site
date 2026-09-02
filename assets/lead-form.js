@@ -21,6 +21,23 @@
 
   var LEADS_WEBHOOK_URL = 'https://myalternates-backend.onrender.com/';
 
+  // styles for the returning-visitor card (self-contained, no site.css edit)
+  (function () {
+    var s = document.createElement('style');
+    s.textContent =
+      '.lead-returning{padding:6px 2px}' +
+      '.lead-returning .lr-title{font-family:inherit;font-size:20px;font-weight:700;margin-bottom:6px}' +
+      '.lead-returning .lr-sub{color:#5b6270;font-size:14px;line-height:1.55;margin-bottom:16px}' +
+      '.lead-returning .lr-ask{background:#f6f4ee;border:1px solid #e6e1d3;border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.5}' +
+      '.lead-returning .lr-actions{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}' +
+      '.lead-returning .btn-gold{background:#c9a24b;color:#1a1400;border:0;border-radius:8px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer}' +
+      '.lead-returning .btn-gold:disabled{opacity:.6;cursor:default}' +
+      '.lead-returning .lr-link{background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline}' +
+      '.lead-returning .lr-done{background:#eef7f0;border:1px solid #cbe6d3;border-radius:10px;padding:14px 16px;font-size:14px;color:#1f6f43;line-height:1.5}' +
+      '.lead-returning .lr-book{margin-top:16px}';
+    document.head.appendChild(s);
+  })();
+
   // Same location service index.html uses.
   var ZIPCODEBASE_API_KEY = 'e7760cf0-6fd0-11f1-85e2-ffa5f29d7b10';
   var ZIPCODEBASE_URL = 'https://app.zipcodebase.com/api/v1/search';
@@ -98,6 +115,25 @@
   var form, countrySel, ccSel, pinInput, statusEl, manualRow, cityInput, stateInput;
   var lead = null;               // the submitted enquiry
   var submitPromise = null;      // in-flight initial POST (for the row number)
+
+  // ---- returning-visitor identity (shared with index.html's tracking) ----
+  function ls(k, v) {
+    try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }
+    catch (e) { return null; }
+  }
+  function getVid() {
+    var v = ls('maVid');
+    if (!v) {
+      v = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : 'v-' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+      ls('maVid', v);
+    }
+    return v;
+  }
+  function storedLead() { try { return JSON.parse(ls('maLead') || 'null'); } catch (e) { return null; } }
+  function rememberLead(o) { ls('maLead', JSON.stringify({ leadId: o.leadId, name: o.name, email: o.email })); }
+  function flaggedInterests() { try { return JSON.parse(ls('maInterests') || '[]'); } catch (e) { return []; } }
+  function rememberFlag(x) { var a = flaggedInterests(); if (a.indexOf(x) < 0) { a.push(x); ls('maInterests', JSON.stringify(a)); } }
   var detected = { area: '', city: '', state: '' };
   var pinDebounce = null, pinReqId = 0;
 
@@ -277,6 +313,8 @@
       city: (cityInput && cityInput.value.trim()) || detected.city || '',
       state: (stateInput && stateInput.value.trim()) || detected.state || '',
       interest: form.getAttribute('data-interest') || 'Not sure yet — need guidance',
+      visitorId: getVid(),
+      path: location.pathname,
       rowNumber: null
     };
 
@@ -285,6 +323,7 @@
     // user schedules first, the backend matches the lead by email/mobile.
     submitPromise = send(lead).then(function (res) {
       if (res && res.row) lead.rowNumber = res.row;
+      if (res && res.leadId) { lead.leadId = res.leadId; rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email }); }
       return res;
     });
 
@@ -331,10 +370,12 @@
       '</g>' +
     '</svg>';
 
-  // The next 10 bookable days from today, Sundays skipped — built once.
+  // The next 10 bookable days starting tomorrow, Sundays skipped — built once.
+  // (Today is never offered — an advisor can't be lined up within hours.)
   var VALID_DAYS = (function (count) {
     var out = [], d = new Date();
     d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 1);
     while (out.length < count) {
       if (d.getDay() !== 0) out.push(new Date(d));
       d.setDate(d.getDate() + 1);
@@ -531,9 +572,68 @@
 
   /* ---------------- boot ---------------- */
 
+  /* -------- returning visitor: skip the form, offer to add interest -------- */
+  function showReturning(stored) {
+    var interest = (form.getAttribute('data-interest') || '').trim();
+    var host = form.closest('.lead-card') || form.parentNode;
+    form.style.display = 'none';
+    if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
+
+    var first = (stored.name || '').trim().split(/\s+/)[0];
+    var box = el('div', 'lead-returning');
+    var already = interest && flaggedInterests().indexOf(interest) >= 0;
+    box.innerHTML =
+      '<div class="lr-title">Welcome back' + (first ? ', ' + escHtml(first) : '') + '</div>' +
+      '<p class="lr-sub">You\'ve already reached out to us — no need to fill the form again.</p>' +
+      (interest
+        ? (already
+          ? '<div class="lr-done">Your advisor already has <b>' + escHtml(interest) + '</b> on the list for your call.</div>'
+          : '<div class="lr-ask">Want your advisor to cover <b>' + escHtml(interest) + '</b> in your call too?' +
+            '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
+            '<button type="button" class="lr-link" data-no>Not now</button></div></div>')
+        : '') +
+      '<div class="lr-book"><button type="button" class="lr-link" data-book>Book or change your call →</button></div>';
+    host.appendChild(box);
+
+    var ask = box.querySelector('.lr-ask');
+    function markDone(msg) {
+      if (ask) ask.innerHTML = '<div class="lr-done">' + msg + '</div>';
+    }
+    var yes = box.querySelector('[data-yes]');
+    if (yes) yes.onclick = function () {
+      yes.disabled = true; yes.textContent = 'Adding…';
+      send({ action: 'addInterest', leadId: stored.leadId, email: stored.email, vid: getVid(), interest: interest, path: location.pathname })
+        .then(function (r) {
+          if (r && r.ok && r.found) { rememberFlag(interest); markDone('Added — your advisor will cover <b>' + escHtml(interest) + '</b> as well.'); }
+          else { yes.disabled = false; yes.textContent = 'Yes, add it'; }
+        });
+    };
+    var no = box.querySelector('[data-no]');
+    if (no) no.onclick = function () { if (ask) ask.style.display = 'none'; };
+    box.querySelector('[data-book]').onclick = function () {
+      lead = {
+        role: 'Investor', name: stored.name || '', email: stored.email || '',
+        mobileCountryCode: '', mobile: '', interest: interest || '',
+        leadId: stored.leadId, visitorId: getVid(), path: location.pathname, rowNumber: null
+      };
+      submitPromise = Promise.resolve();
+      openSchedule();
+    };
+  }
+
+  function escHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
   function build() {
     form = document.getElementById('leadForm');
     if (!form) return;
+
+    var stored = storedLead();
+    if (stored && stored.leadId) { showReturning(stored); return; }
+
     countrySel = document.getElementById('lf-country');
     ccSel = document.getElementById('lf-cc');
     pinInput = document.getElementById('lf-pincode');
