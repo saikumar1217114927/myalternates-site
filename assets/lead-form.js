@@ -485,11 +485,11 @@
     // default selection = the first available day
     if (!pick.date) {
       var f = VALID_DAYS[0];
-      pick.date = f.toISOString().slice(0, 10);
+      pick.date = isoLocal(f);
       pick.dateLabel = f.toLocaleDateString('en-US', { weekday: 'short' }) + ', ' + f.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
     }
     VALID_DAYS.slice(pick.page * PAGE_SIZE, pick.page * PAGE_SIZE + PAGE_SIZE).forEach(function (d) {
-      var iso = d.toISOString().slice(0, 10);
+      var iso = isoLocal(d);
       var dow = d.toLocaleDateString('en-US', { weekday: 'short' });
       var dnum = d.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
       var chip = el('button', 'date-chip' + (iso === pick.date ? ' active' : ''),
@@ -617,6 +617,10 @@
     var d = new Date(String(iso || '') + 'T00:00:00');
     if (isNaN(d)) return String(iso || '');
     return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  }
+  // local calendar date (not toISOString — that shifts to UTC / a day early for IST)
+  function isoLocal(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
   /* -------- returning visitor: skip the form, show their call / offer interest -------- */
