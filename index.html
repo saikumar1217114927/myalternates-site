@@ -1736,12 +1736,10 @@
     resetPincodeFields();
   });
 
-  // ---------- Google Sheets lead logging ----------
-  // 1. In the target spreadsheet: Extensions → Apps Script, paste the doPost() script
-  //    from the accompanying setup notes, then Deploy → New deployment → Web app
-  //    (Execute as: Me, Who has access: Anyone).
-  // 2. Paste the resulting /exec URL below.
-  const LEADS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzHAuxW3oxq7GX2fMa5YaMJDy_8jFSLsaob7A8VOdDMx_Hb3DsBnpAguCPyAtucw0Wt/exec';
+  // ---------- Lead + page-view tracking ----------
+  // Posts to the myAlternates backend (Node/Postgres on Render). Uses text/plain
+  // to avoid a CORS preflight; the backend returns JSON.
+  const LEADS_WEBHOOK_URL = 'https://myalternates-backend.onrender.com/';
 
   // One row per investor: the enquiry submit appends the row and gets its row number back;
   // scheduling a call later UPDATES that same row (Action Taken? + date/time/mode) instead

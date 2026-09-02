@@ -19,7 +19,7 @@
 (function () {
   'use strict';
 
-  var LEADS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzHAuxW3oxq7GX2fMa5YaMJDy_8jFSLsaob7A8VOdDMx_Hb3DsBnpAguCPyAtucw0Wt/exec';
+  var LEADS_WEBHOOK_URL = 'https://myalternates-backend.onrender.com/';
 
   // Same location service index.html uses.
   var ZIPCODEBASE_API_KEY = 'e7760cf0-6fd0-11f1-85e2-ffa5f29d7b10';
