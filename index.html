@@ -1759,6 +1759,40 @@
     }
   }
 
+  // ---------- Visitor identity + page-view tracking ----------
+  // maVid is a per-browser anonymous id kept in localStorage. Every page load
+  // fires a lightweight beacon so the backend can stitch together the pages
+  // someone browsed before (and after) they filled the form.
+  const MA_VID = (function(){
+    try{
+      let v = localStorage.getItem('maVid');
+      if(!v){
+        v = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+          : 'v-' + Date.now().toString(36) + Math.random().toString(36).slice(2);
+        localStorage.setItem('maVid', v);
+      }
+      return v;
+    } catch(e){ return 'v-nostore'; }
+  })();
+  function maStoredLead(){ try{ return JSON.parse(localStorage.getItem('maLead') || 'null'); } catch(e){ return null; } }
+  function maFirstUtm(){
+    try{ const s = JSON.parse(localStorage.getItem('maUtm') || 'null'); if(s && s.source) return s; } catch(e){}
+    const q = new URLSearchParams(location.search);
+    const u = { source: q.get('utm_source') || '', medium: q.get('utm_medium') || '', campaign: q.get('utm_campaign') || '' };
+    if(u.source || u.medium || u.campaign){ try{ localStorage.setItem('maUtm', JSON.stringify(u)); } catch(e){} }
+    return u;
+  }
+  (function trackPageView(){
+    const stored = maStoredLead();
+    const body = JSON.stringify({
+      action: 'track', vid: MA_VID, leadId: (stored && stored.leadId) || '',
+      path: location.pathname, title: document.title, ref: document.referrer,
+      utm: maFirstUtm(), ua: navigator.userAgent
+    });
+    try{ if(navigator.sendBeacon && navigator.sendBeacon(LEADS_WEBHOOK_URL, new Blob([body], { type:'text/plain;charset=UTF-8' }))) return; } catch(e){}
+    try{ fetch(LEADS_WEBHOOK_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' }, body: body, keepalive: true }); } catch(e){}
+  })();
+
   // ---------- Enquiry form ----------
   const form = document.getElementById('enquiryForm');
   const btn = document.getElementById('submitBtn');
@@ -1786,6 +1820,9 @@
       city: cityInput.value.trim(),
       state: stateInput.value.trim(),
       interest: document.getElementById('interest').value,
+      visitorId: MA_VID,
+      path: location.pathname,
+      utm: maFirstUtm(),
       rowNumber: null
     };
 
@@ -1795,6 +1832,10 @@
     // by email/mobile.
     sendToLeadsSheet(leadRecord).then(function(result){
       if(result && result.row) leadRecord.rowNumber = result.row;
+      if(result && result.leadId){
+        leadRecord.leadId = result.leadId;
+        try{ localStorage.setItem('maLead', JSON.stringify({ leadId: result.leadId, name: leadRecord.name, email: leadRecord.email })); } catch(e){}
+      }
     });
 
     card.classList.add('hide-form');
@@ -1822,10 +1863,12 @@
   let selectedTime = TIME_SLOTS[0];
   let selectedMode = 'Phone Call';
 
-  // The next 10 bookable days from today, Sundays skipped — built once.
+  // The next 10 bookable days starting tomorrow, Sundays skipped — built once.
+  // Today is never offered (an advisor can't be lined up within hours).
   const VALID_DAYS = (() => {
     const out = [], d = new Date();
     d.setHours(0,0,0,0);
+    d.setDate(d.getDate() + 1);
     while(out.length < 10){
       if(d.getDay() !== 0) out.push(new Date(d));
       d.setDate(d.getDate() + 1);

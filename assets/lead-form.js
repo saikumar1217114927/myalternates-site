@@ -134,6 +134,25 @@
   function rememberLead(o) { ls('maLead', JSON.stringify({ leadId: o.leadId, name: o.name, email: o.email })); }
   function flaggedInterests() { try { return JSON.parse(ls('maInterests') || '[]'); } catch (e) { return []; } }
   function rememberFlag(x) { var a = flaggedInterests(); if (a.indexOf(x) < 0) { a.push(x); ls('maInterests', JSON.stringify(a)); } }
+  function firstUtm() {
+    try { var s = JSON.parse(ls('maUtm') || 'null'); if (s && s.source) return s; } catch (e) {}
+    var q = new URLSearchParams(location.search);
+    var u = { source: q.get('utm_source') || '', medium: q.get('utm_medium') || '', campaign: q.get('utm_campaign') || '' };
+    if (u.source || u.medium || u.campaign) ls('maUtm', JSON.stringify(u));
+    return u;
+  }
+
+  // page-view beacon — every product page, same shape as index.html's
+  (function trackPageView() {
+    var s = storedLead();
+    var body = JSON.stringify({
+      action: 'track', vid: getVid(), leadId: (s && s.leadId) || '',
+      path: location.pathname, title: document.title, ref: document.referrer,
+      utm: firstUtm(), ua: navigator.userAgent
+    });
+    try { if (navigator.sendBeacon && navigator.sendBeacon(LEADS_WEBHOOK_URL, new Blob([body], { type: 'text/plain;charset=UTF-8' }))) return; } catch (e) {}
+    try { fetch(LEADS_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, keepalive: true }); } catch (e) {}
+  })();
   var detected = { area: '', city: '', state: '' };
   var pinDebounce = null, pinReqId = 0;
 
