@@ -149,13 +149,24 @@
 
   /* ---------- TICKER (signature element) ---------- */
   .ticker{
+    position:relative;
     background:var(--ink); border-bottom:1px solid var(--line);
     overflow:hidden; white-space:nowrap; padding:9px 0;
+  }
+  .ticker-label{
+    position:absolute; left:0; top:0; bottom:0; z-index:2;
+    display:flex; align-items:center; padding:0 20px;
+    background:var(--ink); border-right:1px solid var(--line);
+    box-shadow:12px 0 18px -6px rgba(0,0,0,.6);
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--gold); font-weight:600; font-size:11.5px;
+    letter-spacing:.04em; text-transform:uppercase; white-space:nowrap;
   }
   .ticker-track{
     display:inline-flex; gap:0; animation:scroll-left 42s linear infinite;
     will-change:transform;
   }
+  @media (max-width:600px){ .ticker-label{ font-size:10px; padding:0 12px; } }
   @keyframes scroll-left{
     from{transform:translateX(0);}
     to{transform:translateX(-50%);}
@@ -167,7 +178,6 @@
   }
   .ticker-item b{color:var(--gold); font-weight:600;}
   .ticker-item .up{color:var(--emerald-light);}
-  .ticker-item .tk-as{color:var(--gold); font-weight:600; letter-spacing:.04em; text-transform:uppercase; font-size:11.5px;}
 
   /* ---------- HERO ---------- */
   .hero{
@@ -892,6 +902,7 @@
 </header>
 
 <div class="ticker" aria-hidden="true">
+  <div class="ticker-label" id="tickerLabel" hidden></div>
   <div class="ticker-track" id="tickerTrack"></div>
 </div>
 
@@ -1468,6 +1479,7 @@
   // static strip while it loads or if the feed is unavailable.
   const NAV_API = 'https://myalternates-backend.onrender.com/';
   const track = document.getElementById('tickerTrack');
+  const tickerLabel = document.getElementById('tickerLabel');
 
   const tickerFallback = [
     { label:'PMS', value:'Lowest fee on platform' },
@@ -1477,14 +1489,13 @@
     { label:'AIF', value:'Cat I, II & III open' },
   ];
 
-  function renderTicker(items){
+  function renderTicker(items, labelText){
+    if(labelText){ tickerLabel.textContent = labelText; tickerLabel.hidden = false; }
+    else { tickerLabel.hidden = true; }
     let html = '';
     for(let r=0;r<2;r++){
       items.forEach(t=>{
-        html += `<span class="ticker-item mono">` +
-          (t.lead ? `<span class="tk-as">${t.lead}</span>`
-                  : `<b>${t.label}</b> ${t.value}`) +
-          `</span>`;
+        html += `<span class="ticker-item mono"><b>${t.label}</b> ${t.value}</span>`;
       });
     }
     track.innerHTML = html;
@@ -1497,9 +1508,10 @@
       .then(d => {
         if(!d || !d.ok || !Array.isArray(d.funds) || !d.funds.length) return;
         const asOn = String(d.asOf || '').replace(/-/g, ' ');
-        const items = [{ lead: 'Regular MF NAV · as on ' + asOn }]
-          .concat(d.funds.map(f => ({ label: f.label, value: '₹' + f.nav })));
-        renderTicker(items);
+        renderTicker(
+          d.funds.map(f => ({ label: f.label, value: '₹' + f.nav })),
+          'Regular MF NAV · as on ' + asOn
+        );
       })
       .catch(()=>{});
   })();
