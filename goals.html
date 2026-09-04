@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goal Planners — myAlternates</title>
+<meta name="description" content="Pick a life goal — retire early, buy a home, become debt free, plan a wedding — and get the exact monthly investment it takes to reach it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .goal-pick{padding:60px 0 8px; background:var(--paper);}
+  .goal-group{margin-bottom:34px;}
+  .goal-group > h2{
+    font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:20px;
+    color:var(--ink-text); margin-bottom:15px;
+  }
+  .goal-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:12px;
+  }
+  .goal-card{
+    border:1px solid #e2dbc9; background:#fff; border-radius:10px;
+    padding:15px 14px; cursor:pointer; text-align:left; font-family:inherit;
+    display:flex; flex-direction:column; gap:9px;
+    transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .goal-card:hover{border-color:var(--gold-light); transform:translateY(-2px);}
+  .goal-card.active{border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,75,0.16);}
+  .goal-card .gc-ic{
+    width:40px; height:40px; border-radius:9px; display:flex; align-items:center;
+    justify-content:center; font-size:20px;
+    background:linear-gradient(135deg, rgba(201,162,75,0.20), rgba(30,111,92,0.14));
+  }
+  .goal-card .gc-nm{font-size:13.5px; font-weight:700; color:var(--ink-text); line-height:1.3;}
+  .goal-card .gc-tag{font-size:11px; color:var(--muted); font-weight:600; letter-spacing:0.02em;}
+
+  .goal-calc{padding:24px 0 88px; background:var(--paper); scroll-margin-top:88px;}
+  .gc-kicker{
+    display:inline-flex; align-items:center; gap:9px; color:var(--emerald);
+    font-size:12px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; margin-bottom:12px;
+  }
+  .gc-kicker::before{content:''; width:24px; height:2px; background:var(--gold);}
+  .gc-title{
+    font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(24px, 3vw, 32px);
+    color:var(--ink-text); margin-bottom:8px;
+  }
+  .gc-blurb{color:var(--muted); font-size:14.5px; line-height:1.6; max-width:620px; margin-bottom:28px;}
+  .gc-grid{display:grid; grid-template-columns:1fr 1fr; gap:44px; align-items:start; max-width:960px;}
+  .gc-in .field{margin-bottom:17px;}
+  .in-wrap{position:relative;}
+  .in-wrap .pfx{position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:14px; pointer-events:none;}
+  .in-wrap .sfx{position:absolute; right:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:14px; pointer-events:none;}
+  .in-wrap.has-pfx input{padding-left:26px;}
+  .in-wrap.has-sfx input{padding-right:32px;}
+  .gc-hint{font-size:12px; color:var(--muted-light); margin-top:6px;}
+
+  .gres{
+    background:var(--ink); color:var(--paper); padding:32px 28px; border-radius:14px;
+    box-shadow:0 30px 70px -22px rgba(8,10,14,0.4); position:sticky; top:94px;
+  }
+  .gres-lbl{font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted-light); margin-bottom:10px;}
+  .gres-big{
+    font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(36px, 5.6vw, 52px);
+    line-height:1; color:var(--gold); letter-spacing:-0.02em; font-variant-numeric:tabular-nums;
+  }
+  .gres-sub{font-size:12.5px; color:var(--muted-light); margin-top:10px; line-height:1.5;}
+  .gres-rows{margin-top:22px; padding-top:18px; border-top:1px solid var(--line); display:grid; gap:12px;}
+  .gres-row{display:flex; justify-content:space-between; gap:14px; align-items:baseline; font-size:13px;}
+  .gres-row span{color:var(--muted-light);}
+  .gres-row b{
+    font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:15.5px; color:var(--paper);
+    font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap;
+  }
+  .gres-row b.pos{color:var(--emerald-light);}
+  .gres-bar{display:flex; height:8px; margin-top:20px; background:var(--ink-3); overflow:hidden; border-radius:2px;}
+  .gres-bar i{display:block; height:100%;}
+  .gres-bar .a{background:var(--muted);}
+  .gres-bar .b{background:linear-gradient(90deg, var(--gold), var(--gold-light)); transition:width .35s ease;}
+  .gres-legend{display:flex; gap:16px; margin-top:10px; font-size:11.5px; color:var(--muted-light);}
+  .gres-legend i{width:8px; height:8px; border-radius:2px; display:inline-block; margin-right:5px; vertical-align:middle;}
+  .gres-legend i.a{background:var(--muted);}
+  .gres-legend i.b{background:var(--gold);}
+  .gc-note{font-size:12px; color:var(--muted); line-height:1.6; max-width:720px; margin-top:30px;}
+
+  @media (max-width:820px){
+    .gc-grid{grid-template-columns:1fr; gap:28px;}
+    .gres{position:static;}
+  }
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0B0E13">
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="assets/icons/favicon-16.png" sizes="16x16">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="myAlternates">
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    });
+  }
+</script>
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand-group">
+      <a href="./" class="logo-link">
+        <img class="logo-img" src="assets/logo-myalternates.png" alt="myAlternates">
+      </a>
+      <span class="brand-divider"></span>
+      <div class="powered-by">
+        <span class="powered-by-label">Powered by</span>
+        <img class="pmsbazaar-img" src="assets/logo-pmsbazaar.png" alt="PMS Bazaar">
+      </div>
+    </div>
+    <nav class="links">
+      <a href="about">About</a>
+      <div class="nav-products nav-goals" tabindex="0">
+        <a href="goals" class="nav-products-trigger">Goals</a>
+        <div class="nav-menu">
+          <a href="goals#retire-early">Retire early</a>
+          <a href="goals#emergency-fund">Save for emergency</a>
+          <a href="goals#dream-home">Buy your dream home</a>
+          <a href="goals#travel-abroad">Travel abroad</a>
+          <a href="goals#start-business">Start a business</a>
+          <a href="goals#dream-car">Buy your dream car</a>
+          <a href="goals#big-fat-wedding">Plan a big fat wedding</a>
+          <a href="goals#debt-free">Become debt free</a>
+          <a href="goals#luxury-watch">Buy a luxury watch</a>
+          <a href="goals#designer-bag">Buy a designer bag</a>
+          <a href="goals#latest-gadget">Buy the latest gadget</a>
+        </div>
+      </div>
+      <div class="nav-products" tabindex="0">
+        <a href="./#pillars" class="nav-products-trigger">Products</a>
+        <div class="nav-menu">
+          <a href="pms">PMS</a>
+          <a href="aif">AIF</a>
+          <a href="mf">MF</a>
+          <a href="sif">SIF</a>
+          <a href="gift-city">GIFT IFSC</a>
+        </div>
+      </div>
+      <div class="nav-login" tabindex="0">
+        <span>Login</span>
+        <div class="login-menu">
+          <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login<small>Track your portfolio — login.myalternates.com</small></a>
+          <div class="login-menu-divider"></div>
+          <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login<small>Manage your book — backoffice.myalternates.com</small></a>
+        </div>
+      </div>
+      <a href="./#enquiry" class="nav-cta">Talk to an Expert</a>
+    </nav>
+    <button class="burger" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<div class="crumb">
+  <div class="wrap">
+    <a href="./">← Back to home</a>
+  </div>
+</div>
+
+<!-- ================= HERO ================= -->
+<section class="p-hero">
+  <div class="wrap">
+    <div class="eyebrow">Goal planners</div>
+    <h1>Plan for what <em>actually matters.</em></h1>
+    <p class="lead">
+      Pick a goal below — from retiring early to clearing your loans to a big fat wedding.
+      Each one opens the right calculator, pre-set with sensible assumptions, and tells you
+      the one number that counts: how much to invest every month to get there.
+    </p>
+  </div>
+</section>
+
+<!-- ================= GOAL PICKER ================= -->
+<section class="goal-pick">
+  <div class="wrap">
+    <div class="section-tag">Choose your goal</div>
+    <div id="goalGroups"></div>
+  </div>
+</section>
+
+<!-- ================= CALCULATOR ================= -->
+<section class="goal-calc" id="calc">
+  <div class="wrap">
+    <div class="gc-kicker" id="gc-kicker">Goal calculator</div>
+    <h2 class="gc-title" id="gc-title">—</h2>
+    <p class="gc-blurb" id="gc-blurb">—</p>
+    <div class="gc-grid">
+      <div class="gc-in" id="gc-inputs"></div>
+      <div class="gres">
+        <div class="gres-lbl" id="gres-lbl">Result</div>
+        <div class="gres-big" id="gres-big">—</div>
+        <div class="gres-sub" id="gres-sub"></div>
+        <div class="gres-rows" id="gres-rows"></div>
+        <div class="gres-bar"><i class="a" id="gres-barA" style="width:50%"></i><i class="b" id="gres-barB" style="width:50%"></i></div>
+        <div class="gres-legend">
+          <span><i class="a"></i><span id="gres-legA">—</span></span>
+          <span><i class="b"></i><span id="gres-legB">—</span></span>
+        </div>
+      </div>
+    </div>
+    <p class="gc-note" id="gc-note">
+      For information only. These are projections built on the assumptions you enter, not a
+      promise of returns — markets vary and taxes and charges are not included. Talk to a
+      myAlternates expert to build the plan around your real finances.
+    </p>
+  </div>
+</section>
+
+<!-- ================= ENQUIRY ================= -->
+<section class="enquiry" id="enquiry">
+  <div class="wrap enquiry-grid">
+    <div class="enquiry-copy">
+      <div class="section-tag">Talk to an expert</div>
+      <h2>Want an expert to build this plan around your real numbers?</h2>
+      <p>Share a few details and a myAlternates investment expert will call you back within one business day — no obligation.</p>
+      <ul>
+        <li>A goal-by-goal plan matched to your income and timeline</li>
+        <li>The right mix of funds, PMS and AIFs for each goal</li>
+        <li>Help with onboarding and paperwork, end to end</li>
+      </ul>
+    </div>
+
+    <div class="lead-card">
+      <h3>Request a callback</h3>
+      <div class="sub">Your enquiry goes straight to our investment team.</div>
+      <form id="leadForm" data-interest="Goal planning">
+        <div class="field">
+          <label for="lf-name">Full name</label>
+          <input id="lf-name" type="text" required placeholder="Your name">
+        </div>
+        <div class="field">
+          <label for="lf-email">Email</label>
+          <input id="lf-email" type="email" required placeholder="you@email.com">
+        </div>
+        <div class="field">
+          <label for="lf-mobile">Mobile</label>
+          <div class="mobile-group">
+            <select id="lf-cc" aria-label="Mobile country code"></select>
+            <input id="lf-mobile" type="tel" required pattern="[0-9]{6,14}" placeholder="Mobile number">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="lf-country">Country</label>
+            <select id="lf-country"></select>
+          </div>
+          <div class="field">
+            <label for="lf-pincode">Pincode / ZIP</label>
+            <input id="lf-pincode" type="text" required placeholder="Pincode / ZIP">
+          </div>
+        </div>
+        <button type="submit" class="submit-btn" id="lf-submit">Request a callback</button>
+        <p class="form-note">By submitting, you agree to be contacted by a myAlternates expert.</p>
+      </form>
+      <div class="form-success">
+        <div class="check">✓</div>
+        <h4 id="lf-ok-title">Request received</h4>
+        <p id="lf-ok-body">Thank you — a myAlternates investment expert will call you within one business day.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MORE CALCULATORS ================= -->
+<section class="calc-more">
+  <div class="wrap">
+    <div class="section-tag">Standalone calculators</div>
+    <div class="calc-more-grid">
+      <a href="sip"><b>SIP calculator</b><span>What a monthly plan could grow to</span></a>
+      <a href="sip#lumpsum"><b>Lumpsum calculator</b><span>What a one-time investment could grow to</span></a>
+      <a href="cagr"><b>CAGR calculator</b><span>The annual growth rate of an investment</span></a>
+      <a href="xirr"><b>XIRR calculator</b><span>Your return when cash flows are irregular</span></a>
+      <a href="pms-fees"><b>PMS fee calculator</b><span>How a lower fee compounds into more wealth</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-logo"><img src="assets/logo-foot.png" alt="myAlternates"></div>
+        <p>Combined dashboard for PMS, MF, SIF, GIFT City and AIF — the lowest PMS fees on the platform, plus a dedicated distributor dashboard to manage and track every client.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Products</h5>
+        <a href="pms">PMS</a>
+        <a href="mf">Mutual Funds</a>
+        <a href="sif">SIF</a>
+        <a href="gift-city">GIFT City</a>
+        <a href="aif">AIF</a>
+      </div>
+      <div class="foot-col">
+        <h5>Platform</h5>
+        <a href="about">About</a>
+        <a href="goals">Goals</a>
+        <a href="./#pillars">Offering</a>
+        <a href="./#partners">Partner AMCs</a>
+        <a href="./#enquiry">Talk to an Expert</a>
+      </div>
+      <div class="foot-col">
+        <h5>Calculators</h5>
+        <a href="pms-fees">PMS Calculator</a>
+        <a href="cagr">CAGR Calculator</a>
+        <a href="sip">SIP Calculator</a>
+        <a href="sip#lumpsum">Lumpsum Calculator</a>
+        <a href="xirr">XIRR Calculator</a>
+      </div>
+      <div class="foot-col">
+        <h5>Login</h5>
+        <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login</a>
+        <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>&copy; 2026 myAlternates. All rights reserved.</span>
+      <span>Powered by PMS Bazaar</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------------- goal catalogue ---------------- */
+  var GROUPS = [
+    { title: 'Must achieve', goals: ['retire-early', 'emergency-fund', 'dream-home'] },
+    { title: 'Fulfill your wishes', goals: ['travel-abroad', 'start-business', 'dream-car', 'big-fat-wedding', 'debt-free'] },
+    { title: 'Guilty pleasures', goals: ['luxury-watch', 'designer-bag', 'latest-gadget'] }
+  ];
+
+  var GOALS = {
+    'retire-early': {
+      name: 'Retire early', tag: 'Retirement corpus', icon: '\u{1F3D6}️', engine: 'fire',
+      blurb: 'Work out the corpus that funds your lifestyle once the salary stops, and the monthly investment that gets you there by the age you pick.',
+      defaults: { age: 32, retAge: 45, annualExp: 900000, inflation: 6, swr: 4, ret: 11, saved: 1500000 }
+    },
+    'emergency-fund': {
+      name: 'Save for emergency', tag: 'Safety net', icon: '\u{1F6DF}', engine: 'emergency',
+      blurb: 'A cash cushion for job loss, medical bills or a bad month — held safe and liquid, not invested for growth. See the target and what to set aside each month.',
+      defaults: { expenses: 60000, months: 6, saved: 50000, build: 12 }
+    },
+    'dream-home': {
+      name: 'Buy your dream home', tag: 'Down payment', icon: '\u{1F3E1}', engine: 'goalsip',
+      blurb: 'Property prices climb while you save. This shows what the home will cost by your target year and the monthly investment to have the money ready.',
+      defaults: { cost: 15000000, years: 7, inflation: 7, ret: 11, saved: 500000 }
+    },
+    'travel-abroad': {
+      name: 'Travel abroad', tag: 'Short-term goal', icon: '✈️', engine: 'goalsip',
+      blurb: 'A big trip, funded without a loan or a dent in your investments. Enter the budget and when you want to go.',
+      defaults: { cost: 500000, years: 2, inflation: 6, ret: 9, saved: 0 }
+    },
+    'start-business': {
+      name: 'Start a business', tag: 'Seed capital', icon: '\u{1F4BC}', engine: 'goalsip',
+      blurb: 'Build the seed capital to launch on your own terms — without raising from day one. Set the amount you need and the runway to get there.',
+      defaults: { cost: 2500000, years: 3, inflation: 6, ret: 11, saved: 0 }
+    },
+    'dream-car': {
+      name: 'Buy your dream car', tag: 'Full price / down payment', icon: '\u{1F697}', engine: 'goalsip',
+      blurb: 'Pay cash or put down a big deposit and keep the EMI small. Enter the on-road price and when you want the keys.',
+      defaults: { cost: 2000000, years: 3, inflation: 6, ret: 10, saved: 0 }
+    },
+    'big-fat-wedding': {
+      name: 'Plan a big fat wedding', tag: 'Event fund', icon: '\u{1F48D}', engine: 'goalsip',
+      blurb: 'Venue, catering, jewellery and the rest add up — and inflate fast. See the future bill and the monthly investment that covers it.',
+      defaults: { cost: 3000000, years: 4, inflation: 8, ret: 11, saved: 0 }
+    },
+    'debt-free': {
+      name: 'Become debt free', tag: 'Loan payoff', icon: '\u{1F513}', engine: 'debt',
+      blurb: 'See exactly when your loans clear at your current payment — and how many months and how much interest an extra amount each month would save.',
+      defaults: { balance: 800000, rate: 13, emi: 20000, extra: 5000 }
+    },
+    'luxury-watch': {
+      name: 'Buy a luxury watch', tag: 'Save, don’t swipe', icon: '⌚', engine: 'goalsip',
+      blurb: 'Fund the splurge from a dedicated pot instead of the credit card. Enter the price and how long you’re willing to wait.',
+      defaults: { cost: 300000, years: 1, inflation: 5, ret: 7, saved: 0 }
+    },
+    'designer-bag': {
+      name: 'Buy a designer bag', tag: 'Save, don’t swipe', icon: '\u{1F45C}', engine: 'goalsip',
+      blurb: 'A short, ring-fenced savings plan so the treat doesn’t become a balance. Set the price and your timeline.',
+      defaults: { cost: 150000, years: 1, inflation: 5, ret: 7, saved: 0 }
+    },
+    'latest-gadget': {
+      name: 'Buy the latest gadget', tag: 'Save, don’t swipe', icon: '\u{1F3AE}', engine: 'goalsip',
+      blurb: 'The new phone, console or laptop — paid for in full, on release day, with zero EMI. Enter the price and the months to save.',
+      defaults: { cost: 150000, years: 1, inflation: 5, ret: 7, saved: 0 }
+    }
+  };
+
+  /* ---------------- engines ---------------- */
+  var FIELDS = {
+    goalsip: [
+      { k: 'cost', label: 'What it costs today', pfx: '₹', kind: 'inr' },
+      { k: 'years', label: 'Years until you buy it', kind: 'num', hint: 'Use decimals for part-years — e.g. 1.5' },
+      { k: 'inflation', label: 'Yearly price rise (inflation)', sfx: '%', kind: 'num' },
+      { k: 'ret', label: 'Expected return on your investments', sfx: '%', kind: 'num' },
+      { k: 'saved', label: 'Already saved for this', pfx: '₹', kind: 'inr' }
+    ],
+    emergency: [
+      { k: 'expenses', label: 'Your essential monthly spend', pfx: '₹', kind: 'inr' },
+      { k: 'months', label: 'Months of expenses to cover', kind: 'num', hint: '6 months is a common target' },
+      { k: 'saved', label: 'Already set aside', pfx: '₹', kind: 'inr' },
+      { k: 'build', label: 'Months to build the fund', kind: 'num' }
+    ],
+    fire: [
+      { k: 'age', label: 'Your age now', kind: 'num' },
+      { k: 'retAge', label: 'Age you want to retire', kind: 'num' },
+      { k: 'annualExp', label: 'What you spend a year (today’s money)', pfx: '₹', kind: 'inr' },
+      { k: 'inflation', label: 'Yearly cost-of-living rise', sfx: '%', kind: 'num' },
+      { k: 'swr', label: 'Safe yearly withdrawal rate', sfx: '%', kind: 'num', hint: '4% is the common rule of thumb' },
+      { k: 'ret', label: 'Return until you retire', sfx: '%', kind: 'num' },
+      { k: 'saved', label: 'Retirement savings so far', pfx: '₹', kind: 'inr' }
+    ],
+    debt: [
+      { k: 'balance', label: 'Total you owe now', pfx: '₹', kind: 'inr' },
+      { k: 'rate', label: 'Average interest rate', sfx: '%', kind: 'num' },
+      { k: 'emi', label: 'You pay each month now', pfx: '₹', kind: 'inr' },
+      { k: 'extra', label: 'Extra you could add each month', pfx: '₹', kind: 'inr' }
+    ]
+  };
+
+  function inr(n) {
+    if (!isFinite(n)) return '—';
+    var neg = n < 0; n = Math.round(Math.abs(n));
+    return (neg ? '−' : '') + '₹' + n.toLocaleString('en-IN');
+  }
+  function inrC(n) {
+    if (!isFinite(n)) return '—';
+    var neg = n < 0; n = Math.abs(n);
+    var s;
+    if (n >= 1e7) s = (n / 1e7).toFixed(2).replace(/\.?0+$/, '') + ' Cr';
+    else if (n >= 1e5) s = (n / 1e5).toFixed(2).replace(/\.?0+$/, '') + ' L';
+    else s = Math.round(n).toLocaleString('en-IN');
+    return (neg ? '−' : '') + '₹' + s;
+  }
+  function mtxt(m) {
+    if (!isFinite(m)) return '—';
+    m = Math.max(0, Math.ceil(m));
+    var y = Math.floor(m / 12), mo = m % 12;
+    var s = (y ? y + ' yr' + (y > 1 ? 's' : '') : '') + (y && mo ? ' ' : '') + (mo ? mo + ' mo' : '');
+    return s || '0 mo';
+  }
+  function sipFor(needed, annualRate, months) {
+    if (months <= 0) return needed;
+    var r = annualRate / 100 / 12;
+    if (r <= 0) return needed / months;
+    return needed * r / (Math.pow(1 + r, months) - 1);
+  }
+
+  var ENGINES = {
+    goalsip: function (v) {
+      var y = v.years, futureCost = v.cost * Math.pow(1 + v.inflation / 100, y);
+      var savedFV = v.saved * Math.pow(1 + v.ret / 100, y);
+      var needed = Math.max(0, futureCost - savedFV);
+      var n = Math.round(y * 12);
+      var sip = sipFor(needed, v.ret, n);
+      var lump = needed / Math.pow(1 + v.ret / 100, y);
+      var youPut = sip * n + v.saved;
+      var growth = Math.max(0, futureCost - youPut);
+      return {
+        lbl: 'Invest each month',
+        big: inrC(sip),
+        sub: n > 0 ? 'for ' + mtxt(n) + ', earning about ' + v.ret + '% a year' : 'as a single amount today',
+        rows: [
+          { s: 'What it will cost by then', b: inrC(futureCost) },
+          { s: 'Corpus you need to build', b: inrC(needed) },
+          { s: 'Or invest once, today', b: inrC(lump) },
+          { s: 'Total you put in', b: inrC(youPut) },
+          { s: 'Growth does the rest', b: inrC(growth), pos: true }
+        ],
+        bar: { aLabel: 'You invest', aVal: youPut, bLabel: 'Growth', bVal: growth },
+        note: savedFV >= futureCost
+          ? 'Your existing savings already cover this goal at the return you entered.'
+          : 'The one-time figure and the monthly figure are two routes to the same corpus — pick whichever fits your cash flow.'
+      };
+    },
+
+    emergency: function (v) {
+      var target = v.expenses * v.months;
+      var have = Math.min(v.saved, target);
+      var gap = Math.max(0, target - v.saved);
+      var monthly = v.build > 0 ? gap / v.build : gap;
+      return {
+        lbl: 'Set aside each month',
+        big: gap === 0 ? 'Done' : inrC(monthly),
+        sub: gap === 0 ? 'your safety net is already full' : 'for ' + Math.round(v.build) + ' months to reach full cover',
+        rows: [
+          { s: 'Full safety net', b: inrC(target) },
+          { s: 'Already set aside', b: inrC(have) },
+          { s: 'Still to save', b: inrC(gap) },
+          { s: 'Then you’re covered for', b: Math.round(v.months) + ' months' }
+        ],
+        bar: { aLabel: 'Saved', aVal: have, bLabel: 'To go', bVal: gap },
+        note: 'Keep this money in a sweep-in FD or a liquid fund — instant access matters more than returns here.'
+      };
+    },
+
+    fire: function (v) {
+      var y = Math.max(0, v.retAge - v.age);
+      var expAtRet = v.annualExp * Math.pow(1 + v.inflation / 100, y);
+      var corpus = v.swr > 0 ? expAtRet / (v.swr / 100) : Infinity;
+      var savedFV = v.saved * Math.pow(1 + v.ret / 100, y);
+      var needed = Math.max(0, corpus - savedFV);
+      var n = Math.round(y * 12);
+      var sip = n > 0 ? sipFor(needed, v.ret, n) : Infinity;
+      return {
+        lbl: 'Invest each month',
+        big: n > 0 ? inrC(sip) : '—',
+        sub: n > 0 ? 'for ' + y + ' years, to retire at ' + v.retAge : 'set a retirement age above your current age',
+        rows: [
+          { s: 'Years to retirement', b: y + ' years' },
+          { s: 'Yearly expenses by then', b: inrC(expAtRet) },
+          { s: 'Corpus to retire on', b: inrC(corpus) },
+          { s: 'Your savings will grow to', b: inrC(savedFV) },
+          { s: 'Gap still to close', b: inrC(needed), pos: needed === 0 }
+        ],
+        bar: { aLabel: 'On track', aVal: Math.min(savedFV, corpus), bLabel: 'Gap', bVal: needed },
+        note: 'Assumes you draw ' + v.swr + '% of the corpus in the first year and raise withdrawals with inflation after that.'
+      };
+    },
+
+    debt: function (v) {
+      var mRate = v.rate / 100 / 12;
+      function months(pay) {
+        if (pay <= 0) return Infinity;
+        if (mRate <= 0) return v.balance / pay;
+        if (pay <= v.balance * mRate) return Infinity;
+        return -Math.log(1 - v.balance * mRate / pay) / Math.log(1 + mRate);
+      }
+      var baseN = months(v.emi), fastN = months(v.emi + v.extra);
+      var baseInt = isFinite(baseN) ? v.emi * baseN - v.balance : Infinity;
+      var fastInt = isFinite(fastN) ? (v.emi + v.extra) * fastN - v.balance : Infinity;
+      var hasExtra = v.extra > 0;
+
+      if (!isFinite(baseN)) {
+        return {
+          lbl: 'Debt-free in', big: 'Never', sub: 'your payment barely covers the monthly interest',
+          rows: [
+            { s: 'Interest charged each month', b: inr(v.balance * mRate) },
+            { s: 'You currently pay', b: inr(v.emi) }
+          ],
+          bar: { aLabel: 'Principal', aVal: 0, bLabel: 'Interest', bVal: 1 },
+          note: 'Raise your monthly payment above the interest charge to start reducing the balance.'
+        };
+      }
+
+      var rows = [
+        { s: 'Debt-free in', b: mtxt(baseN) },
+        { s: 'Interest you’ll pay', b: inrC(baseInt) }
+      ];
+      var chosenN = baseN, chosenInt = baseInt;
+      if (hasExtra) {
+        chosenN = fastN; chosenInt = fastInt;
+        rows.push({ s: 'With ₹' + Math.round(v.extra).toLocaleString('en-IN') + ' more / month', b: mtxt(fastN) });
+        rows.push({ s: 'Interest then', b: inrC(fastInt) });
+        rows.push({ s: 'You save', b: inrC(baseInt - fastInt) + ' · ' + mtxt(baseN - fastN), pos: true });
+      }
+      return {
+        lbl: 'Debt-free in',
+        big: mtxt(chosenN),
+        sub: 'paying ' + inrC(v.emi + (hasExtra ? v.extra : 0)) + ' a month',
+        rows: rows,
+        bar: { aLabel: 'Principal', aVal: v.balance, bLabel: 'Interest', bVal: chosenInt },
+        note: hasExtra
+          ? 'Extra payments come straight off the principal — the sooner you start them, the more you save.'
+          : 'Add an amount in “extra each month” to see how much interest and time it would save.'
+      };
+    }
+  };
+
+  /* ---------------- rendering ---------------- */
+  var groupsEl = document.getElementById('goalGroups');
+  var inputsEl = document.getElementById('gc-inputs');
+  var form = document.getElementById('leadForm');
+  var order = [];
+  GROUPS.forEach(function (g) { g.goals.forEach(function (s) { order.push(s); }); });
+  var current = null;
+
+  function num(raw) { return parseFloat(String(raw || '').replace(/[^0-9.]/g, '')) || 0; }
+  function groupInr(el) {
+    var raw = (el.value || '').replace(/[^0-9]/g, '');
+    el.value = raw ? parseInt(raw, 10).toLocaleString('en-IN') : '';
+  }
+
+  function buildPicker() {
+    var html = '';
+    GROUPS.forEach(function (g) {
+      html += '<div class="goal-group"><h2>' + g.title + '</h2><div class="goal-grid">';
+      g.goals.forEach(function (slug) {
+        var go = GOALS[slug];
+        html += '<button type="button" class="goal-card" data-slug="' + slug + '">' +
+          '<span class="gc-ic">' + go.icon + '</span>' +
+          '<span class="gc-nm">' + go.name + '</span>' +
+          '<span class="gc-tag">' + go.tag + '</span>' +
+          '</button>';
+      });
+      html += '</div></div>';
+    });
+    groupsEl.innerHTML = html;
+    groupsEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.goal-card');
+      if (btn) select(btn.getAttribute('data-slug'), true);
+    });
+  }
+
+  function readValues() {
+    var v = {};
+    FIELDS[GOALS[current].engine].forEach(function (f) {
+      var el = document.getElementById('gf-' + f.k);
+      v[f.k] = num(el.value);
+    });
+    return v;
+  }
+
+  function compute() {
+    var go = GOALS[current];
+    var out = ENGINES[go.engine](readValues());
+    document.getElementById('gres-lbl').textContent = out.lbl;
+    document.getElementById('gres-big').textContent = out.big;
+    document.getElementById('gres-sub').textContent = out.sub || '';
+    document.getElementById('gres-rows').innerHTML = out.rows.map(function (r) {
+      return '<div class="gres-row"><span>' + r.s + '</span><b' + (r.pos ? ' class="pos"' : '') + '>' + r.b + '</b></div>';
+    }).join('');
+    var a = Math.max(0, out.bar.aVal), b = Math.max(0, out.bar.bVal), t = a + b;
+    var aw = t > 0 ? (a / t) * 100 : 50;
+    document.getElementById('gres-barA').style.width = aw + '%';
+    document.getElementById('gres-barB').style.width = (100 - aw) + '%';
+    document.getElementById('gres-legA').textContent = out.bar.aLabel + ' · ' + inrC(out.bar.aVal);
+    document.getElementById('gres-legB').textContent = out.bar.bLabel + ' · ' + inrC(out.bar.bVal);
+    document.getElementById('gc-note').textContent = out.note ||
+      'For information only — a projection from the assumptions you entered, not a promise of returns.';
+  }
+
+  function select(slug, scroll) {
+    if (!GOALS[slug]) slug = order[0];
+    current = slug;
+    var go = GOALS[slug];
+
+    Array.prototype.forEach.call(groupsEl.querySelectorAll('.goal-card'), function (c) {
+      c.classList.toggle('active', c.getAttribute('data-slug') === slug);
+    });
+
+    document.getElementById('gc-kicker').textContent = go.tag;
+    document.getElementById('gc-title').textContent = go.name;
+    document.getElementById('gc-blurb').textContent = go.blurb;
+    if (form) form.setAttribute('data-interest', 'Goal planning — ' + go.name);
+
+    var fields = FIELDS[go.engine];
+    inputsEl.innerHTML = fields.map(function (f) {
+      var d = go.defaults[f.k];
+      var val = f.kind === 'inr' ? (d ? Math.round(d).toLocaleString('en-IN') : '') : (d != null ? d : '');
+      var cls = 'in-wrap' + (f.pfx ? ' has-pfx' : '') + (f.sfx ? ' has-sfx' : '');
+      return '<div class="field"><label for="gf-' + f.k + '">' + f.label + '</label>' +
+        '<div class="' + cls + '">' +
+        (f.pfx ? '<span class="pfx">' + f.pfx + '</span>' : '') +
+        '<input id="gf-' + f.k + '" type="text" inputmode="' + (f.kind === 'inr' ? 'numeric' : 'decimal') +
+        '" value="' + val + '" data-kind="' + f.kind + '">' +
+        (f.sfx ? '<span class="sfx">' + f.sfx + '</span>' : '') +
+        '</div>' +
+        (f.hint ? '<div class="gc-hint">' + f.hint + '</div>' : '') +
+        '</div>';
+    }).join('');
+
+    Array.prototype.forEach.call(inputsEl.querySelectorAll('input'), function (el) {
+      el.addEventListener('input', function () {
+        if (el.getAttribute('data-kind') === 'inr') {
+          var pos = el.value.length - el.selectionStart;
+          groupInr(el);
+          try { el.setSelectionRange(el.value.length - pos, el.value.length - pos); } catch (e) {}
+        }
+        compute();
+      });
+    });
+
+    compute();
+
+    if (history.replaceState) history.replaceState(null, '', '#' + slug);
+    else location.hash = slug;
+    if (scroll) document.getElementById('calc').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  buildPicker();
+  select((location.hash || '').replace('#', ''), false);
+  window.addEventListener('hashchange', function () {
+    var s = (location.hash || '').replace('#', '');
+    if (GOALS[s] && s !== current) select(s, true);
+  });
+})();
+</script>
+<script src="assets/lead-form.js"></script>
+
+</body>
+</html>
