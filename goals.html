@@ -692,6 +692,29 @@
     if (scroll) document.getElementById('calc').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // Snapshot of the goal the lead is currently looking at — read by lead-form.js
+  // and sent with the enquiry so the back office sees what they were planning.
+  window.maGoalSnapshot = function () {
+    if (!current || !GOALS[current]) return null;
+    var go = GOALS[current];
+    var inputs = (FIELDS[go.engine] || []).map(function (f) {
+      var el = document.getElementById('gf-' + f.k);
+      var raw = el ? String(el.value || '').trim() : '';
+      return { label: f.label, value: (f.pfx || '') + raw + (f.sfx ? ' ' + f.sfx : '') };
+    });
+    var rows = [];
+    Array.prototype.forEach.call(document.querySelectorAll('#gres-rows .gres-row'), function (r) {
+      var s = r.querySelector('span'), b = r.querySelector('b');
+      if (s && b) rows.push({ label: s.textContent.trim(), value: b.textContent.trim() });
+    });
+    var txt = function (id) { var e = document.getElementById(id); return e ? e.textContent.trim() : ''; };
+    return {
+      slug: current, goal: go.name,
+      inputs: inputs,
+      result: { label: txt('gres-lbl'), value: txt('gres-big'), sub: txt('gres-sub'), rows: rows }
+    };
+  };
+
   buildPicker();
   select((location.hash || '').replace('#', ''), false);
   window.addEventListener('hashchange', function () {

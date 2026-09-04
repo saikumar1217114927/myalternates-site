@@ -1851,7 +1851,7 @@
         mobileCountryCode: document.getElementById('mobileCountryCode').value,
         mobile: document.getElementById('mobile').value.trim(),
         interest: '', leadId: r.leadId, visitorId: MA_VID, path: location.pathname,
-        rescheduleMeetingId: m.meetingId, rowNumber: null
+        rescheduleMeetingId: m.meetingId, mode: m.mode || '', rowNumber: null
       };
       openScheduleModal();
     };
@@ -2024,6 +2024,13 @@
     });
   });
 
+  // Map any stored meeting-mode string ("Zoom Call", "google meet", "Phone", …) to one of the mode cards.
+  function maModeCard(mode){
+    const s = String(mode || '').toLowerCase();
+    if(s.indexOf('zoom') > -1) return 'Zoom Call';
+    if(s.indexOf('google') > -1 || s.indexOf('meet') > -1) return 'Google Meet';
+    return 'Phone Call';
+  }
   function openScheduleModal(){
     if(!leadRecord) return;
     schedName.textContent = leadRecord.name || '—';
@@ -2033,8 +2040,8 @@
     selectedDate = null; datePage = 0;
     renderDatePage();
     buildTimeSlots();
-    selectedMode = 'Phone Call';
-    modeGrid.querySelectorAll('.mode-card').forEach((c, i) => c.classList.toggle('active', i === 0));
+    selectedMode = maModeCard((leadRecord && leadRecord.rescheduleMeetingId) ? leadRecord.mode : '');
+    modeGrid.querySelectorAll('.mode-card').forEach(c => c.classList.toggle('active', c.dataset.mode === selectedMode));
     schedSubmitBtn.disabled = false;
     schedSubmitBtn.textContent = '📅 Schedule Call →';
     schedOverlay.classList.add('show');

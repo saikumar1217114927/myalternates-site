@@ -347,6 +347,11 @@
         rowNumber: null
       };
 
+      // Goals page: attach which goal the lead was planning + the calculator result.
+      if (typeof window.maGoalSnapshot === 'function') {
+        try { var g = window.maGoalSnapshot(); if (g && g.goal) lead.goal = g; } catch (e) {}
+      }
+
       submitPromise = send(lead).then(function (res) {
         if (res && res.row) lead.rowNumber = res.row;
         if (res && res.leadId) { lead.leadId = res.leadId; rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email }); }
@@ -523,11 +528,19 @@
     pick.time = TIME_SLOTS[0];
   }
 
+  // Map any stored meeting-mode string ("Zoom Call", "google meet", "Phone", …) to one of MODES.
+  function modeCard(mode) {
+    var s = String(mode || '').toLowerCase();
+    if (s.indexOf('zoom') > -1) return 'Zoom Call';
+    if (s.indexOf('google') > -1 || s.indexOf('meet') > -1) return 'Google Meet';
+    return 'Phone Call';
+  }
   function renderModes() {
     var grid = sched.querySelector('.mode-grid');
     grid.innerHTML = '';
-    MODES.forEach(function (m, i) {
-      var c = el('button', 'mode-card' + (i === 0 ? ' active' : ''), '<span>' + m + '</span>');
+    var want = (lead && lead.rescheduleMeetingId) ? modeCard(lead.mode) : MODES[0];
+    MODES.forEach(function (m) {
+      var c = el('button', 'mode-card' + (m === want ? ' active' : ''), '<span>' + m + '</span>');
       c.type = 'button';
       c.addEventListener('click', function () {
         grid.querySelectorAll('.mode-card').forEach(function (x) { x.classList.remove('active'); });
@@ -536,7 +549,7 @@
       });
       grid.appendChild(c);
     });
-    pick.mode = MODES[0];
+    pick.mode = want;
   }
 
   function openSchedule() {
@@ -691,7 +704,7 @@
         role: 'Investor', name: stored.name || '', email: stored.email || '',
         mobileCountryCode: '', mobile: '', interest: interest || '',
         leadId: stored.leadId, visitorId: getVid(), path: location.pathname,
-        rescheduleMeetingId: rescheduleId || '', rowNumber: null
+        rescheduleMeetingId: rescheduleId || '', mode: (mtg && mtg.mode) || '', rowNumber: null
       };
       submitPromise = Promise.resolve();
       openSchedule();
@@ -772,7 +785,7 @@
         role: 'Investor', name: r.name || '', email: document.getElementById('lf-email').value.trim(),
         mobileCountryCode: ccSel ? ccSel.value : '', mobile: mobileEl ? mobileEl.value.trim() : '',
         interest: form.getAttribute('data-interest') || '', leadId: r.leadId, visitorId: getVid(),
-        path: location.pathname, rescheduleMeetingId: m.meetingId, rowNumber: null
+        path: location.pathname, rescheduleMeetingId: m.meetingId, mode: m.mode || '', rowNumber: null
       };
       submitPromise = Promise.resolve();
       openSchedule();
