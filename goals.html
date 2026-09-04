@@ -133,9 +133,6 @@
           <a href="goals#dream-car">Buy your dream car</a>
           <a href="goals#big-fat-wedding">Plan a big fat wedding</a>
           <a href="goals#debt-free">Become debt free</a>
-          <a href="goals#luxury-watch">Buy a luxury watch</a>
-          <a href="goals#designer-bag">Buy a designer bag</a>
-          <a href="goals#latest-gadget">Buy the latest gadget</a>
         </div>
       </div>
       <div class="nav-products" tabindex="0">
@@ -338,8 +335,7 @@
   /* ---------------- goal catalogue ---------------- */
   var GROUPS = [
     { title: 'Must achieve', goals: ['retire-early', 'emergency-fund', 'dream-home'] },
-    { title: 'Fulfill your wishes', goals: ['travel-abroad', 'start-business', 'dream-car', 'big-fat-wedding', 'debt-free'] },
-    { title: 'Guilty pleasures', goals: ['luxury-watch', 'designer-bag', 'latest-gadget'] }
+    { title: 'Fulfill your wishes', goals: ['travel-abroad', 'start-business', 'dream-car', 'big-fat-wedding', 'debt-free'] }
   ];
 
   var GOALS = {
@@ -382,21 +378,6 @@
       name: 'Become debt free', tag: 'Loan payoff', icon: '\u{1F513}', engine: 'debt',
       blurb: 'See exactly when your loans clear at your current payment — and how many months and how much interest an extra amount each month would save.',
       defaults: { balance: 800000, rate: 13, emi: 20000, extra: 5000 }
-    },
-    'luxury-watch': {
-      name: 'Buy a luxury watch', tag: 'Save, don’t swipe', icon: '⌚', engine: 'goalsip',
-      blurb: 'Fund the splurge from a dedicated pot instead of the credit card. Enter the price and how long you’re willing to wait.',
-      defaults: { cost: 300000, years: 1, inflation: 5, ret: 7, saved: 0 }
-    },
-    'designer-bag': {
-      name: 'Buy a designer bag', tag: 'Save, don’t swipe', icon: '\u{1F45C}', engine: 'goalsip',
-      blurb: 'A short, ring-fenced savings plan so the treat doesn’t become a balance. Set the price and your timeline.',
-      defaults: { cost: 150000, years: 1, inflation: 5, ret: 7, saved: 0 }
-    },
-    'latest-gadget': {
-      name: 'Buy the latest gadget', tag: 'Save, don’t swipe', icon: '\u{1F3AE}', engine: 'goalsip',
-      blurb: 'The new phone, console or laptop — paid for in full, on release day, with zero EMI. Enter the price and the months to save.',
-      defaults: { cost: 150000, years: 1, inflation: 5, ret: 7, saved: 0 }
     }
   };
 
