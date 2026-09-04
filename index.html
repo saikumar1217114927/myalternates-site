@@ -1510,7 +1510,7 @@
         const asOn = String(d.asOf || '').replace(/-/g, ' ');
         renderTicker(
           d.funds.map(f => ({ label: f.label, value: '₹' + f.nav })),
-          'Regular MF NAV · as on ' + asOn
+          'MF NAV · as on ' + asOn
         );
       })
       .catch(()=>{});
