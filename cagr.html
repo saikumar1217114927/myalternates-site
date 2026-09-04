@@ -376,17 +376,5 @@
 </script>
 <script src="assets/lead-form.js"></script>
 
-<!-- nav-goals menu: click to open -->
-<script>
-(function(){
-  var g = document.querySelector('.nav-goals');
-  if(!g) return;
-  var t = g.querySelector('.nav-products-trigger');
-  if(!t) return;
-  t.addEventListener('click', function(e){ e.preventDefault(); g.classList.toggle('open'); });
-  document.addEventListener('click', function(e){ if(!g.contains(e.target)) g.classList.remove('open'); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') g.classList.remove('open'); });
-})();
-</script>
 </body>
 </html>

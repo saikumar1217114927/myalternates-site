@@ -138,8 +138,6 @@
   .nav-menu a::after{display:none;}
   .nav-menu a:hover{background:rgba(201,162,75,0.12);}
   .nav-goals .nav-menu{min-width:214px; max-height:70vh; overflow-y:auto;}
-  .nav-goals:hover .nav-menu, .nav-goals:focus-within .nav-menu{opacity:0; visibility:hidden; transform:translateX(-50%) translateY(6px);}
-  .nav-goals.open .nav-menu{opacity:1; visibility:visible; transform:translateX(-50%) translateY(2px);}
   .nav-cta{
     background:var(--gold); color:var(--ink) !important;
     padding:10px 32px; font-weight:700; font-size:13.5px;
@@ -2321,17 +2319,5 @@ scheduleForm.addEventListener('submit', async function(e){
 })();
 </script>
 
-<!-- nav-goals menu: click to open -->
-<script>
-(function(){
-  var g = document.querySelector('.nav-goals');
-  if(!g) return;
-  var t = g.querySelector('.nav-products-trigger');
-  if(!t) return;
-  t.addEventListener('click', function(e){ e.preventDefault(); g.classList.toggle('open'); });
-  document.addEventListener('click', function(e){ if(!g.contains(e.target)) g.classList.remove('open'); });
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') g.classList.remove('open'); });
-})();
-</script>
 </body>
 </html>
