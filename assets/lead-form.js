@@ -641,49 +641,45 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  /* -------- returning visitor: skip the form, show their call / offer interest -------- */
-  function showReturning(stored) {
+  /* -------- returning visitor: ONLY when they have an active (upcoming) call --------
+     do we replace the form with their call card. Once the call is done / cancelled
+     — or if they never booked — the normal form stays, same as the landing page. */
+  function checkReturning(stored) {
     var interest = (form.getAttribute('data-interest') || '').trim();
-    var host = form.closest('.lead-card') || form.parentNode;
-    form.style.display = 'none';
-    if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
-
-    var first = (stored.name || '').trim().split(/\s+/)[0];
-    var box = el('div', 'lead-returning');
-    box.innerHTML =
-      '<div class="lr-title">Welcome back' + (first ? ', ' + escHtml(first) : '') + '</div>' +
-      '<div class="lr-body"><p class="lr-sub">Checking your details…</p></div>';
-    host.appendChild(box);
-
     send({ action: 'getLeadPublic', leadId: stored.leadId, email: stored.email, vid: getVid() })
-      .then(function (r) { renderReturning(box.querySelector('.lr-body'), stored, interest, (r && r.found) ? r.upcomingMeeting : null); })
-      .catch(function () { renderReturning(box.querySelector('.lr-body'), stored, interest, null); });
+      .then(function (r) {
+        var mtg = (r && r.found) ? r.upcomingMeeting : null;
+        if (!mtg || !mtg.date) return;          // no active call → leave the form alone
+        var host = form.closest('.lead-card') || form.parentNode;
+        form.style.display = 'none';
+        if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
+        var first = (stored.name || '').trim().split(/\s+/)[0];
+        var box = el('div', 'lead-returning');
+        box.innerHTML =
+          '<div class="lr-title">Welcome back' + (first ? ', ' + escHtml(first) : '') + '</div>' +
+          '<div class="lr-body"></div>';
+        host.appendChild(box);
+        renderReturning(box.querySelector('.lr-body'), stored, interest, mtg);
+      })
+      .catch(function () { /* leave the normal form in place */ });
   }
 
   function renderReturning(bodyEl, stored, interest, mtg) {
-    var hasMtg = !!(mtg && mtg.date);
     var already = interest && flaggedInterests().indexOf(interest) >= 0;
-    var html = '';
-
-    if (hasMtg) {
-      html += '<div class="lr-meeting">' +
-        '<div class="lr-mlabel">Your call is scheduled</div>' +
-        '<div class="lr-mwhen">' + escHtml(fmtDate(mtg.date)) + (mtg.time ? ' · ' + escHtml(mtg.time) + ' IST' : '') + '</div>' +
-        (mtg.mode ? '<div class="lr-mmode">' + escHtml(mtg.mode) + '</div>' : '') +
-        '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
-        '</div>';
-    } else {
-      html += '<p class="lr-sub">You\'ve already reached out — no need to fill the form again.</p>';
-    }
+    var html = '<div class="lr-meeting">' +
+      '<div class="lr-mlabel">Your call is scheduled</div>' +
+      '<div class="lr-mwhen">' + escHtml(fmtDate(mtg.date)) + (mtg.time ? ' · ' + escHtml(mtg.time) + ' IST' : '') + '</div>' +
+      (mtg.mode ? '<div class="lr-mmode">' + escHtml(mtg.mode) + '</div>' : '') +
+      '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
+      '</div>';
 
     if (interest) {
       html += already
         ? '<div class="lr-done">Your expert already has <b>' + escHtml(interest) + '</b> on the list.</div>'
-        : '<div class="lr-ask">Want your expert to cover <b>' + escHtml(interest) + '</b> ' + (hasMtg ? 'in this call' : 'when you speak') + ' too?' +
+        : '<div class="lr-ask">Want your expert to cover <b>' + escHtml(interest) + '</b> in this call too?' +
           '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
           '<button type="button" class="lr-link" data-no>Not now</button></div></div>';
     }
-    if (!hasMtg) html += '<div class="lr-book"><button type="button" class="lr-link" data-book>Book a call →</button></div>';
     bodyEl.innerHTML = html;
 
     var ask = bodyEl.querySelector('.lr-ask');
@@ -709,8 +705,6 @@
       submitPromise = Promise.resolve();
       openSchedule();
     }
-    var book = bodyEl.querySelector('[data-book]');
-    if (book) book.onclick = function () { openBooking(''); };
     var resch = bodyEl.querySelector('[data-resch]');
     if (resch) resch.onclick = function () { openBooking(mtg.meetingId); };
   }
@@ -718,9 +712,6 @@
   function build() {
     form = document.getElementById('leadForm');
     if (!form) return;
-
-    var stored = storedLead();
-    if (stored && stored.leadId) { showReturning(stored); return; }
 
     countrySel = document.getElementById('lf-country');
     ccSel = document.getElementById('lf-cc');
@@ -739,6 +730,10 @@
     wireCountryCode();
     wireKnownContact();
     form.addEventListener('submit', onSubmit);
+
+    // Returning visitor with an upcoming call → swap the form for their call card.
+    var stored = storedLead();
+    if (stored && stored.leadId) checkReturning(stored);
   }
 
   /* -------- new device: recognise by email / mobile, surface their call -------- */
