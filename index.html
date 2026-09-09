@@ -402,8 +402,9 @@
 
   /* mock "expert on a call" visual — fills the details column */
   .expert-call{margin-top:auto; padding-top:22px;}
-  .ec-photo{border-radius:12px; overflow:hidden; aspect-ratio:16/10; max-height:220px; background:var(--ink); box-shadow:0 18px 40px -18px rgba(11,14,19,0.5);}
-  .ec-photo img{width:100%; height:100%; object-fit:cover; display:block;}
+  .expert-call .ec-avatar{width:132px; height:132px; border-radius:50%; overflow:hidden; margin:0 auto 14px; background:var(--ink); border:3px solid var(--line); box-shadow:0 18px 40px -18px rgba(11,14,19,0.5);}
+  .expert-call .ec-avatar img{width:100%; height:100%; object-fit:cover; object-position:center 25%; display:block;}
+  .expert-call.has-photo .ec-cap{text-align:center;}
   .ec-frame{
     position:relative; border-radius:12px; overflow:hidden;
     aspect-ratio:16/10; max-height:200px; background:var(--ink);
@@ -2128,10 +2129,12 @@
     if(!ecEl) return;
     const ex = window.__maExpert;
     if(ex && ex.photo){
+      ecEl.classList.add('has-photo');
       ecEl.innerHTML =
-        '<div class="ec-photo"><img src="' + ex.photo + '" alt=""></div>' +
-        '<div class="ec-cap"><b>' + (ex.name ? ex.name.replace(/[<>&]/g,'') : 'Your expert') + '</b> will call you at the time you pick — walking you through how it works, what it costs, and what fits your goals.</div>';
+        '<div class="ec-avatar"><img src="' + ex.photo + '" alt=""></div>' +
+        '<div class="ec-cap"><b>' + (ex.name ? ex.name.replace(/[<>&]/g,'') : 'Your expert') + '</b> will connect with you at the scheduled time — walking you through how it works, what it costs, and what fits your goals.</div>';
     } else {
+      ecEl.classList.remove('has-photo');
       ecEl.innerHTML = ecDefaultHtml;
     }
   }

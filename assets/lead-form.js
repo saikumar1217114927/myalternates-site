@@ -37,8 +37,9 @@
       '.lead-returning .lr-book{margin-top:16px}' +
       '.lead-returning .lr-notyou{margin-top:18px;padding-top:14px;border-top:1px solid #eee}' +
       '.lead-returning .lr-notyou .lr-link{color:#8a8f99;font-size:12.5px}' +
-      '.expert-call .ec-photo{width:100%;border-radius:12px;overflow:hidden;background:#12161d;aspect-ratio:16/10}' +
-      '.expert-call .ec-photo img{width:100%;height:100%;object-fit:cover;display:block}' +
+      '.expert-call .ec-avatar{width:120px;height:120px;border-radius:50%;overflow:hidden;margin:0 auto 12px;background:#12161d;border:3px solid #e6e1d3}' +
+      '.expert-call .ec-avatar img{width:100%;height:100%;object-fit:cover;object-position:center 25%;display:block}' +
+      '.expert-call .ec-cap{text-align:center}' +
       '.lead-returning .lr-body{margin-top:8px}' +
       '.lead-returning .lr-meeting{background:#f6f4ee;border:1px solid #e6e1d3;border-radius:10px;padding:14px 16px;margin-bottom:14px}' +
       '.lead-returning .lr-mlabel{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7c58;font-weight:700}' +
@@ -564,8 +565,8 @@
     if (!box) return;
     if (expert && expert.photo) {
       box.innerHTML =
-        '<div class="ec-photo"><img src="' + escHtml(expert.photo) + '" alt=""></div>' +
-        '<div class="ec-cap"><b>' + escHtml(expert.name || 'Your expert') + '</b> will call you at the time you pick — walking you through how it works, what it costs, and what fits your goals.</div>';
+        '<div class="ec-avatar"><img src="' + escHtml(expert.photo) + '" alt=""></div>' +
+        '<div class="ec-cap"><b>' + escHtml(expert.name || 'Your expert') + '</b> will connect with you at the scheduled time — walking you through how it works, what it costs, and what fits your goals.</div>';
     } else {
       box.innerHTML =
         '<div class="ec-frame">' + EC_SCENE +
