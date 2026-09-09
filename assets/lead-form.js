@@ -35,6 +35,8 @@
       '.lead-returning .lr-link{background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline}' +
       '.lead-returning .lr-done{background:#eef7f0;border:1px solid #cbe6d3;border-radius:10px;padding:14px 16px;font-size:14px;color:#1f6f43;line-height:1.5}' +
       '.lead-returning .lr-book{margin-top:16px}' +
+      '.lead-returning .lr-notyou{margin-top:18px;padding-top:14px;border-top:1px solid #eee}' +
+      '.lead-returning .lr-notyou .lr-link{color:#8a8f99;font-size:12.5px}' +
       '.lead-returning .lr-body{margin-top:8px}' +
       '.lead-returning .lr-meeting{background:#f6f4ee;border:1px solid #e6e1d3;border-radius:10px;padding:14px 16px;margin-bottom:14px}' +
       '.lead-returning .lr-mlabel{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7c58;font-weight:700}' +
@@ -649,46 +651,61 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  /* -------- returning visitor: ONLY when they have an active (upcoming) call --------
-     do we replace the form with their call card. Once the call is done / cancelled
-     — or if they never booked — the normal form stays, same as the landing page. */
+  /* -------- returning visitor: if we already know this person, skip the form --------
+     - upcoming call  → show it + reschedule
+     - no call        → "welcome back, book a call" (prefilled, no retyping)
+     - "Not you?"     → falls back to the blank form                                 */
   function checkReturning(stored) {
     var interest = (form.getAttribute('data-interest') || '').trim();
     send({ action: 'getLeadPublic', leadId: stored.leadId, email: stored.email, vid: getVid() })
       .then(function (r) {
-        var mtg = (r && r.found) ? r.upcomingMeeting : null;
-        if (!mtg || !mtg.date) return;          // no active call → leave the form alone
+        if (!r || !r.found) return;             // stale / deleted lead → leave the form
         var host = form.closest('.lead-card') || form.parentNode;
         form.style.display = 'none';
         if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
-        var first = (stored.name || '').trim().split(/\s+/)[0];
+        var first = (stored.name || r.name || '').trim().split(/\s+/)[0];
         var box = el('div', 'lead-returning');
         box.innerHTML =
           '<div class="lr-title">Welcome back' + (first ? ', ' + escHtml(first) : '') + '</div>' +
           '<div class="lr-body"></div>';
         host.appendChild(box);
-        renderReturning(box.querySelector('.lr-body'), stored, interest, mtg);
+        renderReturning(box.querySelector('.lr-body'), stored, interest, r.upcomingMeeting || null, function backToForm() {
+          box.remove();
+          form.style.display = '';
+          if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = ''; });
+        });
       })
       .catch(function () { /* leave the normal form in place */ });
   }
 
-  function renderReturning(bodyEl, stored, interest, mtg) {
+  function renderReturning(bodyEl, stored, interest, mtg, backToForm) {
     var already = interest && flaggedInterests().indexOf(interest) >= 0;
-    var html = '<div class="lr-meeting">' +
-      '<div class="lr-mlabel">Your call is scheduled</div>' +
-      '<div class="lr-mwhen">' + escHtml(fmtDate(mtg.date)) + (mtg.time ? ' · ' + escHtml(mtg.time) + ' IST' : '') + '</div>' +
-      (mtg.mode ? '<div class="lr-mmode">' + escHtml(mtg.mode) + '</div>' : '') +
-      '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
-      '</div>';
+    var html;
+    if (mtg && mtg.date) {
+      html = '<div class="lr-meeting">' +
+        '<div class="lr-mlabel">Your call is scheduled</div>' +
+        '<div class="lr-mwhen">' + escHtml(fmtDate(mtg.date)) + (mtg.time ? ' · ' + escHtml(mtg.time) + ' IST' : '') + '</div>' +
+        (mtg.mode ? '<div class="lr-mmode">' + escHtml(mtg.mode) + '</div>' : '') +
+        '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
+        '</div>';
+    } else {
+      html = '<p class="lr-sub">Good to see you again — no need to fill the form. Just pick a time and your expert will call you.</p>' +
+        '<div class="lr-book"><button type="button" class="btn-gold" data-book>Book a call →</button></div>';
+    }
 
     if (interest) {
       html += already
         ? '<div class="lr-done">Your expert already has <b>' + escHtml(interest) + '</b> on the list.</div>'
-        : '<div class="lr-ask">Want your expert to cover <b>' + escHtml(interest) + '</b> in this call too?' +
+        : '<div class="lr-ask">Want your expert to cover <b>' + escHtml(interest) + '</b> ' +
+          (mtg && mtg.date ? 'in this call too?' : 'when they call?') +
           '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
           '<button type="button" class="lr-link" data-no>Not now</button></div></div>';
     }
+    html += '<div class="lr-notyou"><button type="button" class="lr-link" data-notyou>Not you? Start a fresh enquiry</button></div>';
     bodyEl.innerHTML = html;
+
+    var nu = bodyEl.querySelector('[data-notyou]');
+    if (nu && typeof backToForm === 'function') nu.onclick = backToForm;
 
     var ask = bodyEl.querySelector('.lr-ask');
     var yes = bodyEl.querySelector('[data-yes]');
@@ -715,6 +732,8 @@
     }
     var resch = bodyEl.querySelector('[data-resch]');
     if (resch) resch.onclick = function () { openBooking(mtg.meetingId); };
+    var bookBtn = bodyEl.querySelector('[data-book]');
+    if (bookBtn) bookBtn.onclick = function () { openBooking(''); };
   }
 
   function build() {
