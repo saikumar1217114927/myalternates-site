@@ -402,6 +402,8 @@
 
   /* mock "expert on a call" visual — fills the details column */
   .expert-call{margin-top:auto; padding-top:22px;}
+  .ec-photo{border-radius:12px; overflow:hidden; aspect-ratio:16/10; max-height:220px; background:var(--ink); box-shadow:0 18px 40px -18px rgba(11,14,19,0.5);}
+  .ec-photo img{width:100%; height:100%; object-fit:cover; display:block;}
   .ec-frame{
     position:relative; border-radius:12px; overflow:hidden;
     aspect-ratio:16/10; max-height:200px; background:var(--ink);
@@ -1076,7 +1078,7 @@
             </div>
           </div>
 
-          <div class="expert-call" aria-hidden="true">
+          <div class="expert-call" id="expertCall" aria-hidden="true">
             <div class="ec-frame">
               <svg class="ec-svg" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice">
                 <defs><radialGradient id="ecGlow" cx="30%" cy="62%" r="72%">
@@ -1892,6 +1894,7 @@
 
   // ---------- Recognise a returning visitor / new device ----------
   function maRenderKnown(r, opts){
+    if(r && r.expert) window.__maExpert = r.expert;
     if(document.querySelector('.ma-known')) return;
     const m = r && r.upcomingMeeting;
     const hasMtg = !!(m && m.date);
@@ -2003,6 +2006,7 @@
         leadRecord.leadId = result.leadId;
         try{ localStorage.setItem('maLead', JSON.stringify({ leadId: result.leadId, name: leadRecord.name, email: leadRecord.email })); } catch(e){}
       }
+      if(result && result.expert){ window.__maExpert = result.expert; renderExpertScene(); }
     });
 
     card.classList.add('hide-form');
@@ -2118,8 +2122,23 @@
     if(s.indexOf('google') > -1 || s.indexOf('meet') > -1) return 'Google Meet';
     return 'Phone Call';
   }
+  const ecEl = document.getElementById('expertCall');
+  const ecDefaultHtml = ecEl ? ecEl.innerHTML : '';
+  function renderExpertScene(){
+    if(!ecEl) return;
+    const ex = window.__maExpert;
+    if(ex && ex.photo){
+      ecEl.innerHTML =
+        '<div class="ec-photo"><img src="' + ex.photo + '" alt=""></div>' +
+        '<div class="ec-cap"><b>' + (ex.name ? ex.name.replace(/[<>&]/g,'') : 'Your expert') + '</b> will call you at the time you pick — walking you through how it works, what it costs, and what fits your goals.</div>';
+    } else {
+      ecEl.innerHTML = ecDefaultHtml;
+    }
+  }
+
   function openScheduleModal(){
     if(!leadRecord) return;
+    renderExpertScene();
     schedName.textContent = leadRecord.name || '—';
     schedEmail.textContent = leadRecord.email || '—';
     schedMobile.textContent = leadRecord.mobileCountryCode ? `${leadRecord.mobileCountryCode} ${leadRecord.mobile}` : (leadRecord.mobile || '—');

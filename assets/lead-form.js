@@ -37,6 +37,8 @@
       '.lead-returning .lr-book{margin-top:16px}' +
       '.lead-returning .lr-notyou{margin-top:18px;padding-top:14px;border-top:1px solid #eee}' +
       '.lead-returning .lr-notyou .lr-link{color:#8a8f99;font-size:12.5px}' +
+      '.expert-call .ec-photo{width:100%;border-radius:12px;overflow:hidden;background:#12161d;aspect-ratio:16/10}' +
+      '.expert-call .ec-photo img{width:100%;height:100%;object-fit:cover;display:block}' +
       '.lead-returning .lr-body{margin-top:8px}' +
       '.lead-returning .lr-meeting{background:#f6f4ee;border:1px solid #e6e1d3;border-radius:10px;padding:14px 16px;margin-bottom:14px}' +
       '.lead-returning .lr-mlabel{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7c58;font-weight:700}' +
@@ -133,6 +135,7 @@
   var lead = null;               // the submitted enquiry
   var submitPromise = null;      // in-flight initial POST (for the row number)
   var googleCred = '';           // Google ID token, if the visitor signed in
+  var expert = null;             // assigned user's { name, photo } if they opted to show it
 
   // ---- returning-visitor identity (shared with index.html's tracking) ----
   function ls(k, v) {
@@ -365,6 +368,7 @@
       submitPromise = send(lead).then(function (res) {
         if (res && res.row) lead.rowNumber = res.row;
         if (res && res.leadId) { lead.leadId = res.leadId; rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email }); }
+        if (res && res.expert) { expert = res.expert; if (sched && sched.classList.contains('show')) renderExpertCall(); }
         return res;
       });
 
@@ -451,14 +455,7 @@
             '<div class="sched-lock"><span>Email</span><strong data-f="email">—</strong></div>' +
             '<div class="sched-lock"><span>Mobile</span><strong data-f="mobile">—</strong></div>' +
             '<div class="sched-lock"><span>Interested in</span><strong data-f="interest">—</strong></div>' +
-            '<div class="expert-call" aria-hidden="true">' +
-              '<div class="ec-frame">' +
-                EC_SCENE +
-                '<span class="ec-live"><i></i>Live</span>' +
-                '<div class="ec-bars"><span></span><span></span><span></span><span></span><span></span></div>' +
-              '</div>' +
-              '<div class="ec-cap">An advisor walks you through it live — how the strategy works, what it costs, and what fits your goals.</div>' +
-            '</div>' +
+            '<div class="expert-call" aria-hidden="true"></div>' +
           '</div>' +
           '<div class="sched-main">' +
             '<div class="sched-block"><div class="sched-block-label">Select date</div>' +
@@ -562,8 +559,26 @@
     pick.mode = want;
   }
 
+  function renderExpertCall() {
+    var box = sched.querySelector('.expert-call');
+    if (!box) return;
+    if (expert && expert.photo) {
+      box.innerHTML =
+        '<div class="ec-photo"><img src="' + escHtml(expert.photo) + '" alt=""></div>' +
+        '<div class="ec-cap"><b>' + escHtml(expert.name || 'Your expert') + '</b> will call you at the time you pick — walking you through how it works, what it costs, and what fits your goals.</div>';
+    } else {
+      box.innerHTML =
+        '<div class="ec-frame">' + EC_SCENE +
+          '<span class="ec-live"><i></i>Live</span>' +
+          '<div class="ec-bars"><span></span><span></span><span></span><span></span><span></span></div>' +
+        '</div>' +
+        '<div class="ec-cap">An expert walks you through it live — how the strategy works, what it costs, and what fits your goals.</div>';
+    }
+  }
+
   function openSchedule() {
     if (!sched) buildSchedule();
+    renderExpertCall();
     sched.querySelector('[data-f="name"]').textContent = lead.name || '—';
     sched.querySelector('[data-f="email"]').textContent = lead.email || '—';
     sched.querySelector('[data-f="mobile"]').textContent = (lead.mobileCountryCode ? lead.mobileCountryCode + ' ' : '') + (lead.mobile || '—');
@@ -660,6 +675,7 @@
     send({ action: 'getLeadPublic', leadId: stored.leadId, email: stored.email, vid: getVid() })
       .then(function (r) {
         if (!r || !r.found) return;             // stale / deleted lead → leave the form
+        if (r.expert) expert = r.expert;
         var host = form.closest('.lead-card') || form.parentNode;
         form.style.display = 'none';
         if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
@@ -814,6 +830,7 @@
       send({ action: 'getLeadPublic', email: email, mobile: mobile, mobileCountryCode: ccSel ? ccSel.value : '', vid: getVid() })
         .then(function (r) {
           if (!r || !r.found) return;
+          if (r.expert) expert = r.expert;
           rememberLead({ leadId: r.leadId, name: r.name || '', email: email });
           if (r.upcomingMeeting && r.upcomingMeeting.date) showKnownBanner(r);
         });
