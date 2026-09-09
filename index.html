@@ -358,6 +358,15 @@
   .success-msg p{color:var(--muted); font-size:13.5px; line-height:1.55;}
   .enquiry-card.hide-form .form-body{display:none;}
 
+  /* Continue with Google */
+  .lf-google{margin-bottom:8px;}
+  .lf-google .lf-gbtn{display:flex; justify-content:center; min-height:40px;}
+  .lf-google .lf-gnote{background:rgba(30,111,92,0.10); border:1px solid rgba(30,111,92,0.3); border-radius:10px; padding:10px 14px; font-size:12.5px; color:var(--emerald,#1e6f5c); line-height:1.5;}
+  .lf-google .lf-glink{background:none; border:0; color:inherit; font-size:12px; cursor:pointer; text-decoration:underline; padding:0;}
+  .lf-google .lf-gor{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:14px 0 4px;}
+  .lf-google .lf-gor::before, .lf-google .lf-gor::after{content:""; flex:1; height:1px; background:var(--line,#e6e1d3);}
+  .field input[readonly]{background:#f3f1ea; color:#5b6270; cursor:not-allowed;}
+
   /* ---------- SCHEDULE CALL MODAL (post-submit, optional) ---------- */
   /* full-screen takeover (not a small popup) */
   .sched-overlay{
@@ -1473,6 +1482,7 @@
   </div>
 </footer>
 
+<script src="assets/google-signin.js"></script>
 <script>
   // Ticker — yesterday's NAV for a few popular Regular-plan mutual funds
   // (served from our backend, which reads AMFI's daily file). Falls back to a
@@ -1851,6 +1861,35 @@
 
   let leadRecord = null; // holds the submitted enquiry (+ its sheet row number), reused by the schedule popup
 
+  // ---------- Continue with Google (prefills name + verified email) ----------
+  (function wireGoogle(){
+    if(typeof window.maGoogleSignin !== 'function' || !form) return;
+    const nameEl = document.getElementById('name'), emailEl = document.getElementById('email');
+    const wrap = document.createElement('div');
+    wrap.className = 'lf-google';
+    wrap.innerHTML = '<div class="lf-gbtn"></div><div class="lf-gnote" style="display:none;"></div>' +
+      '<div class="lf-gor"><span>or enter your details</span></div>';
+    form.insertBefore(wrap, form.firstChild);
+    const note = wrap.querySelector('.lf-gnote');
+    window.maGoogleSignin({
+      mount: wrap.querySelector('.lf-gbtn'),
+      onProfile: function(pr){
+        window.__maGoogleCred = pr.credential;
+        if(pr.name){ nameEl.value = pr.name; nameEl.readOnly = true; }
+        emailEl.value = pr.email; emailEl.readOnly = true;
+        wrap.querySelector('.lf-gbtn').style.display = 'none';
+        note.style.display = '';
+        note.innerHTML = '✓ Signed in as <b></b> · <button type="button" class="lf-glink">use a different email</button>';
+        note.querySelector('b').textContent = pr.email;
+        note.querySelector('.lf-glink').onclick = function(){
+          window.__maGoogleCred = '';
+          nameEl.readOnly = false; emailEl.readOnly = false; emailEl.value = '';
+          note.style.display = 'none'; wrap.querySelector('.lf-gbtn').style.display = '';
+        };
+      }
+    });
+  })();
+
   // ---------- Recognise a returning visitor / new device ----------
   function maRenderKnown(r){
     if(document.querySelector('.ma-known')) return;
@@ -1935,6 +1974,7 @@
       utm: maFirstUtm(),
       rowNumber: null
     };
+    if (window.__maGoogleCred) leadRecord.googleCredential = window.__maGoogleCred;
 
     // Optimistic: fire the lead POST but don't wait for it — go straight to the
     // schedule step so it appears instantly. The row number is picked up when

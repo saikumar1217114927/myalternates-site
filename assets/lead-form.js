@@ -43,7 +43,13 @@
       '.lf-known{background:#f6f4ee;border:1px solid #e6e1d3;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13.5px;line-height:1.5}' +
       '.lf-known-actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}' +
       '.lf-known .btn-gold{background:#c9a24b;color:#1a1400;border:0;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer}' +
-      '.lf-known .lr-link{background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline}';
+      '.lf-known .lr-link{background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline}' +
+      '.lf-google{margin-bottom:6px}' +
+      '.lf-google .lf-gbtn{display:flex;justify-content:center;min-height:40px}' +
+      '.lf-google .lf-gnote{background:#eef7f0;border:1px solid #cbe6d3;border-radius:10px;padding:10px 14px;font-size:13px;color:#1f6f43;line-height:1.5}' +
+      '.lf-google .lf-gnote .lr-link{background:none;border:0;color:#1f6f43;font-size:12.5px;cursor:pointer;text-decoration:underline}' +
+      '.lf-google .lf-gor{display:flex;align-items:center;gap:12px;color:#8a8f99;font-size:12px;margin:14px 0 4px}' +
+      '.lf-google .lf-gor::before,.lf-google .lf-gor::after{content:"";flex:1;height:1px;background:#e6e1d3}';
     document.head.appendChild(s);
   })();
 
@@ -124,6 +130,7 @@
   var form, countrySel, ccSel, pinInput, statusEl, manualRow, cityInput, stateInput;
   var lead = null;               // the submitted enquiry
   var submitPromise = null;      // in-flight initial POST (for the row number)
+  var googleCred = '';           // Google ID token, if the visitor signed in
 
   // ---- returning-visitor identity (shared with index.html's tracking) ----
   function ls(k, v) {
@@ -346,6 +353,7 @@
         path: location.pathname,
         rowNumber: null
       };
+      if (googleCred) lead.googleCredential = googleCred;
 
       // Goals page: attach which goal the lead was planning + the calculator result.
       if (typeof window.maGoalSnapshot === 'function') {
@@ -729,11 +737,46 @@
     if (pinInput) wirePincode();
     wireCountryCode();
     wireKnownContact();
+    wireGoogle();
     form.addEventListener('submit', onSubmit);
 
     // Returning visitor with an upcoming call → swap the form for their call card.
     var stored = storedLead();
     if (stored && stored.leadId) checkReturning(stored);
+  }
+
+  /* -------- Continue with Google: prefill name + verified email -------- */
+  function wireGoogle() {
+    if (typeof window.maGoogleSignin !== 'function') return;
+    var nameEl = document.getElementById('lf-name');
+    var emailEl = document.getElementById('lf-email');
+    if (!nameEl || !emailEl) return;
+
+    var wrap = el('div', 'lf-google');
+    wrap.innerHTML = '<div class="lf-gbtn"></div>' +
+      '<div class="lf-gnote" style="display:none;"></div>' +
+      '<div class="lf-gor"><span>or enter your details</span></div>';
+    form.insertBefore(wrap, form.firstChild);
+    var note = wrap.querySelector('.lf-gnote');
+
+    window.maGoogleSignin({
+      mount: wrap.querySelector('.lf-gbtn'),
+      onProfile: function (pr) {
+        googleCred = pr.credential;
+        if (pr.name) { nameEl.value = pr.name; nameEl.readOnly = true; }
+        emailEl.value = pr.email; emailEl.readOnly = true;
+        wrap.querySelector('.lf-gbtn').style.display = 'none';
+        note.style.display = '';
+        note.innerHTML = '✓ Signed in as <b>' + escHtml(pr.email) + '</b> · ' +
+          '<button type="button" class="lr-link" data-gclear>use a different email</button>';
+        note.querySelector('[data-gclear]').onclick = function () {
+          googleCred = '';
+          nameEl.readOnly = false; emailEl.readOnly = false; emailEl.value = '';
+          note.style.display = 'none';
+          wrap.querySelector('.lf-gbtn').style.display = '';
+        };
+      }
+    });
   }
 
   /* -------- new device: recognise by email / mobile, surface their call -------- */
