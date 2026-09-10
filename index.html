@@ -2128,10 +2128,11 @@
   function renderExpertScene(){
     if(!ecEl) return;
     const ex = window.__maExpert;
-    if(ex && ex.photo){
+    const photo = ex ? (ex.photoUrl ? NAV_API.replace(/\/+$/, '') + ex.photoUrl : (ex.photo || '')) : '';
+    if(photo){
       ecEl.classList.add('has-photo');
       ecEl.innerHTML =
-        '<div class="ec-avatar"><img src="' + ex.photo + '" alt=""></div>' +
+        '<div class="ec-avatar"><img src="' + photo + '" alt="" loading="eager"></div>' +
         '<div class="ec-cap"><b>' + (ex.name ? ex.name.replace(/[<>&]/g,'') : 'Your expert') + '</b> will connect with you at the scheduled time — walking you through how it works, what it costs, and what fits your goals.</div>';
     } else {
       ecEl.classList.remove('has-photo');

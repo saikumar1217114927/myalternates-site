@@ -560,12 +560,19 @@
     pick.mode = want;
   }
 
+  function expertPhotoSrc() {
+    if (!expert) return '';
+    if (expert.photoUrl) return LEADS_WEBHOOK_URL.replace(/\/+$/, '') + expert.photoUrl;
+    return expert.photo || ''; // back-compat with the old inline data URI
+  }
+
   function renderExpertCall() {
     var box = sched.querySelector('.expert-call');
     if (!box) return;
-    if (expert && expert.photo) {
+    var photo = expertPhotoSrc();
+    if (photo) {
       box.innerHTML =
-        '<div class="ec-avatar"><img src="' + escHtml(expert.photo) + '" alt=""></div>' +
+        '<div class="ec-avatar"><img src="' + escHtml(photo) + '" alt="" loading="eager"></div>' +
         '<div class="ec-cap"><b>' + escHtml(expert.name || 'Your expert') + '</b> will connect with you at the scheduled time — walking you through how it works, what it costs, and what fits your goals.</div>';
     } else {
       box.innerHTML =
