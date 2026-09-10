@@ -9,7 +9,7 @@
  *
  * Bump CACHE_VERSION whenever precached files change so old caches are purged.
  */
-const CACHE_VERSION = 'v31';
+const CACHE_VERSION = 'v32';
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 const FONTS = `fonts-${CACHE_VERSION}`;
@@ -34,6 +34,7 @@ const PRECACHE_URLS = [
   './assets/site.css',
   './assets/lead-form.js',
   './assets/google-signin.js',
+  './assets/nav.js',
   './assets/product-metrics.js',
   './assets/logo-myalternates.png',
   './assets/logo-pmsbazaar.png',
