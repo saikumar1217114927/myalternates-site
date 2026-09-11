@@ -375,11 +375,6 @@
       };
       if (googleCred) lead.googleCredential = googleCred;
 
-      // Goals page: attach which goal the lead was planning + the calculator result.
-      if (typeof window.maGoalSnapshot === 'function') {
-        try { var g = window.maGoalSnapshot(); if (g && g.goal) lead.goal = g; } catch (e) {}
-      }
-
       submitPromise = send(lead).then(function (res) {
         if (res && res.row) lead.rowNumber = res.row;
         if (res && res.leadId) {

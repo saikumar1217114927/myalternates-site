@@ -6,7 +6,7 @@
      - guarantees the burger is visible <=980px
      - toggles a `.nav-open` class on <header class="nav">
      - lays the nav links out as a vertical panel and expands the
-       Products / Goals / Login sub-menus inline (no hover on touch)
+       Products / Tools / Login sub-menus inline (no hover on touch)
    Styles are injected here so every page gets the same behaviour whether it
    uses assets/site.css or its own inline <style>.
    ========================================================================== */
