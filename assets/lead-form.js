@@ -54,7 +54,10 @@
       '.lf-google .lf-gnote{background:#eef7f0;border:1px solid #cbe6d3;border-radius:10px;padding:10px 14px;font-size:13px;color:#1f6f43;line-height:1.5}' +
       '.lf-google .lf-gnote .lr-link{background:none;border:0;color:#1f6f43;font-size:12.5px;cursor:pointer;text-decoration:underline}' +
       '.lf-google .lf-gor{display:flex;align-items:center;gap:12px;color:#8a8f99;font-size:12px;margin:14px 0 4px}' +
-      '.lf-google .lf-gor::before,.lf-google .lf-gor::after{content:"";flex:1;height:1px;background:#e6e1d3}';
+      '.lf-google .lf-gor::before,.lf-google .lf-gor::after{content:"";flex:1;height:1px;background:#e6e1d3}' +
+      '.sched-free-note{display:inline-flex;align-items:center;gap:8px;margin-top:14px;background:#eef7f0;border:1px solid #cbe6d3;color:#1f6f43;font-size:13.5px;font-weight:600;line-height:1.4;padding:9px 16px;border-radius:999px}' +
+      '.sched-free-note b{font-weight:800}' +
+      '@media (max-width:560px){.sched-free-note{white-space:normal;border-radius:12px}}';
     document.head.appendChild(s);
   })();
 
@@ -448,6 +451,7 @@
           '<div class="section-tag">Optional next step</div>' +
           '<h2>Book a call with an expert</h2>' +
           '<p>Pick a date, time and how you\'d like to connect. Prefer we just call you? Skip this step — your request is already in.</p>' +
+          '<div class="sched-free-note">🎁 <b>Free</b> &middot; No commitment call &mdash; we\'re just here to help you figure things out.</div>' +
         '</div>' +
         '<div class="sched-grid">' +
           '<div class="sched-side">' +

@@ -393,6 +393,14 @@
   .sched-head .section-tag{margin-bottom:10px;}
   .sched-head h3{font-family:'Fraunces', serif; font-weight:500; font-size:clamp(26px,3.2vw,38px); line-height:1.15; color:var(--ink-text); margin-bottom:10px;}
   .sched-head p{color:var(--muted); font-size:15px; line-height:1.6; max-width:560px;}
+  .sched-free-note{
+    display:inline-flex; align-items:center; gap:8px; margin-top:14px;
+    background:rgba(30,111,92,0.08); border:1px solid rgba(30,111,92,0.25);
+    color:var(--emerald); font-size:13.5px; font-weight:600; line-height:1.4;
+    padding:9px 16px; border-radius:999px;
+  }
+  .sched-free-note b{font-weight:800;}
+  @media (max-width:560px){ .sched-free-note{white-space:normal; border-radius:12px;} }
   .sched-body{
     display:grid; grid-template-columns:340px minmax(0,1fr); gap:0;
     border:1px solid #e6dfcd; border-radius:14px; background:#fff; overflow:hidden;
@@ -1050,6 +1058,7 @@
       <div class="section-tag">Optional next step</div>
       <h3 id="schedTitle">Talk to Expert</h3>
       <p>Connect with our investment experts to explore opportunities, understand your goals, and plan the right strategy for you.</p>
+      <div class="sched-free-note">🎁 <b>Free</b> &middot; No commitment call &mdash; we're just here to help you figure things out.</div>
     </div>
     <form id="scheduleForm">
       <div class="sched-body">
