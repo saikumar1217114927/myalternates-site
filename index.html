@@ -537,13 +537,13 @@
 
   /* ---------- PRODUCT PILLARS ---------- */
   .pillars{padding:104px 0 96px; background:var(--paper);}
-  .pillar-cards{display:grid; grid-template-columns:repeat(4,1fr); gap:20px;}
+  .pillar-cards{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; max-width:1000px; margin:0 auto;}
   .pcard{
-    background:#fff; border:1px solid #E6E0D2; padding:30px 22px 26px;
+    background:#fff; border:1px solid #E6E0D2; border-top:3px solid var(--gold);
+    padding:26px 20px 24px;
     position:relative; transition:transform .3s ease, box-shadow .3s ease;
     display:flex; flex-direction:column;
   }
-  .pcard.lowest-fee{border-top:3px solid var(--gold);}
   .pcard:hover{transform:translateY(-6px); box-shadow:0 24px 50px rgba(20,20,10,0.1);}
   .pcard .num{
     font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted-light);
@@ -872,8 +872,8 @@
         <div class="nav-menu">
           <a href="pms">PMS</a>
           <a href="aif">AIF</a>
-          <a href="sif">SIF</a>
           <a href="gift-city">GIFT IFSC</a>
+          <a href="sif">SIF</a>
         </div>
       </div>
       <div class="nav-login" tabindex="0">
@@ -894,14 +894,14 @@
   <div class="wrap hero-grid">
     <div>
       <div class="eyebrow">One Login.. For all your investments.</div>
-      <h1 class="hero-title">PMS, SIF, GIFT City<br>and AIF — on <em>one dashboard.</em></h1>
+      <h1 class="hero-title">PMS, AIF, GIFT City<br>and SIF — on <em>one dashboard.</em></h1>
       <p class="hero-sub">myAlternates combines every product you hold into a single live view,— with a dedicated dashboard for investors, and a separate one built for distributors to manage every investment from one screen.</p>
 
       <div class="pillars-row">
         <div class="pillar-chip"><span class="dot"></span>PMS</div>
-        <div class="pillar-chip"><span class="dot"></span>SIF</div>
-        <div class="pillar-chip"><span class="dot"></span>GIFT City</div>
         <div class="pillar-chip"><span class="dot"></span>AIF</div>
+        <div class="pillar-chip"><span class="dot"></span>GIFT City</div>
+        <div class="pillar-chip"><span class="dot"></span>SIF</div>
       </div>
 
       <div class="hero-stats">
@@ -989,11 +989,11 @@
           <div class="field">
             <label for="interest">Interested in</label>
             <select id="interest">
-              <option>Combined dashboard (PMS, SIF, GIFT, AIF)</option>
+              <option>Combined dashboard (PMS, AIF, GIFT, SIF)</option>
               <option>Portfolio Management Services (PMS)</option>
-              <option>Specialised Investment Fund (SIF)</option>
-              <option>GIFT City products</option>
               <option>Alternative Investment Funds (AIF)</option>
+              <option>GIFT City products</option>
+              <option>Specialised Investment Fund (SIF)</option>
               <option>Distributor dashboard demo</option>
               <option>Not sure yet — need guidance</option>
             </select>
@@ -1150,7 +1150,7 @@
       <h2>Everything you hold, held to the same standard.</h2>
     </div>
     <div class="pillar-cards">
-      <div class="pcard lowest-fee reveal">
+      <div class="pcard reveal">
         <div class="num">PMS</div>
         <h3>Portfolio Management</h3>
         <div class="tagline">Lowest fee, on record</div>
@@ -1158,11 +1158,11 @@
         <a href="pms" class="more">Explore PMS →</a>
       </div>
       <div class="pcard reveal">
-        <div class="num">SIF</div>
-        <h3>Specialised Investment Fund</h3>
-        <div class="tagline">Newly regulated, curated</div>
-        <p>Access to SIF strategies as they open up, vetted by the same research desk before they reach your dashboard.</p>
-        <a href="sif" class="more">Explore SIF →</a>
+        <div class="num">AIF</div>
+        <h3>Alternative Investment Funds</h3>
+        <div class="tagline">Bespoke, diversified</div>
+        <p>Category I, II and III strategies, engineered for investors with a defined risk appetite and a longer horizon.</p>
+        <a href="aif" class="more">Explore AIF →</a>
       </div>
       <div class="pcard reveal">
         <div class="num">GIFT IFSC</div>
@@ -1172,11 +1172,11 @@
         <a href="gift-city" class="more">Explore GIFT City →</a>
       </div>
       <div class="pcard reveal">
-        <div class="num">AIF</div>
-        <h3>Alternative Investment Funds</h3>
-        <div class="tagline">Bespoke, diversified</div>
-        <p>Category I, II and III strategies, engineered for investors with a defined risk appetite and a longer horizon.</p>
-        <a href="aif" class="more">Explore AIF →</a>
+        <div class="num">SIF</div>
+        <h3>Specialised Investment Fund</h3>
+        <div class="tagline">Newly regulated, curated</div>
+        <p>Access to SIF strategies as they open up, vetted by the same research desk before they reach your dashboard.</p>
+        <a href="sif" class="more">Explore SIF →</a>
       </div>
     </div>
   </div>
@@ -1255,7 +1255,7 @@
     <div class="reveal">
       <div class="section-tag">For Distributors & Others</div>
       <h2 style="font-family:'Fraunces',serif; font-weight:500; font-size:clamp(26px,3vw,36px); line-height:1.18; letter-spacing:-0.01em; margin-bottom:6px;">A dashboard built to run your book, not just your portfolio.</h2>
-      <p style="color:var(--muted); font-size:15px; line-height:1.65; max-width:480px; margin-top:14px;">Manage every investor from a single distributor login — onboarding, performance tracking, and reporting, across PMS, SIF, GIFT City and AIF.</p>
+      <p style="color:var(--muted); font-size:15px; line-height:1.65; max-width:480px; margin-top:14px;">Manage every investor from a single distributor login — onboarding, performance tracking, and reporting, across PMS, AIF, GIFT City and SIF.</p>
       <ul class="dist-list">
         <li><span class="tick">✓</span><div><strong>Every client, one screen</strong><span>See every investor's holdings and performance across all four asset classes in one live dashboard.</span></div></li>
         <li><span class="tick">✓</span><div><strong>Track performance in real time</strong><span>Monitor NAVs, returns and drawdowns as they happen — no waiting on monthly statements.</span></div></li>
@@ -1323,7 +1323,7 @@
     <div class="growth-copy reveal">
       <div class="section-tag" style="color:var(--gold-light)">Eight years, compounding</div>
       <h2>Assets tracked on <em>one dashboard</em> — investor holdings and distributor books, combined.</h2>
-      <p>PMS, SIF, GIFT City and AIF, consolidated into a single live view since 2017.</p>
+      <p>PMS, AIF, GIFT City and SIF, consolidated into a single live view since 2017.</p>
       <div class="growth-figure">
         <span class="growth-prefix">₹</span><span class="growth-num" id="aumNum">0</span><span class="growth-suffix">Cr</span>
       </div>
@@ -1349,7 +1349,7 @@
       <h2>Six reasons investors and distributors consolidate here.</h2>
     </div>
     <div class="reasons-grid">
-      <div class="reason reveal"><div class="rk">01</div><h4>One destination</h4><p>Collate every PMS, SIF, GIFT City and AIF holding under a single roof — no more logging into four portals.</p></div>
+      <div class="reason reveal"><div class="rk">01</div><h4>One destination</h4><p>Collate every PMS, AIF, GIFT City and SIF holding under a single roof — no more logging into four portals.</p></div>
       <div class="reason reveal"><div class="rk">02</div><h4>Two dashboards, one engine</h4><p>Investors get a personal view; distributors get a full book view — same live data underneath both.</p></div>
       <div class="reason reveal"><div class="rk">03</div><h4>Lowest PMS fees</h4><p>Platform-negotiated pricing on PMS, passed straight through to you — no hidden mark-up.</p></div>
       <div class="reason reveal"><div class="rk">04</div><h4>Unbiased research</h4><p>Deep-dive analysis from an experienced desk, built to support decisions, not push products.</p></div>
@@ -1408,14 +1408,14 @@
     <div class="foot-grid">
       <div>
         <div class="foot-logo"><img src="assets/logo-foot.png" alt="myAlternates"></div>
-        <p>Combined dashboard for PMS, SIF, GIFT City and AIF — the lowest PMS fees on the platform, plus a dedicated distributor dashboard to manage and track every client.</p>
+        <p>Combined dashboard for PMS, AIF, GIFT City and SIF — the lowest PMS fees on the platform, plus a dedicated distributor dashboard to manage and track every client.</p>
       </div>
       <div class="foot-col">
         <h5>Products</h5>
         <a href="pms">PMS</a>
-        <a href="sif">SIF</a>
-        <a href="gift-city">GIFT City</a>
         <a href="aif">AIF</a>
+        <a href="gift-city">GIFT City</a>
+        <a href="sif">SIF</a>
       </div>
       <div class="foot-col">
         <h5>Platform</h5>
