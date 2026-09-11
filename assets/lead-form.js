@@ -287,7 +287,13 @@
       clearTimeout(pinDebounce);
       setStatus('', '');
       var v = this.value.trim();
-      if (v.length >= 3) {
+      // For India, wait for all 6 digits — looking up a 3-5 digit prefix
+      // mid-type (e.g. a natural pause after "560") always fails (it isn't a
+      // real pincode), which used to flash the "confirm manually" fields
+      // while the user was still typing. Other countries' postal codes vary
+      // in length, so keep the looser 3+ threshold for them.
+      var ready = (countrySel.value || 'IN') === 'IN' ? v.length === 6 : v.length >= 3;
+      if (ready) {
         pinDebounce = setTimeout(function () { lookupPincode(v); }, 400);
       } else {
         pinReqId++;
