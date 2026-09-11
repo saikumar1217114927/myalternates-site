@@ -156,7 +156,12 @@
     return v;
   }
   function storedLead() { try { return JSON.parse(ls('maLead') || 'null'); } catch (e) { return null; } }
-  function rememberLead(o) { ls('maLead', JSON.stringify({ leadId: o.leadId, name: o.name, email: o.email })); }
+  function rememberLead(o) {
+    ls('maLead', JSON.stringify({
+      leadId: o.leadId, name: o.name, email: o.email,
+      mobile: o.mobile || '', mobileCountryCode: o.mobileCountryCode || ''
+    }));
+  }
   function flaggedInterests() { try { return JSON.parse(ls('maInterests') || '[]'); } catch (e) { return []; } }
   function rememberFlag(x) { var a = flaggedInterests(); if (a.indexOf(x) < 0) { a.push(x); ls('maInterests', JSON.stringify(a)); } }
   function firstUtm() {
@@ -371,7 +376,10 @@
 
       submitPromise = send(lead).then(function (res) {
         if (res && res.row) lead.rowNumber = res.row;
-        if (res && res.leadId) { lead.leadId = res.leadId; rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email }); }
+        if (res && res.leadId) {
+          lead.leadId = res.leadId;
+          rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email, mobile: lead.mobile, mobileCountryCode: lead.mobileCountryCode });
+        }
         if (res && res.expert) { expert = res.expert; if (sched && sched.classList.contains('show')) renderExpertCall(); }
         return res;
       });
@@ -744,7 +752,7 @@
     function openBooking(rescheduleId) {
       lead = {
         role: 'Investor', name: stored.name || '', email: stored.email || '',
-        mobileCountryCode: '', mobile: '', interest: interest || '',
+        mobileCountryCode: stored.mobileCountryCode || '', mobile: stored.mobile || '', interest: interest || '',
         leadId: stored.leadId, visitorId: getVid(), path: location.pathname,
         rescheduleMeetingId: rescheduleId || '', mode: (mtg && mtg.mode) || '', rowNumber: null
       };
@@ -836,7 +844,7 @@
         .then(function (r) {
           if (!r || !r.found) return;
           if (r.expert) expert = r.expert;
-          rememberLead({ leadId: r.leadId, name: r.name || '', email: email });
+          rememberLead({ leadId: r.leadId, name: r.name || '', email: email, mobile: mobile, mobileCountryCode: ccSel ? ccSel.value : '' });
           if (r.upcomingMeeting && r.upcomingMeeting.date) showKnownBanner(r);
         });
     }

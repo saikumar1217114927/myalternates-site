@@ -1942,8 +1942,8 @@
       leadRecord = {
         role:'Investor', name: r.name || sl.name || '',
         email: document.getElementById('email').value.trim() || sl.email || '',
-        mobileCountryCode: document.getElementById('mobileCountryCode').value,
-        mobile: document.getElementById('mobile').value.trim(),
+        mobileCountryCode: document.getElementById('mobileCountryCode').value || sl.mobileCountryCode || '',
+        mobile: document.getElementById('mobile').value.trim() || sl.mobile || '',
         interest: '', leadId: r.leadId, visitorId: MA_VID, path: location.pathname,
         rescheduleMeetingId: reschId || '', mode: (m && m.mode) || '', rowNumber: null
       };
@@ -1957,10 +1957,11 @@
   async function maCheckKnown(){
     const email = (document.getElementById('email').value || '').trim();
     const mobile = (document.getElementById('mobile').value || '').trim();
+    const mobileCC = document.getElementById('mobileCountryCode').value;
     if(email.indexOf('@') < 1 && mobile.length < 6) return;
-    const r = await sendToLeadsSheet({ action:'getLeadPublic', email, mobile, mobileCountryCode: document.getElementById('mobileCountryCode').value, vid: MA_VID });
+    const r = await sendToLeadsSheet({ action:'getLeadPublic', email, mobile, mobileCountryCode: mobileCC, vid: MA_VID });
     if(!r || !r.found) return;
-    try{ localStorage.setItem('maLead', JSON.stringify({ leadId: r.leadId, name: r.name || '', email })); } catch(e){}
+    try{ localStorage.setItem('maLead', JSON.stringify({ leadId: r.leadId, name: r.name || '', email, mobile, mobileCountryCode: mobileCC })); } catch(e){}
     maRenderKnown(r);
   }
   (function wireKnown(){
@@ -2013,7 +2014,10 @@
       if(result && result.row) leadRecord.rowNumber = result.row;
       if(result && result.leadId){
         leadRecord.leadId = result.leadId;
-        try{ localStorage.setItem('maLead', JSON.stringify({ leadId: result.leadId, name: leadRecord.name, email: leadRecord.email })); } catch(e){}
+        try{ localStorage.setItem('maLead', JSON.stringify({
+          leadId: result.leadId, name: leadRecord.name, email: leadRecord.email,
+          mobile: leadRecord.mobile, mobileCountryCode: leadRecord.mobileCountryCode
+        })); } catch(e){}
       }
       if(result && result.expert){ window.__maExpert = result.expert; renderExpertScene(); }
     });
