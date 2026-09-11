@@ -1,7 +1,7 @@
 /* ==========================================================================
    myAlternates — product performance band (masked strategy returns)
    Renders below the hero on each product page, driven by
-   <section class="p-metrics" data-metrics="pms|mf|sif|giftcity|aif">.
+   <section class="p-metrics" data-metrics="pms|sif|giftcity|aif">.
    --------------------------------------------------------------------------
    ALL NUMBERS BELOW ARE PLACEHOLDERS / ILLUSTRATIVE. Replace the DATA entries
    with real, compliance-approved figures before this goes live. Scheme and
@@ -36,18 +36,6 @@
         { style: 'Focused 20',         ret: [22.1, 18.9, 19.9, 17.8] }
       ],
       more: 12
-    },
-    mf: {
-      label: 'mutual fund',
-      title: 'How the funds most tracked on the platform have performed',
-      amount: 100000,
-      rows: [
-        { style: 'Small-Cap Fund',      ret: [27.6, 22.1, 24.0, 26.3] },
-        { style: 'Mid-Cap Fund',        ret: [24.2, 19.8, 21.5, 24.1] },
-        { style: 'Flexi-Cap Fund',      ret: [19.4, 16.2, 17.8, 18.9] },
-        { style: 'Balanced Advantage',  ret: [14.1, 12.0, 12.8, 13.2] }
-      ],
-      more: 60
     },
     sif: {
       label: 'SIF',
