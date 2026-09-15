@@ -1849,23 +1849,191 @@
     try{ localStorage.setItem('maLead', JSON.stringify({ leadId: r.leadId, name: r.name || '', email, mobile, mobileCountryCode: mobileCC })); } catch(e){}
     maRenderKnown(r);
   }
+  // ---------- Long-lived verified session (email OTP now, mobile OTP later) ----------
+  // Set only once email (or Google) is verified; never expires client-side —
+  // a returning visitor is recognized and skips the form entirely.
+  function maGetSessionToken(){ try{ return localStorage.getItem('maLeadSession') || ''; } catch(e){ return ''; } }
+  function maSaveSessionToken(t){ if(t){ try{ localStorage.setItem('maLeadSession', t); } catch(e){} } }
+  function maClearSession(){ try{ localStorage.removeItem('maLeadSession'); localStorage.removeItem('maLead'); } catch(e){} }
+
+  function maRenderSession(sess, token){
+    if(document.querySelector('.ma-known')) return;
+    const first = (sess.name || '').trim().split(/\s+/)[0];
+    const m = sess.upcomingMeeting;
+    const b = document.createElement('div');
+    b.className = 'enquiry-card ma-known';
+    b.style.cssText = 'padding:22px 24px;';
+
+    let inner;
+    if(m && m.date){
+      // Has an upcoming (not-yet-elapsed) call — offer to add discussion points
+      // instead of re-booking. Once the call's date passes, the backend's
+      // activeMeetingForLead stops returning it, and the next page load's
+      // maCheckSession() drops back to "Schedule a call".
+      const d = new Date(m.date + 'T00:00:00');
+      const when = isNaN(d) ? m.date : d.toLocaleDateString('en-IN',{ weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+      inner =
+        '<div style="font:600 12px/1 system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--gold,#C9A24B)">Your call is scheduled</div>' +
+        '<div style="font:700 20px/1.3 Fraunces,serif;margin:8px 0 2px">' + when + '</div>' +
+        '<div style="font-size:14px;color:var(--muted,#6C7178)">' + (m.time ? m.time + ' IST' : '') + (m.mode ? ' · ' + m.mode : '') + '</div>' +
+        '<p style="font-size:13px;color:var(--muted,#6C7178);margin:12px 0 8px;line-height:1.55">We found your details — an expert will connect with you then.</p>' +
+        '<button type="button" id="maResch" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer">Reschedule this call</button>' +
+        '<div style="margin-top:18px;padding-top:16px;border-top:1px solid #e6e1d3;">' +
+        '<div style="font:600 12px/1 system-ui;letter-spacing:.06em;text-transform:uppercase;color:#8a7c58;margin-bottom:8px;">Add to the discussion</div>' +
+        '<textarea id="maDiscussNote" placeholder="Anything specific you\'d like your expert to cover on the call?" style="width:100%;min-height:70px;border:1px solid #d8d2c2;border-radius:8px;padding:10px 12px;font:inherit;box-sizing:border-box;"></textarea>' +
+        '<div style="margin-top:10px;"><button type="button" id="maAddDiscuss" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer">Add</button></div>' +
+        '<div id="maDiscussOk" style="display:none;margin-top:10px;background:#eef7f0;border:1px solid #cbe6d3;border-radius:8px;padding:10px 14px;font-size:13px;color:#1f6f43;">Added — your expert will see this before the call.</div>' +
+        '</div>';
+    } else {
+      inner =
+        '<div style="font:700 20px/1.3 Fraunces,serif;margin:0 0 6px">Welcome back' + (first ? ', ' + first : '') + '</div>' +
+        '<p style="font-size:13.5px;color:var(--muted,#6C7178);margin:0 0 16px;line-height:1.55">No need to fill the form again — just pick a time and your expert will call you.</p>' +
+        '<button type="button" id="maBook" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer">Schedule a call →</button>';
+    }
+    b.innerHTML = inner +
+      '<div style="margin-top:16px"><button type="button" id="maSignOut" style="background:none;border:0;color:var(--muted,#6C7178);text-decoration:underline;font-size:12.5px;cursor:pointer">Not you? Sign out</button></div>';
+
+    card.style.display = 'none';
+    card.parentNode.insertBefore(b, card);
+    document.getElementById('maSignOut').onclick = () => { maClearSession(); b.remove(); card.style.display = ''; };
+
+    const startBooking = (reschId) => {
+      leadRecord = {
+        role:'Investor', name: sess.name || '', email: sess.email || '',
+        mobileCountryCode: sess.mobileCountryCode || '', mobile: sess.mobile || '',
+        interest: '', leadId: sess.leadId, visitorId: MA_VID, path: location.pathname,
+        rescheduleMeetingId: reschId || '', mode: (m && m.mode) || '', rowNumber: null
+      };
+      openScheduleModal();
+    };
+    const rb = document.getElementById('maResch');
+    if(rb) rb.onclick = () => startBooking(m.meetingId);
+    const bk = document.getElementById('maBook');
+    if(bk) bk.onclick = () => startBooking('');
+
+    const addBtn = document.getElementById('maAddDiscuss');
+    if(addBtn) addBtn.onclick = () => {
+      const ta = document.getElementById('maDiscussNote');
+      const note = ta.value.trim();
+      if(!note){ ta.focus(); return; }
+      addBtn.disabled = true; addBtn.textContent = 'Adding…';
+      sendToLeadsSheet({ action:'addMeetingDiscussionNote', token: token, note: note }).then((r) => {
+        addBtn.disabled = false; addBtn.textContent = 'Add';
+        if(!r || !r.ok){ alert((r && r.error) || 'Could not save that — please try again.'); return; }
+        ta.value = '';
+        document.getElementById('maDiscussOk').style.display = 'block';
+      });
+    };
+  }
+
+  // Reads a saved session token (if any) and shows the recognized-visitor
+  // panel. Returns true if it did (so the caller skips the older unverified
+  // "known contact" fallback below).
+  async function maCheckSession(){
+    const token = maGetSessionToken();
+    if(!token) return false;
+    const r = await sendToLeadsSheet({ action:'getLeadSessionStatus', token });
+    if(!r || !r.ok || !r.loggedIn){ maClearSession(); return false; }
+    if(r.expert) window.__maExpert = r.expert;
+    try{ localStorage.setItem('maLead', JSON.stringify({ leadId: r.leadId, name: r.name, email: r.email, mobile: r.mobile, mobileCountryCode: r.mobileCountryCode })); } catch(e){}
+    maRenderSession(r, token);
+    return true;
+  }
+
+  // ---------- Email OTP step (skipped when signed in with Google — see submit handler) ----------
+  function maEscHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function maShowOtpPanel(rec, originalBtnLabel){
+    // Kept inside `card` (hide-form class hides the fields, same mechanism the
+    // rest of this page already uses for the post-submit success message) —
+    // NOT a sibling swap like maRenderKnown/maRenderSession — so the existing
+    // schedule-modal skip/close/complete paths keep working unmodified.
+    const box = document.createElement('div');
+    box.className = 'ma-otp';
+    box.style.cssText = 'padding:4px 2px;';
+    box.innerHTML =
+      '<div style="font:700 20px/1.3 Fraunces,serif;margin:0 0 8px">Verify your email</div>' +
+      '<p style="font-size:13.5px;color:var(--muted,#6C7178);margin:0 0 16px;line-height:1.55">We sent a 6-digit code to <b>' + maEscHtml(rec.email) + '</b>. Enter it below to confirm your enquiry.</p>' +
+      '<input type="text" id="maOtpCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code" style="font-size:22px;letter-spacing:.35em;text-align:center;font-weight:700;padding:12px 14px;width:100%;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box;">' +
+      '<div id="maOtpErr" style="display:none;color:#a3402f;font-size:13px;margin-top:8px;"></div>' +
+      '<div style="margin-top:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">' +
+      '<button type="button" id="maOtpVerify" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer">Verify &amp; continue</button>' +
+      '<button type="button" id="maOtpResend" style="background:none;border:0;color:var(--muted,#6C7178);text-decoration:underline;font-size:13px;cursor:pointer">Resend code</button>' +
+      '<button type="button" id="maOtpChange" style="background:none;border:0;color:var(--muted,#6C7178);text-decoration:underline;font-size:13px;cursor:pointer">Use a different email</button>' +
+      '</div>';
+    card.classList.add('hide-form');
+    card.appendChild(box);
+
+    const codeInput = document.getElementById('maOtpCode');
+    const errEl = document.getElementById('maOtpErr');
+    const verifyBtn = document.getElementById('maOtpVerify');
+    codeInput.focus();
+    const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+
+    const doVerify = () => {
+      const otp = codeInput.value.trim();
+      if(!/^[0-9]{6}$/.test(otp)){ showErr('Enter the 6-digit code.'); return; }
+      errEl.style.display = 'none';
+      verifyBtn.disabled = true; verifyBtn.textContent = 'Verifying…';
+      const payload = Object.assign({}, rec, { action:'verifyLeadEmailOtp', otp });
+      sendToLeadsSheet(payload).then((res) => {
+        verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & continue';
+        if(!res || !res.ok){ showErr((res && res.error) || 'Could not verify — please try again.'); return; }
+        if(res.row) leadRecord.rowNumber = res.row;
+        if(res.leadId){
+          leadRecord.leadId = res.leadId;
+          try{ localStorage.setItem('maLead', JSON.stringify({
+            leadId: res.leadId, name: rec.name, email: rec.email, mobile: rec.mobile, mobileCountryCode: rec.mobileCountryCode
+          })); } catch(e){}
+        }
+        if(res.sessionToken) maSaveSessionToken(res.sessionToken);
+        if(res.expert){ window.__maExpert = res.expert; renderExpertScene(); }
+        box.remove();
+        openScheduleModal();
+      });
+    };
+    verifyBtn.onclick = doVerify;
+    codeInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); doVerify(); } });
+    codeInput.addEventListener('input', () => { codeInput.value = codeInput.value.replace(/\D/g,'').slice(0,6); });
+
+    document.getElementById('maOtpResend').onclick = (ev) => {
+      ev.target.disabled = true; ev.target.textContent = 'Sending…';
+      sendToLeadsSheet({ action:'requestLeadEmailOtp', email: rec.email, vid: rec.visitorId }).then((res) => {
+        ev.target.disabled = false; ev.target.textContent = 'Resend code';
+        if(!res || !res.ok){ showErr((res && res.error) || 'Could not resend — please try again.'); return; }
+        codeInput.value = ''; codeInput.focus();
+      });
+    };
+    document.getElementById('maOtpChange').onclick = () => {
+      box.remove();
+      card.classList.remove('hide-form');
+      btn.disabled = false; btn.textContent = originalBtnLabel;
+      document.getElementById('email').focus();
+    };
+  }
+
   (function wireKnown(){
     const em = document.getElementById('email'), mo = document.getElementById('mobile');
     let last = '';
     const run = () => { const k = (em.value || '') + '|' + (mo ? mo.value : ''); if(k !== last){ last = k; maCheckKnown(); } };
     if(em) em.addEventListener('blur', run);
     if(mo) mo.addEventListener('blur', run);
-    const s = maStoredLead();
-    if(s && (s.email || s.leadId)){
-      sendToLeadsSheet({ action:'getLeadPublic', leadId: s.leadId, email: s.email, vid: MA_VID }).then(r => { if(r && r.found) maRenderKnown(r, { allowNoMeeting:true }); });
-    }
+    // A verified session always wins over the older unverified "recognize by
+    // localStorage" flow — it's a real, server-checked identity.
+    maCheckSession().then((loggedIn) => {
+      if(loggedIn) return;
+      const s = maStoredLead();
+      if(s && (s.email || s.leadId)){
+        sendToLeadsSheet({ action:'getLeadPublic', leadId: s.leadId, email: s.email, vid: MA_VID }).then(r => { if(r && r.found) maRenderKnown(r, { allowNoMeeting:true }); });
+      }
+    });
   })();
 
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     if(!form.checkValidity()){ form.reportValidity(); return; }
+    const originalBtnLabel = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Sending…';
 
     // A fast submitter can beat the 400ms debounced pincode lookup — make sure
     // it has finished so city/state are captured.
@@ -1889,26 +2057,39 @@
       utm: maFirstUtm(),
       rowNumber: null
     };
-    if (window.__maGoogleCred) leadRecord.googleCredential = window.__maGoogleCred;
 
-    // Optimistic: fire the lead POST but don't wait for it — go straight to the
-    // schedule step so it appears instantly. The row number is picked up when
-    // it resolves; if the visitor schedules first, the backend matches the lead
-    // by email/mobile.
-    sendToLeadsSheet(leadRecord).then(function(result){
-      if(result && result.row) leadRecord.rowNumber = result.row;
-      if(result && result.leadId){
-        leadRecord.leadId = result.leadId;
-        try{ localStorage.setItem('maLead', JSON.stringify({
-          leadId: result.leadId, name: leadRecord.name, email: leadRecord.email,
-          mobile: leadRecord.mobile, mobileCountryCode: leadRecord.mobileCountryCode
-        })); } catch(e){}
-      }
-      if(result && result.expert){ window.__maExpert = result.expert; renderExpertScene(); }
-    });
+    // "Continue with Google" already proves the email — skip the OTP step and
+    // go straight through, exactly as before.
+    if (window.__maGoogleCred) {
+      leadRecord.googleCredential = window.__maGoogleCred;
+      btn.textContent = 'Sending…';
+      sendToLeadsSheet(leadRecord).then(function(result){
+        if(result && result.row) leadRecord.rowNumber = result.row;
+        if(result && result.leadId){
+          leadRecord.leadId = result.leadId;
+          try{ localStorage.setItem('maLead', JSON.stringify({
+            leadId: result.leadId, name: leadRecord.name, email: leadRecord.email,
+            mobile: leadRecord.mobile, mobileCountryCode: leadRecord.mobileCountryCode
+          })); } catch(e){}
+        }
+        if(result && result.sessionToken) maSaveSessionToken(result.sessionToken);
+        if(result && result.expert){ window.__maExpert = result.expert; renderExpertScene(); }
+      });
+      card.classList.add('hide-form');
+      openScheduleModal();
+      return;
+    }
 
-    card.classList.add('hide-form');
-    openScheduleModal();
+    // Everyone else verifies their email first — the lead is only created once
+    // the code is confirmed (see verifyLeadEmailOtp on the backend).
+    btn.textContent = 'Sending code…';
+    const otpRes = await sendToLeadsSheet({ action:'requestLeadEmailOtp', email: leadRecord.email, vid: leadRecord.visitorId });
+    if(!otpRes || !otpRes.ok){
+      btn.disabled = false; btn.textContent = originalBtnLabel;
+      alert((otpRes && otpRes.error) || 'Could not send a verification code — please try again.');
+      return;
+    }
+    maShowOtpPanel(leadRecord, originalBtnLabel);
   });
 
   // ---------- Schedule Call popup (optional step shown once, right after submit) ----------

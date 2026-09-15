@@ -57,7 +57,14 @@
       '.lf-google .lf-gor::before,.lf-google .lf-gor::after{content:"";flex:1;height:1px;background:#e6e1d3}' +
       '.sched-free-note{display:inline-flex;align-items:center;gap:8px;margin-top:14px;background:#eef7f0;border:1px solid #cbe6d3;color:#1f6f43;font-size:13.5px;font-weight:600;line-height:1.4;padding:9px 16px;border-radius:999px}' +
       '.sched-free-note b{font-weight:800}' +
-      '@media (max-width:560px){.sched-free-note{white-space:normal;border-radius:12px}}';
+      '@media (max-width:560px){.sched-free-note{white-space:normal;border-radius:12px}}' +
+      '.lf-otp .lr-sub{color:#5b6270;font-size:14px;line-height:1.55;margin-bottom:16px}' +
+      '.lf-otp input.lf-otp-code{font-size:22px;letter-spacing:.35em;text-align:center;font-weight:700;padding:12px 14px;width:100%;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box}' +
+      '.lf-otp .lf-otp-err{color:#a3402f;font-size:13px;margin-top:8px;display:none}' +
+      '.lf-otp .lr-actions{margin-top:14px}' +
+      '.lr-discuss{margin-top:6px}' +
+      '.lr-discuss textarea{width:100%;min-height:70px;border:1px solid #d8d2c2;border-radius:8px;padding:10px 12px;font:inherit;box-sizing:border-box;margin-top:8px}' +
+      '.lr-discuss .lr-done{margin-top:10px}';
     document.head.appendChild(s);
   })();
 
@@ -161,6 +168,14 @@
       leadId: o.leadId, name: o.name, email: o.email,
       mobile: o.mobile || '', mobileCountryCode: o.mobileCountryCode || ''
     }));
+  }
+  // Long-lived "logged in" session — set only once email (or Google) is
+  // verified. Deliberately never expires; a returning visitor is recognized
+  // and skips the form entirely until they explicitly sign out.
+  function getSessionToken() { return ls('maLeadSession') || ''; }
+  function saveSessionToken(t) { if (t) ls('maLeadSession', t); }
+  function clearSession() {
+    try { localStorage.removeItem('maLeadSession'); localStorage.removeItem('maLead'); } catch (e) {}
   }
   function flaggedInterests() { try { return JSON.parse(ls('maInterests') || '[]'); } catch (e) { return []; } }
   function rememberFlag(x) { var a = flaggedInterests(); if (a.indexOf(x) < 0) { a.push(x); ls('maInterests', JSON.stringify(a)); } }
@@ -349,43 +364,61 @@
 
   /* ---------------- initial submit ---------------- */
 
+  function buildLeadObj() {
+    return {
+      role: 'Investor',
+      name: document.getElementById('lf-name').value.trim(),
+      email: document.getElementById('lf-email').value.trim(),
+      mobileCountryCode: ccSel.value,
+      mobile: document.getElementById('lf-mobile').value.trim(),
+      country: countrySel.options[countrySel.selectedIndex].textContent,
+      pincode: pinInput ? pinInput.value.trim() : '',
+      city: (cityInput && cityInput.value.trim()) || detected.city || '',
+      state: (stateInput && stateInput.value.trim()) || detected.state || '',
+      interest: form.getAttribute('data-interest') || 'Not sure yet — need guidance',
+      visitorId: getVid(),
+      path: location.pathname,
+      rowNumber: null
+    };
+  }
+
+  function afterVerified(res) {
+    if (res && res.row) lead.rowNumber = res.row;
+    if (res && res.leadId) {
+      lead.leadId = res.leadId;
+      rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email, mobile: lead.mobile, mobileCountryCode: lead.mobileCountryCode });
+    }
+    if (res && res.sessionToken) saveSessionToken(res.sessionToken);
+    if (res && res.expert) { expert = res.expert; if (sched && sched.classList.contains('show')) renderExpertCall(); }
+    return res;
+  }
+
+  var submitBtnLabel = '';   // captured once so any "Sending…"/"Verifying…" state can restore it exactly
+
   function onSubmit(e) {
     e.preventDefault();
     if (!form.checkValidity()) { form.reportValidity(); return; }
 
     var btn = document.getElementById('lf-submit');
+    if (!submitBtnLabel) submitBtnLabel = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Submitting…';
+    btn.textContent = googleCred ? 'Submitting…' : 'Sending code…';
 
     function proceed() {
-      lead = {
-        role: 'Investor',
-        name: document.getElementById('lf-name').value.trim(),
-        email: document.getElementById('lf-email').value.trim(),
-        mobileCountryCode: ccSel.value,
-        mobile: document.getElementById('lf-mobile').value.trim(),
-        country: countrySel.options[countrySel.selectedIndex].textContent,
-        pincode: pinInput ? pinInput.value.trim() : '',
-        city: (cityInput && cityInput.value.trim()) || detected.city || '',
-        state: (stateInput && stateInput.value.trim()) || detected.state || '',
-        interest: form.getAttribute('data-interest') || 'Not sure yet — need guidance',
-        visitorId: getVid(),
-        path: location.pathname,
-        rowNumber: null
-      };
-      if (googleCred) lead.googleCredential = googleCred;
+      lead = buildLeadObj();
 
-      submitPromise = send(lead).then(function (res) {
-        if (res && res.row) lead.rowNumber = res.row;
-        if (res && res.leadId) {
-          lead.leadId = res.leadId;
-          rememberLead({ leadId: res.leadId, name: lead.name, email: lead.email, mobile: lead.mobile, mobileCountryCode: lead.mobileCountryCode });
-        }
-        if (res && res.expert) { expert = res.expert; if (sched && sched.classList.contains('show')) renderExpertCall(); }
-        return res;
-      });
+      // "Continue with Google" already proves the email — skip the OTP step
+      // and go straight through, same as before.
+      if (googleCred) {
+        lead.googleCredential = googleCred;
+        submitPromise = send(lead).then(afterVerified);
+        openSchedule();
+        return;
+      }
 
-      openSchedule();
+      // Everyone else verifies their email first — the lead is only created
+      // once the code is confirmed (see verifyLeadEmailOtp on the backend).
+      requestOtpThenVerify();
     }
 
     // A fast submitter can beat the 400ms debounced pincode lookup — wait for it
@@ -396,6 +429,85 @@
     } else {
       proceed();
     }
+  }
+
+  /* ---------------- email OTP step (skipped when signed in with Google) ---------------- */
+
+  function requestOtpThenVerify() {
+    send({ action: 'requestLeadEmailOtp', email: lead.email, vid: lead.visitorId }).then(function (res) {
+      var btn = document.getElementById('lf-submit');
+      if (!res || !res.ok) {
+        if (btn) { btn.disabled = false; btn.textContent = submitBtnLabel || 'Submit'; }
+        alert((res && res.error) || 'Could not send a verification code — please try again.');
+        return;
+      }
+      showOtpPanel();
+    });
+  }
+
+  function showOtpPanel() {
+    var host = form.closest('.lead-card') || form.parentNode;
+    form.style.display = 'none';
+    if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
+
+    var box = el('div', 'lf-otp lead-returning');
+    box.innerHTML =
+      '<div class="lr-title">Verify your email</div>' +
+      '<p class="lr-sub">We sent a 6-digit code to <b>' + escHtml(lead.email) + '</b>. Enter it below to confirm your enquiry.</p>' +
+      '<input type="text" class="lf-otp-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code">' +
+      '<div class="lf-otp-err"></div>' +
+      '<div class="lr-actions">' +
+        '<button type="button" class="btn-gold" data-verify>Verify &amp; continue</button>' +
+        '<button type="button" class="lr-link" data-resend>Resend code</button>' +
+        '<button type="button" class="lr-link" data-changeemail>Use a different email</button>' +
+      '</div>';
+    host.appendChild(box);
+
+    var codeInput = box.querySelector('.lf-otp-code');
+    var errEl = box.querySelector('.lf-otp-err');
+    var verifyBtn = box.querySelector('[data-verify]');
+    codeInput.focus();
+
+    function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+
+    function doVerify() {
+      var otp = codeInput.value.trim();
+      if (!/^[0-9]{6}$/.test(otp)) { showErr('Enter the 6-digit code.'); return; }
+      errEl.style.display = 'none';
+      verifyBtn.disabled = true; verifyBtn.textContent = 'Verifying…';
+      var payload = {};
+      for (var k in lead) if (lead.hasOwnProperty(k)) payload[k] = lead[k];
+      payload.action = 'verifyLeadEmailOtp';
+      payload.otp = otp;
+      send(payload).then(function (res) {
+        verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & continue';
+        if (!res || !res.ok) { showErr((res && res.error) || 'Could not verify — please try again.'); return; }
+        submitPromise = Promise.resolve(afterVerified(res));
+        box.remove();
+        if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = ''; });
+        openSchedule();
+      });
+    }
+    verifyBtn.onclick = doVerify;
+    codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doVerify(); } });
+    codeInput.addEventListener('input', function () { codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6); });
+
+    box.querySelector('[data-resend]').onclick = function (ev) {
+      ev.target.disabled = true; ev.target.textContent = 'Sending…';
+      send({ action: 'requestLeadEmailOtp', email: lead.email, vid: lead.visitorId }).then(function (res) {
+        ev.target.disabled = false; ev.target.textContent = 'Resend code';
+        if (!res || !res.ok) { showErr((res && res.error) || 'Could not resend — please try again.'); return; }
+        codeInput.value = ''; codeInput.focus();
+      });
+    };
+    box.querySelector('[data-changeemail]').onclick = function () {
+      box.remove();
+      var btn = document.getElementById('lf-submit');
+      if (btn) { btn.disabled = false; btn.textContent = 'Request a callback'; }
+      form.style.display = '';
+      if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = ''; });
+      document.getElementById('lf-email').focus();
+    };
   }
 
   /* ---------------- full-screen schedule step ---------------- */
@@ -789,9 +901,133 @@
     wireGoogle();
     form.addEventListener('submit', onSubmit);
 
-    // Returning visitor with an upcoming call → swap the form for their call card.
-    var stored = storedLead();
-    if (stored && stored.leadId) checkReturning(stored);
+    // A verified (OTP or Google) session always wins — it's a real, checked
+    // identity, not just a locally-remembered guess. Falls back to the older
+    // unverified "recognize by localStorage" flow for visitors who never went
+    // through verification (e.g. they submitted before this existed).
+    var token = getSessionToken();
+    if (token) {
+      checkSession(token);
+    } else {
+      var stored = storedLead();
+      if (stored && stored.leadId) checkReturning(stored);
+    }
+  }
+
+  /* -------- verified session: skip the form entirely, show call state -------- */
+  function checkSession(token) {
+    send({ action: 'getLeadSessionStatus', token: token }).then(function (r) {
+      if (!r || !r.ok || !r.loggedIn) {
+        clearSession();
+        var stored = storedLead();
+        if (stored && stored.leadId) checkReturning(stored);
+        return;
+      }
+      if (r.expert) expert = r.expert;
+      rememberLead({ leadId: r.leadId, name: r.name, email: r.email, mobile: r.mobile, mobileCountryCode: r.mobileCountryCode });
+      showSessionPanel(r, token);
+    }).catch(function () { /* leave the normal form in place */ });
+  }
+
+  function showSessionPanel(sess, token) {
+    var interest = (form.getAttribute('data-interest') || '').trim();
+    var host = form.closest('.lead-card') || form.parentNode;
+    form.style.display = 'none';
+    if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
+    var first = (sess.name || '').trim().split(/\s+/)[0];
+    var box = el('div', 'lead-returning');
+    box.innerHTML = '<div class="lr-title">Welcome back' + (first ? ', ' + escHtml(first) : '') + '</div><div class="lr-body"></div>';
+    host.appendChild(box);
+    renderSessionBody(box.querySelector('.lr-body'), sess, token, interest, function backToForm() {
+      clearSession();
+      box.remove();
+      form.style.display = '';
+      if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = ''; });
+    });
+  }
+
+  function renderSessionBody(bodyEl, sess, token, interest, signOut) {
+    var already = interest && flaggedInterests().indexOf(interest) >= 0;
+    var mtg = sess.upcomingMeeting;
+    var html;
+    if (mtg && mtg.date) {
+      // Has an upcoming (not-yet-elapsed) call — offer to add discussion
+      // points instead of re-booking. Once the call's date passes, the
+      // backend's activeMeetingForLead stops returning it, and a fresh
+      // checkSession() (next page load) drops back to "Schedule a call".
+      html = '<div class="lr-meeting">' +
+        '<div class="lr-mlabel">Your call is scheduled</div>' +
+        '<div class="lr-mwhen">' + escHtml(fmtDate(mtg.date)) + (mtg.time ? ' · ' + escHtml(mtg.time) + ' IST' : '') + '</div>' +
+        (mtg.mode ? '<div class="lr-mmode">' + escHtml(mtg.mode) + '</div>' : '') +
+        '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
+        '</div>' +
+        '<div class="lr-discuss">' +
+        '<div class="lr-mlabel">Add to the discussion</div>' +
+        '<textarea placeholder="Anything specific you\'d like your expert to cover on the call?"></textarea>' +
+        '<div class="lr-actions"><button type="button" class="btn-gold" data-adddisc>Add</button></div>' +
+        '<div class="lr-done" data-adddisc-ok style="display:none;">Added — your expert will see this before the call.</div>' +
+        '</div>';
+    } else {
+      html = '<p class="lr-sub">Good to see you again — no need to fill the form. Just pick a time and your expert will call you.</p>' +
+        '<div class="lr-book"><button type="button" class="btn-gold" data-book>Schedule a call →</button></div>';
+    }
+
+    if (interest) {
+      html += already
+        ? '<div class="lr-done">Your expert already has <b>' + escHtml(interest) + '</b> on the list.</div>'
+        : '<div class="lr-ask">Want your expert to cover <b>' + escHtml(interest) + '</b> ' +
+          (mtg && mtg.date ? 'in this call too?' : 'when they call?') +
+          '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
+          '<button type="button" class="lr-link" data-no>Not now</button></div></div>';
+    }
+    html += '<div class="lr-notyou"><button type="button" class="lr-link" data-notyou>Not you? Sign out</button></div>';
+    bodyEl.innerHTML = html;
+
+    var nu = bodyEl.querySelector('[data-notyou]');
+    if (nu) nu.onclick = signOut;
+
+    var ask = bodyEl.querySelector('.lr-ask');
+    var yes = bodyEl.querySelector('[data-yes]');
+    if (yes) yes.onclick = function () {
+      yes.disabled = true; yes.textContent = 'Adding…';
+      send({ action: 'addInterest', leadId: sess.leadId, email: sess.email, vid: getVid(), interest: interest, path: location.pathname })
+        .then(function (r) {
+          if (r && r.ok && r.found) { rememberFlag(interest); if (ask) ask.innerHTML = '<div class="lr-done">Added — your expert will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
+          else { yes.disabled = false; yes.textContent = 'Yes, add it'; }
+        });
+    };
+    var no = bodyEl.querySelector('[data-no]');
+    if (no) no.onclick = function () { if (ask) ask.style.display = 'none'; };
+
+    var addBtn = bodyEl.querySelector('[data-adddisc]');
+    if (addBtn) addBtn.onclick = function () {
+      var ta = bodyEl.querySelector('.lr-discuss textarea');
+      var note = ta.value.trim();
+      if (!note) { ta.focus(); return; }
+      addBtn.disabled = true; addBtn.textContent = 'Adding…';
+      send({ action: 'addMeetingDiscussionNote', token: token, note: note }).then(function (r) {
+        addBtn.disabled = false; addBtn.textContent = 'Add';
+        if (!r || !r.ok) { alert((r && r.error) || 'Could not save that — please try again.'); return; }
+        ta.value = '';
+        var ok = bodyEl.querySelector('[data-adddisc-ok]');
+        if (ok) ok.style.display = '';
+      });
+    };
+
+    function openBooking(rescheduleId) {
+      lead = {
+        role: 'Investor', name: sess.name || '', email: sess.email || '',
+        mobileCountryCode: sess.mobileCountryCode || '', mobile: sess.mobile || '', interest: interest || '',
+        leadId: sess.leadId, visitorId: getVid(), path: location.pathname,
+        rescheduleMeetingId: rescheduleId || '', mode: (mtg && mtg.mode) || '', rowNumber: null
+      };
+      submitPromise = Promise.resolve();
+      openSchedule();
+    }
+    var resch = bodyEl.querySelector('[data-resch]');
+    if (resch) resch.onclick = function () { openBooking(mtg.meetingId); };
+    var bookBtn = bodyEl.querySelector('[data-book]');
+    if (bookBtn) bookBtn.onclick = function () { openBooking(''); };
   }
 
   /* -------- Continue with Google: prefill name + verified email -------- */
