@@ -433,6 +433,20 @@ nav.links a:hover::after{width:100%;}
 .scm-perf-table td.na{color:var(--muted-light); font-family:'IBM Plex Mono',monospace;}
 .scm-asof{font-size:11.5px; color:var(--muted-light); margin-top:10px;}
 
+.scm-meter-list{display:flex; flex-direction:column;}
+.scm-meter-row{display:flex; align-items:center; gap:16px; padding:11px 0; border-bottom:1px solid #EDE7D8;}
+.scm-meter-row:last-child{border-bottom:0;}
+.scm-meter-label{flex:0 0 220px; min-width:0;}
+.scm-meter-name{font-size:13.5px; font-weight:600; color:var(--ink-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.scm-meter-sub{font-size:11px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.scm-meter-track{flex:1; height:8px; background:var(--paper-2); border-radius:99px; overflow:hidden; min-width:60px;}
+.scm-meter-fill{height:100%; background:var(--gold); border-radius:99px;}
+.scm-meter-val{flex:0 0 56px; text-align:right; font-family:'IBM Plex Mono', monospace; font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--ink-text);}
+@media (max-width:640px){
+  .scm-meter-label{flex-basis:130px;}
+  .scm-meter-val{flex-basis:44px;}
+}
+
 .scm-facts{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px 28px;}
 .scm-fact span{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:5px;}
 .scm-fact b{font-size:14.5px; color:var(--ink-text); font-weight:600; line-height:1.4;}

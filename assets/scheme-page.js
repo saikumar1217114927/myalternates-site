@@ -159,6 +159,32 @@
       '</div>';
   }
 
+  // Weight is already a % of the portfolio, so the meter fill width is just
+  // that number directly — no scale/max computation needed.
+  function meterRow(name, sub, weight) {
+    var w = weight == null ? 0 : Math.max(0, Math.min(100, weight));
+    return '<div class="scm-meter-row">' +
+      '<div class="scm-meter-label"><div class="scm-meter-name">' + esc(name) + '</div>' +
+      (sub ? '<div class="scm-meter-sub">' + esc(sub) + '</div>' : '') + '</div>' +
+      '<div class="scm-meter-track"><div class="scm-meter-fill" style="width:' + w + '%"></div></div>' +
+      '<div class="scm-meter-val">' + (weight == null ? '–' : weight.toFixed(2) + '%') + '</div>' +
+      '</div>';
+  }
+
+  function holdingsSection(s) {
+    if (!s.holdings || !s.holdings.length) return '';
+    return '<div class="scm-section"><h2>Top holdings</h2><div class="scm-meter-list">' +
+      s.holdings.map(function (h) { return meterRow(h.name, [h.sector, h.cap].filter(Boolean).join(' · '), h.weight); }).join('') +
+      '</div></div>';
+  }
+
+  function sectorsSection(s) {
+    if (!s.sectors || !s.sectors.length) return '';
+    return '<div class="scm-section"><h2>Sector allocation</h2><div class="scm-meter-list">' +
+      s.sectors.map(function (sec) { return meterRow(sec.name, '', sec.weight); }).join('') +
+      '</div></div>';
+  }
+
   function factsSection(p) {
     var facts = [];
     if (p.assetClass) facts.push(['Asset class', p.assetClass]);
@@ -232,6 +258,8 @@
       '<div class="scm-body wrap">' +
       '<div class="scm-section" id="scMeetingSection"></div>' +
       perfSection(s) +
+      holdingsSection(s) +
+      sectorsSection(s) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       factsSection(p) +
       flagsSection(p) +
