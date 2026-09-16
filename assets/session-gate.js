@@ -111,13 +111,21 @@
     opts = opts || {};
     var mtg = sess.upcomingMeeting;
     if (mtg && mtg.date) {
+      // Already asked to discuss this exact topic at this meeting? The note
+      // text is stamped and appended server-side, so a substring match holds
+      // across refreshes — don't let "+ Add topic" re-enable (and risk a
+      // duplicate note) until the meeting itself is over and a new one
+      // starts (a fresh meeting carries no notes yet).
+      var alreadyAdded = !!(opts.discussionNote && mtg.notes && mtg.notes.indexOf(opts.discussionNote) > -1);
       container.innerHTML =
         '<div class="ma-meeting-row">' +
         '<span class="mmr-badge">Upcoming meeting scheduled on <b>' + esc(fmtMtgDate(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) + ' IST' : '') + '</b></span>' +
         '<button type="button" class="mmr-btn" data-resch>Reschedule</button>' +
         (opts.discussionNote ?
-          '<span class="mmr-add-wrap"><button type="button" class="mmr-add" data-disc>+ Add topic</button>' +
-          '<span class="mmr-tip">If you add this, it\'ll be discussed with your expert in the upcoming meeting.</span></span>'
+          (alreadyAdded ?
+            '<span class="mmr-added">✓ Added</span>' :
+            '<span class="mmr-add-wrap"><button type="button" class="mmr-add" data-disc>+ Add topic</button>' +
+            '<span class="mmr-tip">If you add this, it\'ll be discussed with your expert in the upcoming meeting.</span></span>')
           : '') +
         '</div>';
       container.querySelector('[data-resch]').onclick = function () {
