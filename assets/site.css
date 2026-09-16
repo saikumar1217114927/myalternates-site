@@ -392,45 +392,50 @@ nav.links a:hover::after{width:100%;}
 .ma-modal-close{position:absolute; top:14px; right:14px; width:32px; height:32px; border-radius:50%; border:1px solid #ded6c2; background:#fff; color:var(--muted); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:1;}
 .ma-modal-close:hover{border-color:var(--gold); color:var(--ink-text);}
 
-/* ---------- MEETING ACTION (schedule / reschedule + discuss) ---------- */
-.ma-meeting{background:var(--paper-2); border:1px solid #e6dfcd; border-radius:14px; padding:20px 22px; box-sizing:border-box;}
-.ma-meeting-label{font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);}
-.ma-meeting-when{font-family:'Fraunces', Georgia, serif; font-size:17px; font-weight:600; color:var(--ink-text); margin:4px 0 14px;}
-.ma-meeting-actions{display:flex; gap:10px; flex-wrap:wrap;}
-.ma-meeting .btn-gold, .ma-meeting .btn-ghost{
-  border:none; cursor:pointer; font-family:inherit; box-sizing:border-box;
-  width:100%; text-align:center; padding:12px 16px; font-size:13px; border-radius:9px;
+/* ---------- MEETING ACTION (schedule / reschedule + discuss) ----------
+   One compact horizontal row, sitting level with the scheme name — not a
+   tall stacked card, so it doesn't inflate the hero's height. */
+.ma-meeting-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
+.mmr-when{font-size:13px; font-weight:600; color:var(--paper); white-space:nowrap;}
+.mmr-btn{
+  background:transparent; border:1px solid rgba(255,255,255,0.25); color:var(--paper);
+  font-size:12.5px; font-weight:600; padding:9px 16px; border-radius:9px; cursor:pointer;
+  font-family:inherit; white-space:nowrap; transition:border-color .15s ease, background .15s ease;
 }
-.ma-meeting .btn-ghost{background:#fff; color:var(--ink-text) !important; border:1px solid #d7d0c0 !important;}
-.ma-meeting-ok{background:rgba(30,111,92,0.08); border:1px solid rgba(30,111,92,0.3); color:var(--emerald); font-size:13.5px; padding:10px 14px; border-radius:8px; margin-top:12px;}
+.mmr-btn:hover{border-color:var(--gold);}
+.mmr-btn-gold{background:var(--gold); color:var(--ink); border-color:var(--gold); font-weight:700;}
+.mmr-btn-gold:hover{background:var(--gold-light);}
+.mmr-add-wrap{position:relative; display:inline-flex;}
+.mmr-add{
+  background:var(--gold); color:var(--ink); border:none; font-weight:700;
+  font-size:12.5px; padding:9px 16px; border-radius:9px; cursor:pointer; font-family:inherit; white-space:nowrap;
+}
+.mmr-add:hover{background:var(--gold-light);}
+.mmr-add:disabled{opacity:.7; cursor:default;}
+.mmr-tip{
+  position:absolute; bottom:calc(100% + 9px); right:0; width:200px;
+  background:var(--ink-2); border:1px solid var(--line); color:var(--paper);
+  font-size:11.5px; font-weight:400; line-height:1.5; padding:10px 12px; border-radius:9px;
+  text-align:left; box-shadow:0 12px 28px -10px rgba(0,0,0,0.55);
+  opacity:0; visibility:hidden; transform:translateY(4px);
+  transition:opacity .15s ease, transform .15s ease; pointer-events:none; z-index:5;
+}
+.mmr-add-wrap:hover .mmr-tip, .mmr-add-wrap:focus-within .mmr-tip{opacity:1; visibility:visible; transform:translateY(0);}
+.mmr-added{font-size:12.5px; font-weight:600; color:var(--emerald-light); white-space:nowrap;}
 
 /* ---------- SCHEME DISCOVER PAGE (scheme.html) ---------- */
 .scm-loading{padding:120px 0; text-align:center; color:var(--muted);}
 .scm-hero{background:var(--ink); color:var(--paper); padding:52px 0 34px;
   background-image:radial-gradient(ellipse 800px 420px at 85% -20%, rgba(201,162,75,0.14), transparent 60%);}
 .scm-hero .sc-amc{color:var(--gold-light);}
-.scm-hero-top{display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:22px;}
+.scm-hero-top{display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:22px;}
 .scm-hero-id{display:flex; align-items:center; gap:12px;}
 .scm-hero-logo{width:60px; height:60px; border-radius:12px; object-fit:contain; background:#fff; border:1px solid var(--line); flex:none; padding:4px; box-sizing:border-box;}
 .scm-hero h1{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(26px,3.4vw,40px); margin:10px 0 0; line-height:1.18;}
 .scm-hero h1 .plan-opt{color:var(--muted-light); font-weight:400; font-size:0.62em;}
-
-/* the "your call is scheduled" card, tucked in the hero's top-right corner
-   instead of taking a full-width slot in the body */
-.scm-hero-meeting{flex:0 0 auto; width:280px; max-width:100%;}
+.scm-hero-meeting{flex:0 0 auto;}
 .scm-hero-meeting:empty{display:none;}
-.scm-hero-meeting .ma-meeting{
-  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
-  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
-  box-shadow:0 18px 40px -18px rgba(0,0,0,0.5);
-}
-.scm-hero-meeting .ma-meeting-label{color:var(--gold-light);}
-.scm-hero-meeting .ma-meeting-when{color:var(--paper); font-size:15px;}
-.scm-hero-meeting .ma-meeting-actions{flex-direction:column; align-items:stretch;}
-.scm-hero-meeting .ma-meeting .btn-ghost{background:transparent; color:var(--paper) !important; border:1px solid rgba(255,255,255,0.25) !important;}
-.scm-hero-meeting .ma-meeting .btn-ghost:hover{border-color:var(--gold) !important;}
-.scm-hero-meeting .ma-meeting-ok{background:rgba(79,169,140,0.16); border-color:rgba(79,169,140,0.4); color:var(--emerald-light);}
-@media (max-width:640px){ .scm-hero-meeting{width:100%;} }
+@media (max-width:760px){ .scm-hero-top{align-items:flex-start;} .ma-meeting-row{justify-content:flex-start;} }
 
 .scm-chips{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px;
   background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden;}

@@ -101,22 +101,24 @@
     return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  // A registered visitor's meeting state, rendered as a single clear action —
-  // no free-text box: "Add this topic" fires immediately with a fixed note
-  // (opts.discussionNote) naming what they were looking at.
+  // A registered visitor's meeting state — one compact horizontal row
+  // (date/time, then Reschedule, then a small "+ Add topic" with a hover
+  // tooltip explaining what it does) sitting level with the scheme name,
+  // not a tall stacked card. No free-text box: "Add topic" fires
+  // immediately with a fixed note (opts.discussionNote) naming what they
+  // were looking at.
   window.maRenderMeetingAction = function (container, token, sess, opts) {
     opts = opts || {};
     var mtg = sess.upcomingMeeting;
     if (mtg && mtg.date) {
       container.innerHTML =
-        '<div class="ma-meeting">' +
-        '<div class="ma-meeting-label">Your call is scheduled</div>' +
-        '<div class="ma-meeting-when">' + esc(fmtMtgDate(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) + ' IST' : '') + '</div>' +
-        '<div class="ma-meeting-actions">' +
-        '<button type="button" class="btn-ghost" data-resch>Reschedule</button>' +
-        (opts.discussionNote ? '<button type="button" class="btn-gold" data-disc>+ Add this topic</button>' : '') +
-        '</div>' +
-        '<div class="ma-meeting-ok" style="display:none;">Added — your expert will cover this on the call.</div>' +
+        '<div class="ma-meeting-row">' +
+        '<span class="mmr-when">' + esc(fmtMtgDate(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) + ' IST' : '') + '</span>' +
+        '<button type="button" class="mmr-btn" data-resch>Reschedule</button>' +
+        (opts.discussionNote ?
+          '<span class="mmr-add-wrap"><button type="button" class="mmr-add" data-disc>+ Add topic</button>' +
+          '<span class="mmr-tip">If you add this, it\'ll be discussed with your expert in the upcoming meeting.</span></span>'
+          : '') +
         '</div>';
       container.querySelector('[data-resch]').onclick = function () {
         window.MASession.openSchedule(sess, mtg.meetingId, opts.interest);
@@ -127,18 +129,16 @@
         btn.disabled = true; btn.textContent = 'Adding…';
         window.MASession.addDiscussionNote(token, opts.discussionNote).then(function (r) {
           if (!r || !r.ok) {
-            btn.disabled = false; btn.textContent = '+ Add this topic';
+            btn.disabled = false; btn.textContent = '+ Add topic';
             alert((r && r.error) || 'Could not add — please try again.');
             return;
           }
-          container.querySelector('.ma-meeting-actions').style.display = 'none';
-          container.querySelector('.ma-meeting-ok').style.display = 'block';
+          container.querySelector('.mmr-add-wrap').outerHTML = '<span class="mmr-added">✓ Added</span>';
         });
       };
     } else {
       container.innerHTML =
-        '<div class="ma-meeting"><div class="ma-meeting-label">No call scheduled yet</div>' +
-        '<div class="ma-meeting-actions"><button type="button" class="btn-gold" data-book>Schedule a call →</button></div></div>';
+        '<div class="ma-meeting-row"><button type="button" class="mmr-btn mmr-btn-gold" data-book>Schedule a call →</button></div>';
       container.querySelector('[data-book]').onclick = function () {
         window.MASession.openSchedule(sess, '', opts.interest);
       };
