@@ -783,6 +783,11 @@
       ok.classList.add('show');
       ok.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+    // Lets a page-specific meeting-status UI (e.g. scheme.html's top block,
+    // rendered by session-gate.js) refresh itself after a schedule/reschedule
+    // completes elsewhere on the page — works whether or not this page even
+    // has a #leadForm / .form-success to show its own confirmation in.
+    document.dispatchEvent(new CustomEvent('ma:scheduled', { detail: { scheduled: !!scheduled } }));
   }
 
   /* ---------------- boot ---------------- */
@@ -1121,6 +1126,7 @@
     clearToken: clearSession,
     send: send,
     checkStatus: function (token) { return send({ action: 'getLeadSessionStatus', token: token }); },
+    addDiscussionNote: function (token, note) { return send({ action: 'addMeetingDiscussionNote', token: token, note: note }); },
     requestOtp: function (email) { return send({ action: 'requestLeadEmailOtp', email: email, vid: getVid() }); },
     verifyOtp: function (email, otp) {
       return send({ action: 'verifyLeadEmailOtp', email: email, otp: otp, visitorId: getVid(), path: location.pathname, role: 'Investor' });

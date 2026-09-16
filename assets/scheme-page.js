@@ -218,7 +218,10 @@
       '<div class="scm-fact"><span>Product</span><b>' + esc(s.productName) + '</b></div></div></div>';
   }
 
-  // The registered visitor's meeting state — schedule a call, or reschedule.
+  // The registered visitor's meeting state — schedule a call, or reschedule
+  // + a one-click "add this scheme to the meeting" (no free-text box).
+  // Refreshes itself after a schedule/reschedule completes anywhere on the
+  // page (the modal itself lives outside this page's own DOM section).
   function loadMeetingAction(s) {
     var box = document.getElementById('scMeetingSection');
     if (!box) return;
@@ -226,7 +229,10 @@
     if (!token) return;
     window.MASession.checkStatus(token).then(function (r) {
       if (!r || !r.ok || !r.loggedIn) return;
-      window.maRenderMeetingAction(box, token, r, { interest: 'Portfolio Management Services (PMS)' });
+      window.maRenderMeetingAction(box, token, r, {
+        interest: 'Portfolio Management Services (PMS)',
+        discussionNote: 'Discuss: ' + s.schemeName + (s.amcName ? ' (' + s.amcName + ')' : '')
+      });
     });
   }
 
@@ -260,13 +266,18 @@
       factsSection(p) +
       flagsSection(p) +
       fundHouseSection(s) +
-      '<div class="scm-cta"><p>Want the full factsheet, minimums and onboarding steps for this scheme?</p>' +
-      '<a href="#enquiry" class="btn-gold">Talk to an expert →</a></div>' +
       '<p class="scm-disclaimer">Data shown is sourced from Finalyca / scheme filings and may lag the live factsheet. Past performance is not indicative of future results and is not a guarantee. This is not investment advice — please read all scheme-related documents carefully before investing.</p>' +
       '</div>';
 
     var chartWrap = document.getElementById('scmChartWrap');
     if (chartWrap) wireTooltip(chartWrap);
     loadMeetingAction(s);
+
+    // Scheduling happens through a full-screen modal that lives outside this
+    // section (see lead-form.js) — refresh the meeting panel above once it
+    // completes so "Schedule a call" flips to "Your call is scheduled".
+    document.addEventListener('ma:scheduled', function (e) {
+      if (e.detail && e.detail.scheduled) loadMeetingAction(s);
+    });
   }
 })();
