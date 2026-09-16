@@ -45,11 +45,45 @@
     if (!schemes.length) { host.remove(); return; } // nothing curated yet — don't show an empty section
     host.innerHTML =
       '<div class="wrap">' +
+      '<div class="p-schemes-head">' +
+      '<div class="section-head">' +
+      '<div class="section-tag">Live on the platform</div>' +
+      '<h2>Explore featured PMS schemes</h2>' +
+      '</div>' +
+      '<div class="p-schemes-tools">' +
+      '<div class="ps-search">' +
+      '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="18" y1="18" x2="13.6" y2="13.6"/></svg>' +
+      '<input type="search" id="psSearch" placeholder="Search by scheme or AMC name" aria-label="Search schemes">' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
       '<div class="scheme-list">' + schemes.map(rowHtml).join('') + '</div>' +
+      '<p class="ps-empty" hidden>No schemes match your search.</p>' +
       '<p class="disc">Returns are trailing, annualised beyond one year, as of the date shown. Past performance is not indicative of future results — data sourced from Finalyca / scheme filings.</p>' +
       '</div>';
     host.querySelectorAll('[data-discover]').forEach(function (btn) {
       btn.onclick = function () { goToScheme(btn.dataset.discover); };
+    });
+    wireSearch();
+  }
+
+  // Client-side filter on scheme/AMC name — the search box now, with room
+  // alongside it for category/asset-class filters to land later.
+  function wireSearch() {
+    var input = host.querySelector('#psSearch');
+    var rows = host.querySelectorAll('.scheme-row');
+    var empty = host.querySelector('.ps-empty');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      var q = input.value.trim().toLowerCase();
+      var shown = 0;
+      rows.forEach(function (row) {
+        var hay = (row.querySelector('.sc-amc').textContent + ' ' + row.querySelector('.sr-scheme-name').textContent).toLowerCase();
+        var match = !q || hay.indexOf(q) > -1;
+        row.hidden = !match;
+        if (match) shown++;
+      });
+      empty.hidden = shown > 0;
     });
   }
 
