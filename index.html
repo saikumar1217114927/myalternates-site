@@ -1879,9 +1879,7 @@
         '<p style="font-size:13px;color:var(--muted,#6C7178);margin:12px 0 8px;line-height:1.55">We found your details — an expert will connect with you then.</p>' +
         '<button type="button" id="maResch" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer">Reschedule this call</button>' +
         '<div style="margin-top:18px;padding-top:16px;border-top:1px solid #e6e1d3;">' +
-        '<div style="font:600 12px/1 system-ui;letter-spacing:.06em;text-transform:uppercase;color:#8a7c58;margin-bottom:8px;">Add to the discussion</div>' +
-        '<textarea id="maDiscussNote" placeholder="Anything specific you\'d like your expert to cover on the call?" style="width:100%;min-height:70px;border:1px solid #d8d2c2;border-radius:8px;padding:10px 12px;font:inherit;box-sizing:border-box;"></textarea>' +
-        '<div style="margin-top:10px;"><button type="button" id="maAddDiscuss" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer">Add</button></div>' +
+        '<button type="button" id="maAddDiscuss" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer">+ Add to discussion</button>' +
         '<div id="maDiscussOk" style="display:none;margin-top:10px;background:#eef7f0;border:1px solid #cbe6d3;border-radius:8px;padding:10px 14px;font-size:13px;color:#1f6f43;">Added — your expert will see this before the call.</div>' +
         '</div>';
     } else {
@@ -1913,14 +1911,14 @@
 
     const addBtn = document.getElementById('maAddDiscuss');
     if(addBtn) addBtn.onclick = () => {
-      const ta = document.getElementById('maDiscussNote');
-      const note = ta.value.trim();
-      if(!note){ ta.focus(); return; }
       addBtn.disabled = true; addBtn.textContent = 'Adding…';
-      sendToLeadsSheet({ action:'addMeetingDiscussionNote', token: token, note: note }).then((r) => {
-        addBtn.disabled = false; addBtn.textContent = 'Add';
-        if(!r || !r.ok){ alert((r && r.error) || 'Could not save that — please try again.'); return; }
-        ta.value = '';
+      sendToLeadsSheet({ action:'addMeetingDiscussionNote', token: token, note: 'Visitor asked to flag this for discussion on the call.' }).then((r) => {
+        if(!r || !r.ok){
+          addBtn.disabled = false; addBtn.textContent = '+ Add to discussion';
+          alert((r && r.error) || 'Could not save that — please try again.');
+          return;
+        }
+        addBtn.style.display = 'none';
         document.getElementById('maDiscussOk').style.display = 'block';
       });
     };

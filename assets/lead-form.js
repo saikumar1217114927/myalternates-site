@@ -63,7 +63,6 @@
       '.lf-otp .lf-otp-err{color:#a3402f;font-size:13px;margin-top:8px;display:none}' +
       '.lf-otp .lr-actions{margin-top:14px}' +
       '.lr-discuss{margin-top:6px}' +
-      '.lr-discuss textarea{width:100%;min-height:70px;border:1px solid #d8d2c2;border-radius:8px;padding:10px 12px;font:inherit;box-sizing:border-box;margin-top:8px}' +
       '.lr-discuss .lr-done{margin-top:10px}';
     document.head.appendChild(s);
   })();
@@ -962,9 +961,7 @@
         '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
         '</div>' +
         '<div class="lr-discuss">' +
-        '<div class="lr-mlabel">Add to the discussion</div>' +
-        '<textarea placeholder="Anything specific you\'d like your expert to cover on the call?"></textarea>' +
-        '<div class="lr-actions"><button type="button" class="btn-gold" data-adddisc>Add</button></div>' +
+        '<button type="button" class="btn-gold" data-adddisc>+ Add to discussion</button>' +
         '<div class="lr-done" data-adddisc-ok style="display:none;">Added — your expert will see this before the call.</div>' +
         '</div>';
     } else {
@@ -1001,14 +998,15 @@
 
     var addBtn = bodyEl.querySelector('[data-adddisc]');
     if (addBtn) addBtn.onclick = function () {
-      var ta = bodyEl.querySelector('.lr-discuss textarea');
-      var note = ta.value.trim();
-      if (!note) { ta.focus(); return; }
       addBtn.disabled = true; addBtn.textContent = 'Adding…';
+      var note = interest ? 'Please discuss: ' + interest : 'Visitor asked to flag this for discussion on the call.';
       send({ action: 'addMeetingDiscussionNote', token: token, note: note }).then(function (r) {
-        addBtn.disabled = false; addBtn.textContent = 'Add';
-        if (!r || !r.ok) { alert((r && r.error) || 'Could not save that — please try again.'); return; }
-        ta.value = '';
+        if (!r || !r.ok) {
+          addBtn.disabled = false; addBtn.textContent = '+ Add to discussion';
+          alert((r && r.error) || 'Could not save that — please try again.');
+          return;
+        }
+        addBtn.style.display = 'none';
         var ok = bodyEl.querySelector('[data-adddisc-ok]');
         if (ok) ok.style.display = '';
       });
