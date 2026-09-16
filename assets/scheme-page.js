@@ -30,10 +30,28 @@
 
   if (!planId) { notFound(); return; }
 
-  fetch(API_URL + '?action=getPublicSchemeDetail&id=' + encodeURIComponent(planId))
-    .then(function (r) { return r.json(); })
-    .then(function (d) { if (d && d.ok) render(d.scheme); else notFound(); })
-    .catch(notFound);
+  function loadScheme() {
+    fetch(API_URL + '?action=getPublicSchemeDetail&id=' + encodeURIComponent(planId))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d && d.ok) render(d.scheme); else notFound(); })
+      .catch(notFound);
+  }
+
+  function showGate() {
+    root.innerHTML = '<div class="wrap" style="padding:60px 0;"><div id="scGate"></div></div>';
+    window.maRenderGate(document.getElementById('scGate'),
+      'Scheme performance data is available to registered users only — verify your email to see this scheme\'s live returns and full profile.',
+      function () { loadScheme(); });
+  }
+
+  // window.MASession comes from lead-form.js, loaded earlier on the page.
+  if (window.MASession && window.MASession.getToken()) {
+    loadScheme();
+  } else if (window.MASession) {
+    showGate();
+  } else {
+    notFound();
+  }
 
   // ---- trailing-returns bar chart (grouped: scheme vs benchmark, zero baseline) ----
   var RET_COLS = [['1M', 'r1m'], ['3M', 'r3m'], ['6M', 'r6m'], ['1Y', 'r1y'], ['2Y', 'r2y'], ['3Y', 'r3y'], ['5Y', 'r5y'], ['10Y', 'r10y'], ['SI', 'si']];
@@ -174,6 +192,22 @@
       '<div class="scm-fact"><span>Product</span><b>' + esc(s.productName) + '</b></div></div></div>';
   }
 
+  // The registered visitor's meeting state — schedule a call, or reschedule
+  // + a one-click "add this scheme to discuss" (no free-text box).
+  function loadMeetingAction(s) {
+    var box = document.getElementById('scMeetingSection');
+    if (!box) return;
+    var token = window.MASession && window.MASession.getToken();
+    if (!token) return;
+    window.MASession.checkStatus(token).then(function (r) {
+      if (!r || !r.ok || !r.loggedIn) return;
+      window.maRenderMeetingAction(box, token, r, {
+        interest: 'Portfolio Management Services (PMS)',
+        discussionNote: 'Discuss: ' + s.schemeName + (s.amcName ? ' (' + s.amcName + ')' : '')
+      });
+    });
+  }
+
   function render(s) {
     document.title = s.schemeName + ' — myAlternates';
     var p = s.profile;
@@ -183,15 +217,20 @@
     if (p.minInvestment) chips.push(['Min. investment', money(p.minInvestment)]);
     if (p.aum != null) chips.push(['AUM', money(p.aum) + ' ' + (p.aumScale || '')]);
 
+    var logo = s.amcLogo
+      ? '<img class="scm-hero-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.remove()">'
+      : '';
+
     root.innerHTML =
       '<div class="scm-hero"><div class="wrap">' +
-      '<div class="sc-amc">' + esc(s.amcName || s.productName) + '</div>' +
-      '<h1>' + esc(s.schemeName) + (s.planOption ? ' <span class="plan-opt">— ' + esc(s.planOption) + '</span>' : '') + '</h1>' +
+      '<div class="scm-hero-id">' + logo + '<div><div class="sc-amc">' + esc(s.amcName || s.productName) + '</div>' +
+      '<h1>' + esc(s.schemeName) + (s.planOption ? ' <span class="plan-opt">— ' + esc(s.planOption) + '</span>' : '') + '</h1></div></div>' +
       (chips.length ? '<div class="scm-chips">' + chips.map(function (c) {
         return '<div class="scm-chip"><span>' + esc(c[0]) + '</span><b>' + esc(c[1]) + '</b></div>';
       }).join('') + '</div>' : '') +
       '</div></div>' +
       '<div class="scm-body wrap">' +
+      '<div class="scm-section" id="scMeetingSection"></div>' +
       perfSection(s) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       factsSection(p) +
@@ -204,5 +243,6 @@
 
     var chartWrap = document.getElementById('scmChartWrap');
     if (chartWrap) wireTooltip(chartWrap);
+    loadMeetingAction(s);
   }
 })();

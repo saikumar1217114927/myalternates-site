@@ -1121,4 +1121,38 @@
   } else {
     build();
   }
+
+  /* -------- shared session API for other scripts on the page --------
+     featured-schemes.js / scheme-page.js gate real scheme data behind
+     registration and need the same identity this form already manages —
+     one localStorage key, one backend session, so registering anywhere on
+     the site logs a visitor in everywhere. */
+  window.MASession = {
+    getToken: getSessionToken,
+    saveToken: saveSessionToken,
+    clearToken: clearSession,
+    send: send,
+    checkStatus: function (token) { return send({ action: 'getLeadSessionStatus', token: token }); },
+    requestOtp: function (email) { return send({ action: 'requestLeadEmailOtp', email: email, vid: getVid() }); },
+    verifyOtp: function (email, otp) {
+      return send({ action: 'verifyLeadEmailOtp', email: email, otp: otp, visitorId: getVid(), path: location.pathname, role: 'Investor' });
+    },
+    addDiscussionNote: function (token, note) { return send({ action: 'addMeetingDiscussionNote', token: token, note: note }); },
+    // Opens the exact same full-screen scheduler the enquiry form uses, from
+    // a button anywhere else on the page. Completion still lands on the
+    // page's own #leadForm / .form-success (both module-level vars already
+    // point at them once build() has run), so the confirmation shows in the
+    // normal enquiry section even though the trigger was elsewhere.
+    openSchedule: function (sess, rescheduleMeetingId, interest) {
+      lead = {
+        role: 'Investor', name: sess.name || '', email: sess.email || '',
+        mobileCountryCode: sess.mobileCountryCode || '', mobile: sess.mobile || '',
+        interest: interest || (form ? form.getAttribute('data-interest') : '') || '',
+        leadId: sess.leadId, visitorId: getVid(), path: location.pathname,
+        rescheduleMeetingId: rescheduleMeetingId || '', mode: (sess.upcomingMeeting && sess.upcomingMeeting.mode) || '', rowNumber: null
+      };
+      submitPromise = Promise.resolve();
+      openSchedule();
+    }
+  };
 })();

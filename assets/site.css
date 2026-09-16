@@ -314,43 +314,74 @@ nav.links a:hover::after{width:100%;}
   .pm-calc{grid-template-columns:1fr; gap:18px;}
 }
 
-/* ---------- FEATURED SCHEMES (real, unmasked examples) ---------- */
-.p-schemes{padding:80px 0; background:var(--paper-2);}
-.p-schemes .section-head{display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:36px;}
+/* ---------- FEATURED SCHEMES (real, unmasked examples, list layout) ---------- */
+.p-schemes{padding:64px 0 80px; background:var(--paper-2); min-height:280px;}
+.p-schemes .section-head{display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:30px;}
 .p-schemes .section-head p{font-size:14.5px; color:var(--muted); max-width:420px; line-height:1.6;}
-.scheme-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:22px;}
-.scheme-card{
-  background:#fff; border:1px solid #E4DFD1; border-radius:12px;
-  padding:26px 26px 22px; display:flex; flex-direction:column; gap:18px;
-  box-shadow:0 18px 40px -26px rgba(11,14,19,0.25);
-}
-.sc-head{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
 .sc-amc{font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--emerald);}
-.sc-name{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:19px; color:var(--ink-text); margin-top:4px; line-height:1.25;}
 .sc-badge{flex:none; font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--gold); background:rgba(201,162,75,0.12); padding:4px 9px; border-radius:999px;}
-.sc-returns{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; border-top:1px solid #EDE7D8; border-bottom:1px solid #EDE7D8; padding:16px 0;}
-.sc-ret{text-align:center;}
-.sc-ret span{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); margin-bottom:6px;}
-.sc-ret b{font-family:'IBM Plex Mono', monospace; font-size:16px; font-variant-numeric:tabular-nums; font-weight:600;}
-.sc-ret b.pos{color:var(--emerald);}
-.sc-ret b.neg{color:#B5502E;}
-.sc-ret b.na{color:var(--muted-light); font-weight:400;}
-.sc-foot{display:flex; align-items:center; justify-content:space-between; gap:12px;}
-.sc-asof{font-size:11.5px; color:var(--muted-light);}
 .sc-discover{
   background:var(--ink); color:var(--paper); font-weight:700; font-size:13px;
-  padding:10px 20px; border-radius:3px; border:none; cursor:pointer; font-family:inherit;
-  transition:background .2s ease;
+  padding:10px 18px; border-radius:3px; border:none; cursor:pointer; font-family:inherit;
+  transition:background .2s ease; display:inline-block; white-space:nowrap;
 }
 .sc-discover:hover{background:var(--ink-3);}
-.p-schemes .disc{font-size:11.5px; color:var(--muted-light); margin-top:24px; max-width:640px; line-height:1.6;}
-@media (max-width:640px){ .sc-returns{grid-template-columns:repeat(2,1fr); row-gap:14px;} }
+.p-schemes .disc{font-size:11.5px; color:var(--muted-light); margin-top:20px; max-width:640px; line-height:1.6;}
+
+.scheme-list{display:flex; flex-direction:column; border:1px solid #E4DFD1; border-radius:12px; background:#fff; overflow:hidden;
+  box-shadow:0 18px 40px -30px rgba(11,14,19,0.25);}
+.scheme-row{display:flex; align-items:center; gap:18px; padding:18px 22px; border-bottom:1px solid #EDE7D8; flex-wrap:wrap;}
+.scheme-row:last-child{border-bottom:0;}
+.scheme-row:hover{background:var(--paper-2);}
+.sr-amc{display:flex; align-items:center; gap:12px; flex:1 1 240px; min-width:200px;}
+.sr-logo{width:38px; height:38px; border-radius:7px; object-fit:contain; border:1px solid #E4DFD1; background:#fff; flex:none;}
+.sr-logo-fallback{width:38px; height:38px; border-radius:7px; background:var(--paper-2); color:var(--muted); font-weight:700; font-size:13px;
+  display:flex; align-items:center; justify-content:center; flex:none;}
+.sr-scheme-name{font-family:'Fraunces', Georgia, serif; font-size:15.5px; color:var(--ink-text); font-weight:500; line-height:1.3;}
+.sr-rets{display:flex; gap:22px; flex:none;}
+.sr-ret{text-align:center; min-width:50px;}
+.sr-ret span{display:block; font-size:10px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;}
+.sr-ret b{font-family:'IBM Plex Mono', monospace; font-size:14px; font-variant-numeric:tabular-nums; font-weight:600;}
+.sr-ret b.pos{color:var(--emerald);}
+.sr-ret b.neg{color:#B5502E;}
+.sr-ret b.na{color:var(--muted-light); font-weight:400;}
+.sr-si{display:flex; align-items:center; gap:16px; flex:none; margin-left:auto;}
+@media (max-width:760px){
+  .scheme-row{gap:12px;}
+  .sr-rets{gap:14px;}
+  .sr-si{margin-left:0; width:100%; justify-content:space-between; padding-top:12px; border-top:1px dashed #EDE7D8;}
+}
+
+/* ---------- REGISTRATION GATE (shared: pms.html schemes, scheme.html) ---------- */
+.ma-gate{max-width:440px; margin:0 auto; text-align:center; background:#fff; border:1px solid #E4DFD1; border-radius:14px; padding:38px 30px;}
+.ma-gate-lock{font-size:26px; margin-bottom:14px;}
+.ma-gate h3{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:20px; color:var(--ink-text); margin-bottom:8px;}
+.ma-gate p{font-size:14px; color:var(--muted); line-height:1.6; margin-bottom:22px;}
+.ma-gate-form{display:flex; gap:10px;}
+.ma-gate-form input{flex:1; min-width:0; padding:11px 13px; border:1px solid #d7d0c0; border-radius:6px; font-size:14px; font-family:inherit; color:var(--ink-text);}
+.ma-gate-form input:focus{outline:none; border-color:var(--gold);}
+.ma-gate-form.ma-gate-otp input{text-align:center; letter-spacing:.3em; font-weight:700; font-size:17px;}
+.ma-gate-form button{white-space:nowrap; border:none; border-radius:6px; cursor:pointer;}
+.ma-gate-link{background:none; border:0; color:var(--muted); font-size:12.5px; text-decoration:underline; cursor:pointer; margin-top:12px;}
+.ma-gate-err{color:#a3402f; font-size:13px; margin-top:12px;}
+@media (max-width:480px){ .ma-gate-form{flex-direction:column;} }
+
+/* ---------- MEETING ACTION (schedule / reschedule + discuss) ---------- */
+.ma-meeting{background:var(--paper-2); border:1px solid #e6dfcd; border-radius:12px; padding:18px 20px;}
+.ma-meeting-label{font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);}
+.ma-meeting-when{font-family:'Fraunces', Georgia, serif; font-size:17px; font-weight:600; color:var(--ink-text); margin:4px 0 12px;}
+.ma-meeting-actions{display:flex; gap:10px; flex-wrap:wrap;}
+.ma-meeting .btn-gold, .ma-meeting .btn-ghost{border:none; cursor:pointer; font-family:inherit;}
+.ma-meeting .btn-ghost{background:#fff; color:var(--ink-text) !important; border:1px solid #d7d0c0 !important;}
+.ma-meeting-ok{background:rgba(30,111,92,0.08); border:1px solid rgba(30,111,92,0.3); color:var(--emerald); font-size:13.5px; padding:10px 14px; border-radius:8px; margin-top:4px;}
 
 /* ---------- SCHEME DISCOVER PAGE (scheme.html) ---------- */
 .scm-loading{padding:120px 0; text-align:center; color:var(--muted);}
 .scm-hero{background:var(--ink); color:var(--paper); padding:52px 0 34px;
   background-image:radial-gradient(ellipse 800px 420px at 85% -20%, rgba(201,162,75,0.14), transparent 60%);}
 .scm-hero .sc-amc{color:var(--gold-light);}
+.scm-hero-id{display:flex; align-items:center; gap:12px;}
+.scm-hero-logo{width:44px; height:44px; border-radius:9px; object-fit:contain; background:#fff; border:1px solid var(--line); flex:none;}
 .scm-hero h1{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(26px,3.4vw,40px); margin:10px 0 22px; line-height:1.18;}
 .scm-hero h1 .plan-opt{color:var(--muted-light); font-weight:400; font-size:0.62em;}
 
