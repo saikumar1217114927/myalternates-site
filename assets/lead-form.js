@@ -61,9 +61,7 @@
       '.lf-otp .lr-sub{color:#5b6270;font-size:14px;line-height:1.55;margin-bottom:16px}' +
       '.lf-otp input.lf-otp-code{font-size:22px;letter-spacing:.35em;text-align:center;font-weight:700;padding:12px 14px;width:100%;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box}' +
       '.lf-otp .lf-otp-err{color:#a3402f;font-size:13px;margin-top:8px;display:none}' +
-      '.lf-otp .lr-actions{margin-top:14px}' +
-      '.lr-discuss{margin-top:6px}' +
-      '.lr-discuss .lr-done{margin-top:10px}';
+      '.lf-otp .lr-actions{margin-top:14px}';
     document.head.appendChild(s);
   })();
 
@@ -163,6 +161,17 @@
   }
   function storedLead() { try { return JSON.parse(ls('maLead') || 'null'); } catch (e) { return null; } }
   function rememberLead(o) {
+    // A different leadId than whatever was remembered before means this
+    // isn't the same lead record any more — e.g. an admin deleted the old
+    // one and this visitor just re-registered from scratch. Locally-cached
+    // per-lead state (which interests were already flagged) belongs to the
+    // OLD record, which no longer exists, so it must not carry over —
+    // otherwise "Yes, add it" never re-fires for the new lead because the
+    // client still thinks it's already done.
+    try {
+      var prev = JSON.parse(ls('maLead') || 'null');
+      if (prev && prev.leadId && o.leadId && prev.leadId !== o.leadId) localStorage.removeItem('maInterests');
+    } catch (e) {}
     ls('maLead', JSON.stringify({
       leadId: o.leadId, name: o.name, email: o.email,
       mobile: o.mobile || '', mobileCountryCode: o.mobileCountryCode || ''
@@ -174,7 +183,9 @@
   function getSessionToken() { return ls('maLeadSession') || ''; }
   function saveSessionToken(t) { if (t) ls('maLeadSession', t); }
   function clearSession() {
-    try { localStorage.removeItem('maLeadSession'); localStorage.removeItem('maLead'); } catch (e) {}
+    try {
+      localStorage.removeItem('maLeadSession'); localStorage.removeItem('maLead'); localStorage.removeItem('maInterests');
+    } catch (e) {}
   }
   function flaggedInterests() { try { return JSON.parse(ls('maInterests') || '[]'); } catch (e) { return []; } }
   function rememberFlag(x) { var a = flaggedInterests(); if (a.indexOf(x) < 0) { a.push(x); ls('maInterests', JSON.stringify(a)); } }
@@ -950,19 +961,14 @@
     var mtg = sess.upcomingMeeting;
     var html;
     if (mtg && mtg.date) {
-      // Has an upcoming (not-yet-elapsed) call — offer to add discussion
-      // points instead of re-booking. Once the call's date passes, the
-      // backend's activeMeetingForLead stops returning it, and a fresh
+      // Has an upcoming (not-yet-elapsed) call. Once the call's date passes,
+      // the backend's activeMeetingForLead stops returning it, and a fresh
       // checkSession() (next page load) drops back to "Schedule a call".
       html = '<div class="lr-meeting">' +
         '<div class="lr-mlabel">Your call is scheduled</div>' +
         '<div class="lr-mwhen">' + escHtml(fmtDate(mtg.date)) + (mtg.time ? ' · ' + escHtml(mtg.time) + ' IST' : '') + '</div>' +
         (mtg.mode ? '<div class="lr-mmode">' + escHtml(mtg.mode) + '</div>' : '') +
         '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
-        '</div>' +
-        '<div class="lr-discuss">' +
-        '<button type="button" class="btn-gold" data-adddisc>+ Add to discussion</button>' +
-        '<div class="lr-done" data-adddisc-ok style="display:none;">Added — your expert will see this before the call.</div>' +
         '</div>';
     } else {
       html = '<p class="lr-sub">Good to see you again — no need to fill the form. Just pick a time and your expert will call you.</p>' +
@@ -995,22 +1001,6 @@
     };
     var no = bodyEl.querySelector('[data-no]');
     if (no) no.onclick = function () { if (ask) ask.style.display = 'none'; };
-
-    var addBtn = bodyEl.querySelector('[data-adddisc]');
-    if (addBtn) addBtn.onclick = function () {
-      addBtn.disabled = true; addBtn.textContent = 'Adding…';
-      var note = interest ? 'Please discuss: ' + interest : 'Visitor asked to flag this for discussion on the call.';
-      send({ action: 'addMeetingDiscussionNote', token: token, note: note }).then(function (r) {
-        if (!r || !r.ok) {
-          addBtn.disabled = false; addBtn.textContent = '+ Add to discussion';
-          alert((r && r.error) || 'Could not save that — please try again.');
-          return;
-        }
-        addBtn.style.display = 'none';
-        var ok = bodyEl.querySelector('[data-adddisc-ok]');
-        if (ok) ok.style.display = '';
-      });
-    };
 
     function openBooking(rescheduleId) {
       lead = {
@@ -1135,7 +1125,6 @@
     verifyOtp: function (email, otp) {
       return send({ action: 'verifyLeadEmailOtp', email: email, otp: otp, visitorId: getVid(), path: location.pathname, role: 'Investor' });
     },
-    addDiscussionNote: function (token, note) { return send({ action: 'addMeetingDiscussionNote', token: token, note: note }); },
     // Opens the exact same full-screen scheduler the enquiry form uses, from
     // a button anywhere else on the page. Completion still lands on the
     // page's own #leadForm / .form-success (both module-level vars already

@@ -373,7 +373,6 @@ nav.links a:hover::after{width:100%;}
 .ma-meeting-actions{display:flex; gap:10px; flex-wrap:wrap;}
 .ma-meeting .btn-gold, .ma-meeting .btn-ghost{border:none; cursor:pointer; font-family:inherit;}
 .ma-meeting .btn-ghost{background:#fff; color:var(--ink-text) !important; border:1px solid #d7d0c0 !important;}
-.ma-meeting-ok{background:rgba(30,111,92,0.08); border:1px solid rgba(30,111,92,0.3); color:var(--emerald); font-size:13.5px; padding:10px 14px; border-radius:8px; margin-top:4px;}
 
 /* ---------- SCHEME DISCOVER PAGE (scheme.html) ---------- */
 .scm-loading{padding:120px 0; text-align:center; color:var(--muted);}

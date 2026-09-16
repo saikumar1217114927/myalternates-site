@@ -86,9 +86,7 @@
     return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
   }
 
-  // A registered visitor's meeting state, rendered as a single clear action —
-  // no free-text box: "Add to discussion" fires immediately with a fixed
-  // note (opts.discussionNote) naming what they were looking at.
+  // A registered visitor's meeting state, rendered as a single clear action.
   window.maRenderMeetingAction = function (container, token, sess, opts) {
     opts = opts || {};
     var mtg = sess.upcomingMeeting;
@@ -99,25 +97,10 @@
         '<div class="ma-meeting-when">' + esc(fmtMtgDate(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) + ' IST' : '') + '</div>' +
         '<div class="ma-meeting-actions">' +
         '<button type="button" class="btn-ghost" data-resch>Reschedule</button>' +
-        '<button type="button" class="btn-gold" data-disc>+ Add to discussion</button>' +
         '</div>' +
-        '<div class="ma-meeting-ok" style="display:none;">Added — your expert will cover this on the call.</div>' +
         '</div>';
       container.querySelector('[data-resch]').onclick = function () {
         window.MASession.openSchedule(sess, mtg.meetingId, opts.interest);
-      };
-      container.querySelector('[data-disc]').onclick = function (e) {
-        var btn = e.currentTarget;
-        btn.disabled = true; btn.textContent = 'Adding…';
-        window.MASession.addDiscussionNote(token, opts.discussionNote || '').then(function (r) {
-          if (!r || !r.ok) {
-            btn.disabled = false; btn.textContent = '+ Add to discussion';
-            alert((r && r.error) || 'Could not add — please try again.');
-            return;
-          }
-          container.querySelector('.ma-meeting-actions').style.display = 'none';
-          container.querySelector('.ma-meeting-ok').style.display = 'block';
-        });
       };
     } else {
       container.innerHTML =

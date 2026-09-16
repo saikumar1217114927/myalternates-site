@@ -218,8 +218,7 @@
       '<div class="scm-fact"><span>Product</span><b>' + esc(s.productName) + '</b></div></div></div>';
   }
 
-  // The registered visitor's meeting state — schedule a call, or reschedule
-  // + a one-click "add this scheme to discuss" (no free-text box).
+  // The registered visitor's meeting state — schedule a call, or reschedule.
   function loadMeetingAction(s) {
     var box = document.getElementById('scMeetingSection');
     if (!box) return;
@@ -227,10 +226,7 @@
     if (!token) return;
     window.MASession.checkStatus(token).then(function (r) {
       if (!r || !r.ok || !r.loggedIn) return;
-      window.maRenderMeetingAction(box, token, r, {
-        interest: 'Portfolio Management Services (PMS)',
-        discussionNote: 'Discuss: ' + s.schemeName + (s.amcName ? ' (' + s.amcName + ')' : '')
-      });
+      window.maRenderMeetingAction(box, token, r, { interest: 'Portfolio Management Services (PMS)' });
     });
   }
 
