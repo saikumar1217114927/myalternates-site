@@ -1136,8 +1136,14 @@
     },
     addDiscussionNote: function (token, note) { return send({ action: 'addMeetingDiscussionNote', token: token, note: note }); },
     requestOtp: function (email) { return send({ action: 'requestLeadEmailOtp', email: email, vid: getVid() }); },
-    verifyOtp: function (email, otp) {
-      return send({ action: 'verifyLeadEmailOtp', email: email, otp: otp, visitorId: getVid(), path: location.pathname, role: 'Investor' });
+    // `extra` carries whatever the caller's own form collected (name, mobile,
+    // pincode, interest, ...) — verifyLeadEmailOtp accepts the same fields
+    // leadSubmit does, so a lighter gate elsewhere on the site (e.g. the
+    // Discover flow) can register with more than just an email.
+    verifyOtp: function (email, otp, extra) {
+      var payload = { action: 'verifyLeadEmailOtp', email: email, otp: otp, visitorId: getVid(), path: location.pathname, role: 'Investor' };
+      if (extra) for (var k in extra) if (extra.hasOwnProperty(k) && extra[k] !== undefined) payload[k] = extra[k];
+      return send(payload);
     },
     // Opens the exact same full-screen scheduler the enquiry form uses, from
     // a button anywhere else on the page. Completion still lands on the

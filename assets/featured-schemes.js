@@ -1,10 +1,11 @@
 /* ==========================================================================
-   myAlternates — featured schemes list (real, unmasked, registered-leads-only)
+   myAlternates — featured schemes list (real, unmasked, publicly visible)
    Renders on a product page, driven by <section class="p-schemes"
-   data-schemes="PMS">. Gated: an anonymous visitor sees a "register to
-   view" prompt (the same email-OTP identity lead-form.js manages); once
-   registered, the real list shows — up to 10 schemes an admin has run the
-   Performance action for. "Discover" links to scheme.html?id=<planId>.
+   data-schemes="PMS">. The list itself is open to everyone — up to 10
+   schemes an admin has run the Performance action for. Registration only
+   happens when a visitor clicks "Discover": an already-registered visitor
+   goes straight to scheme.html?id=<planId>; an anonymous one first fills
+   the full registration form in a modal, then is taken there.
    ========================================================================== */
 (function () {
   var host = document.querySelector('.p-schemes[data-schemes]');
@@ -36,7 +37,7 @@
       '<div class="sr-scheme-name">' + esc(s.schemeName) + '</div></div></div>' +
       '<div class="sr-rets">' + retBlock('1M', r.r1m) + retBlock('3M', r.r3m) + retBlock('1Y', r.r1y) + '</div>' +
       '<div class="sr-si">' + retBlock('SI', r.si) +
-      '<a class="sc-discover" href="scheme?id=' + encodeURIComponent(s.planId) + '">Discover →</a></div>' +
+      '<button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Discover →</button></div>' +
       '</div>';
   }
 
@@ -47,6 +48,36 @@
       '<div class="scheme-list">' + schemes.map(rowHtml).join('') + '</div>' +
       '<p class="disc">Returns are trailing, annualised beyond one year, as of the date shown. Past performance is not indicative of future results — data sourced from Finalyca / scheme filings.</p>' +
       '</div>';
+    host.querySelectorAll('[data-discover]').forEach(function (btn) {
+      btn.onclick = function () { goToScheme(btn.dataset.discover); };
+    });
+  }
+
+  function goToScheme(planId) {
+    if (window.MASession && window.MASession.getToken()) {
+      location.href = 'scheme?id=' + encodeURIComponent(planId);
+      return;
+    }
+    openDiscoverGate(planId);
+  }
+
+  // A registered visitor skips straight through; an anonymous one registers
+  // (full form, not just email) in this modal first, then lands on the page.
+  function openDiscoverGate(planId) {
+    var overlay = document.createElement('div');
+    overlay.className = 'ma-modal-overlay';
+    overlay.innerHTML = '<div class="ma-modal-card"><button type="button" class="ma-modal-close" aria-label="Close">✕</button><div class="ma-modal-body"></div></div>';
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+    function close() { overlay.remove(); document.body.style.overflow = ''; }
+    overlay.querySelector('.ma-modal-close').onclick = close;
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+    window.maRenderFullGate(overlay.querySelector('.ma-modal-body'), {
+      message: 'Create your free account to see this scheme\'s live returns and full profile.',
+      interest: 'Portfolio Management Services (PMS)',
+      onVerified: function () { location.href = 'scheme?id=' + encodeURIComponent(planId); }
+    });
   }
 
   function loadSchemes() {
@@ -56,19 +87,5 @@
       .catch(function () { host.remove(); });
   }
 
-  function showGate() {
-    host.innerHTML = '<div class="wrap"><div id="pgGate"></div></div>';
-    window.maRenderGate(document.getElementById('pgGate'),
-      'Scheme performance data is available to registered users only — verify your email to see live returns and the full profile for every scheme on the platform.',
-      function () { loadSchemes(); });
-  }
-
-  // window.MASession comes from lead-form.js, loaded earlier on the page.
-  if (window.MASession && window.MASession.getToken()) {
-    loadSchemes();
-  } else if (window.MASession) {
-    showGate();
-  } else {
-    host.remove(); // lead-form.js didn't load — fail closed rather than show a broken gate
-  }
+  loadSchemes();
 })();

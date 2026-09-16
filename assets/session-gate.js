@@ -1,8 +1,10 @@
 /* ==========================================================================
-   myAlternates — shared "register to unlock" gate.
-   Used by featured-schemes.js and scheme-page.js to require the same
-   verified-email identity lead-form.js manages (window.MASession) before
-   showing real scheme data. Load lead-form.js first.
+   myAlternates — shared full registration gate + meeting-status widget.
+   The schemes list itself is public; featured-schemes.js only calls
+   maRenderFullGate when an anonymous visitor clicks "Discover" (in a
+   modal), and scheme-page.js calls it as a fallback for a direct/shared
+   scheme.html link with no session yet. Both register the same identity
+   lead-form.js manages (window.MASession) — load lead-form.js first.
    ========================================================================== */
 (function () {
   function esc(s) {
@@ -11,41 +13,54 @@
     });
   }
 
-  // Renders a compact registration prompt into `container`; calls
-  // onVerified(token, result) once the visitor verifies their email.
-  window.maRenderGate = function (container, message, onVerified) {
+  // Full registration form (name, email, mobile, pincode) — a visitor fills
+  // this once, verifies the emailed code, and is registered with the same
+  // identity the enquiry form creates. Used wherever a visitor needs to
+  // register before seeing gated content (currently: the Discover flow).
+  // opts: { message, interest, onVerified(token, result) }.
+  window.maRenderFullGate = function (container, opts) {
+    opts = opts || {};
     container.innerHTML =
-      '<div class="ma-gate">' +
+      '<div class="ma-gate ma-gate-full">' +
       '<div class="ma-gate-lock">🔒</div>' +
-      '<h3>Register to view this</h3>' +
-      '<p>' + esc(message) + '</p>' +
-      '<form class="ma-gate-form"><input type="email" placeholder="you@email.com" required>' +
-      '<button type="submit" class="btn-gold">Send code</button></form>' +
+      '<h3>Register to continue</h3>' +
+      (opts.message ? '<p>' + esc(opts.message) + '</p>' : '') +
+      '<form class="ma-full-form">' +
+      '<input type="text" name="name" placeholder="Full name" required>' +
+      '<input type="email" name="email" placeholder="you@email.com" required>' +
+      '<div class="mgf-mobile"><span class="mgf-cc">+91</span><input type="tel" name="mobile" placeholder="Mobile number" pattern="[0-9]{6,14}" required></div>' +
+      '<input type="text" name="pincode" placeholder="Pincode / ZIP" required>' +
+      '<button type="submit" class="btn-gold">Continue →</button>' +
+      '</form>' +
       '</div>';
-    var form = container.querySelector('.ma-gate-form');
+    var form = container.querySelector('.ma-full-form');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var email = form.querySelector('input').value.trim();
-      if (!email) return;
+      var lead = {
+        name: form.name.value.trim(), email: form.email.value.trim(),
+        mobileCountryCode: '+91', mobile: form.mobile.value.trim(),
+        pincode: form.pincode.value.trim(), interest: opts.interest || ''
+      };
+      if (!lead.name || !lead.email || !lead.mobile || !lead.pincode) return;
       var btn = form.querySelector('button');
       btn.disabled = true; btn.textContent = 'Sending…';
-      window.MASession.requestOtp(email).then(function (r) {
+      window.MASession.requestOtp(lead.email).then(function (r) {
         if (!r || !r.ok) {
-          btn.disabled = false; btn.textContent = 'Send code';
+          btn.disabled = false; btn.textContent = 'Continue →';
           alert((r && r.error) || 'Could not send a code — please try again.');
           return;
         }
-        showOtpStep(container, email, onVerified);
+        showFullOtpStep(container, lead, opts.onVerified);
       });
     });
   };
 
-  function showOtpStep(container, email, onVerified) {
+  function showFullOtpStep(container, lead, onVerified) {
     container.innerHTML =
-      '<div class="ma-gate">' +
+      '<div class="ma-gate ma-gate-full">' +
       '<div class="ma-gate-lock">🔒</div>' +
       '<h3>Verify your email</h3>' +
-      '<p>We sent a 6-digit code to <b>' + esc(email) + '</b>.</p>' +
+      '<p>We sent a 6-digit code to <b>' + esc(lead.email) + '</b>.</p>' +
       '<form class="ma-gate-form ma-gate-otp"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" required>' +
       '<button type="submit" class="btn-gold">Verify</button></form>' +
       '<button type="button" class="ma-gate-link" data-resend>Resend code</button>' +
@@ -61,7 +76,7 @@
       err.style.display = 'none';
       var btn = form.querySelector('button');
       btn.disabled = true; btn.textContent = 'Verifying…';
-      window.MASession.verifyOtp(email, otp).then(function (r) {
+      window.MASession.verifyOtp(lead.email, otp, lead).then(function (r) {
         if (!r || !r.ok) {
           btn.disabled = false; btn.textContent = 'Verify';
           err.textContent = (r && r.error) || 'Could not verify — please try again.';
@@ -74,7 +89,7 @@
     });
     container.querySelector('[data-resend]').onclick = function (ev) {
       ev.target.disabled = true; ev.target.textContent = 'Sending…';
-      window.MASession.requestOtp(email).then(function () {
+      window.MASession.requestOtp(lead.email).then(function () {
         ev.target.disabled = false; ev.target.textContent = 'Resend code';
       });
     };
@@ -99,7 +114,7 @@
         '<div class="ma-meeting-when">' + esc(fmtMtgDate(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) + ' IST' : '') + '</div>' +
         '<div class="ma-meeting-actions">' +
         '<button type="button" class="btn-ghost" data-resch>Reschedule</button>' +
-        (opts.discussionNote ? '<button type="button" class="btn-gold" data-disc>+ Add this topic in the meeting</button>' : '') +
+        (opts.discussionNote ? '<button type="button" class="btn-gold" data-disc>+ Add this topic</button>' : '') +
         '</div>' +
         '<div class="ma-meeting-ok" style="display:none;">Added — your expert will cover this on the call.</div>' +
         '</div>';
@@ -112,7 +127,7 @@
         btn.disabled = true; btn.textContent = 'Adding…';
         window.MASession.addDiscussionNote(token, opts.discussionNote).then(function (r) {
           if (!r || !r.ok) {
-            btn.disabled = false; btn.textContent = '+ Add this topic in the meeting';
+            btn.disabled = false; btn.textContent = '+ Add this topic';
             alert((r && r.error) || 'Could not add — please try again.');
             return;
           }
@@ -123,7 +138,7 @@
     } else {
       container.innerHTML =
         '<div class="ma-meeting"><div class="ma-meeting-label">No call scheduled yet</div>' +
-        '<button type="button" class="btn-gold" data-book>Schedule a call →</button></div>';
+        '<div class="ma-meeting-actions"><button type="button" class="btn-gold" data-book>Schedule a call →</button></div></div>';
       container.querySelector('[data-book]').onclick = function () {
         window.MASession.openSchedule(sess, '', opts.interest);
       };

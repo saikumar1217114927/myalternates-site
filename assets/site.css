@@ -375,12 +375,32 @@ nav.links a:hover::after{width:100%;}
 .ma-gate-err{color:#a3402f; font-size:13px; margin-top:12px;}
 @media (max-width:480px){ .ma-gate-form{flex-direction:column;} }
 
+/* full registration form (name/email/mobile/pincode) — the Discover flow */
+.ma-gate-full{max-width:400px;}
+.ma-full-form{display:flex; flex-direction:column; gap:12px; text-align:left;}
+.ma-full-form input{width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #d7d0c0; border-radius:6px; font-size:14px; font-family:inherit; color:var(--ink-text);}
+.ma-full-form input:focus{outline:none; border-color:var(--gold);}
+.mgf-mobile{display:flex; gap:8px;}
+.mgf-cc{flex:0 0 auto; display:flex; align-items:center; padding:0 12px; border:1px solid #d7d0c0; border-radius:6px; font-size:14px; color:var(--muted); background:var(--paper-2);}
+.mgf-mobile input{flex:1; min-width:0;}
+.ma-full-form button{margin-top:4px; border:none; border-radius:6px; cursor:pointer; padding:12px; font-size:14.5px;}
+
+/* modal overlay wrapping the gate when triggered from "Discover" */
+.ma-modal-overlay{position:fixed; inset:0; z-index:2200; background:rgba(11,14,19,0.6); display:flex; align-items:center; justify-content:center; padding:20px; animation:sched-in .2s ease;}
+.ma-modal-card{position:relative; width:100%; max-width:440px; max-height:90vh; overflow-y:auto; background:var(--paper); border-radius:18px; padding:8px; box-shadow:0 30px 70px -20px rgba(0,0,0,0.5);}
+.ma-modal-card .ma-gate{border:none; box-shadow:none; margin:0; max-width:none;}
+.ma-modal-close{position:absolute; top:14px; right:14px; width:32px; height:32px; border-radius:50%; border:1px solid #ded6c2; background:#fff; color:var(--muted); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:1;}
+.ma-modal-close:hover{border-color:var(--gold); color:var(--ink-text);}
+
 /* ---------- MEETING ACTION (schedule / reschedule + discuss) ---------- */
-.ma-meeting{background:var(--paper-2); border:1px solid #e6dfcd; border-radius:12px; padding:18px 20px;}
+.ma-meeting{background:var(--paper-2); border:1px solid #e6dfcd; border-radius:14px; padding:20px 22px; box-sizing:border-box;}
 .ma-meeting-label{font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);}
-.ma-meeting-when{font-family:'Fraunces', Georgia, serif; font-size:17px; font-weight:600; color:var(--ink-text); margin:4px 0 12px;}
+.ma-meeting-when{font-family:'Fraunces', Georgia, serif; font-size:17px; font-weight:600; color:var(--ink-text); margin:4px 0 14px;}
 .ma-meeting-actions{display:flex; gap:10px; flex-wrap:wrap;}
-.ma-meeting .btn-gold, .ma-meeting .btn-ghost{border:none; cursor:pointer; font-family:inherit;}
+.ma-meeting .btn-gold, .ma-meeting .btn-ghost{
+  border:none; cursor:pointer; font-family:inherit; box-sizing:border-box;
+  width:100%; text-align:center; padding:12px 16px; font-size:13px; border-radius:9px;
+}
 .ma-meeting .btn-ghost{background:#fff; color:var(--ink-text) !important; border:1px solid #d7d0c0 !important;}
 .ma-meeting-ok{background:rgba(30,111,92,0.08); border:1px solid rgba(30,111,92,0.3); color:var(--emerald); font-size:13.5px; padding:10px 14px; border-radius:8px; margin-top:12px;}
 
@@ -422,6 +442,10 @@ nav.links a:hover::after{width:100%;}
 .scm-section{margin-bottom:44px;}
 .scm-section h2{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:22px; color:var(--ink-text); margin-bottom:18px;}
 .scm-objective{font-size:15.5px; line-height:1.8; color:#3a3f47; max-width:760px;}
+
+.scm-two-col{display:grid; grid-template-columns:1fr 1fr; gap:20px 40px; margin-bottom:44px;}
+.scm-two-col .scm-section{margin-bottom:0;}
+@media (max-width:800px){ .scm-two-col{grid-template-columns:1fr; gap:44px;} }
 
 /* legend + chart */
 .scm-legend{display:flex; gap:20px; flex-wrap:wrap; margin-top:14px; font-size:12.5px; color:var(--muted);}

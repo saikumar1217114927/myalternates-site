@@ -37,11 +37,16 @@
       .catch(notFound);
   }
 
+  // Reached directly (a bookmarked/shared link) without going through the
+  // schemes list's own Discover flow — same full registration form, just
+  // triggered here instead.
   function showGate() {
     root.innerHTML = '<div class="wrap" style="padding:60px 0;"><div id="scGate"></div></div>';
-    window.maRenderGate(document.getElementById('scGate'),
-      'Scheme performance data is available to registered users only — verify your email to see this scheme\'s live returns and full profile.',
-      function () { loadScheme(); });
+    window.maRenderFullGate(document.getElementById('scGate'), {
+      message: 'Scheme performance data is available to registered users only — create your free account to see this scheme\'s live returns and full profile.',
+      interest: 'Portfolio Management Services (PMS)',
+      onVerified: function () { loadScheme(); }
+    });
   }
 
   // window.MASession comes from lead-form.js, loaded earlier on the page.
@@ -201,7 +206,6 @@
     if (p.fundManagers && p.fundManagers.length) facts.push(['Fund manager' + (p.fundManagers.length > 1 ? 's' : ''), p.fundManagers.join(', ')]);
     if (p.minInvestment) facts.push(['Minimum investment', money(p.minInvestment)]);
     if (p.minLockinMonths) facts.push(['Minimum lock-in', p.minLockinMonths + ' month' + (p.minLockinMonths > 1 ? 's' : '')]);
-    if (p.exitLoad) facts.push(['Exit load', p.exitLoad]);
     if (p.expenseRatio != null) facts.push(['Expense ratio', p.expenseRatio + '%']);
     if (!facts.length) return '';
     return '<div class="scm-section"><h2>Scheme profile</h2><div class="scm-facts">' +
@@ -249,6 +253,28 @@
     }
     return '<div class="scm-section"><h2>Fee structure</h2><div class="scm-fee-cards">' +
       cards.map(function (c) { return '<div class="scm-fee-card"><span>' + esc(c[0]) + '</span><b>' + esc(c[1]) + '</b></div>'; }).join('') +
+      '</div></div>';
+  }
+
+  // Exit load comes back as "Exit Load: 1 Year: 1.00%, 2 Year: 0.00%, 3 Year:
+  // 0.00%" — pull out each year's rate for its own card.
+  function parseExitLoad(raw) {
+    if (!raw) return [];
+    var out = [];
+    var re = /(\d+)\s*Year\s*:\s*([\d.]+%)/gi;
+    var m;
+    while ((m = re.exec(raw))) out.push([m[1] + 'Y', m[2]]);
+    return out;
+  }
+
+  function exitLoadSection(p) {
+    if (!p.exitLoad) return '';
+    var years = parseExitLoad(p.exitLoad);
+    if (!years.length) {
+      return '<div class="scm-section"><h2>Exit load</h2><p class="scm-objective">' + esc(p.exitLoad) + '</p></div>';
+    }
+    return '<div class="scm-section"><h2>Exit load</h2><div class="scm-fee-cards">' +
+      years.map(function (y) { return '<div class="scm-fee-card"><span>' + esc(y[0]) + '</span><b>' + esc(y[1]) + '</b></div>'; }).join('') +
       '</div></div>';
   }
 
@@ -314,14 +340,13 @@
       '<div class="scm-body wrap">' +
       factsSection(p) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
-      trailingReturnsSection(s) +
       schemeReturnsSection(s) +
-      holdingsSection(s) +
-      sectorsSection(s) +
+      trailingReturnsSection(s) +
+      '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
       feeStructureSection(p) +
+      exitLoadSection(p) +
       flagsSection(p) +
       fundHouseSection(s) +
-      '<p class="scm-disclaimer">Data shown is sourced from Finalyca / scheme filings and may lag the live factsheet. Past performance is not indicative of future results and is not a guarantee. This is not investment advice — please read all scheme-related documents carefully before investing.</p>' +
       '</div>';
 
     var chartWrap = document.getElementById('scmChartWrap');
