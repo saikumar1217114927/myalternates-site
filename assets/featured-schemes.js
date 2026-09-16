@@ -77,8 +77,7 @@
     return '<div class="scheme-row' + (s.featured ? ' featured' : '') + '">' +
       '<div class="sr-id">' + logo +
       '<div class="sr-id-text">' +
-      '<div class="sr-toprow"><span class="sc-amc">' + esc(s.amcName || s.productName) + '</span>' +
-      (s.featured ? '<span class="sr-featured-tag">★ Featured</span>' : '') + '</div>' +
+      '<div class="sr-toprow"><span class="sc-amc">' + esc(s.amcName || s.productName) + '</span></div>' +
       '<div class="sr-scheme-name">' + esc(s.schemeName) + '</div>' +
       (cat ? '<div class="sr-tags"><span class="sr-tag">' + esc(cat) + '</span></div>' : '') +
       '<div class="sr-meta">' +
@@ -219,7 +218,7 @@
       '<div class="p-schemes-head">' +
       '<div class="section-head">' +
       '<div class="section-tag">Live on the platform</div>' +
-      '<h2>Explore featured PMS schemes</h2>' +
+      '<h2>Explore PMS Schemes</h2>' +
       '</div>' +
       '</div>' +
       '<div class="p-schemes-body">' +
