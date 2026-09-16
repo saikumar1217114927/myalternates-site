@@ -90,7 +90,10 @@
     var range = (maxV - minV) || 1;
     maxV += range * 0.08; minV -= range * 0.08;
     var scale = plotH / (maxV - minV);
-    var zeroY = padTop + maxV * scale;
+    // Snap to a half-pixel so the 1px baseline stroke lands crisply on one
+    // pixel row instead of straddling two — against a plain white card that
+    // sub-pixel blur read as the bars sitting slightly off the baseline.
+    var zeroY = Math.round(padTop + maxV * scale - 0.5) + 0.5;
     var groupW = plotW / RET_COLS.length;
     var barW = Math.min(22, groupW * 0.3);
     var gapBetween = 6;
@@ -147,11 +150,11 @@
   function trailingReturnsSection(s) {
     var chart = buildChart(s);
     if (!chart) return '';
-    return '<div class="scm-section"><h2>Trailing returns</h2>' +
+    return '<div class="scm-section"><div class="scm-sec-head"><h2>Trailing returns</h2>' +
+      (s.asOf ? '<span class="scm-asof">As of ' + esc(s.asOf) + '</span>' : '') + '</div>' +
       '<div class="scm-chart-wrap" id="scmChartWrap">' + chart + '</div>' +
       '<div class="scm-legend"><span><i class="scheme"></i>' + esc(s.schemeName) + '</span>' +
       (s.benchmark.name ? '<span><i class="bench"></i>' + esc(s.benchmark.name) + '</span>' : '') + '</div>' +
-      (s.asOf ? '<p class="scm-asof">As of ' + esc(s.asOf) + '</p>' : '') +
       '</div>';
   }
 
@@ -163,13 +166,13 @@
           return '<td class="' + (v == null ? 'na' : (v >= 0 ? 'pos' : 'neg')) + '">' + (v == null ? '–' : pct(v)) + '</td>';
         }).join('') + '</tr>';
     }
-    return '<div class="scm-section"><h2>Scheme returns</h2>' +
+    return '<div class="scm-section"><div class="scm-sec-head"><h2>Scheme returns</h2>' +
+      (s.asOf ? '<span class="scm-asof">As of ' + esc(s.asOf) + '</span>' : '') + '</div>' +
       '<div class="scm-table-wrap"><table class="scm-perf-table"><thead><tr><th>Returns (ann.)</th>' +
       RET_COLS.map(function (c) { return '<th>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
       row(s.schemeName, s.returns, '') +
       (s.benchmark.name ? row(s.benchmark.name, s.benchmark, 'bench-row') : '') +
       '</tbody></table></div>' +
-      (s.asOf ? '<p class="scm-asof">As of ' + esc(s.asOf) + '</p>' : '') +
       '</div>';
   }
 
