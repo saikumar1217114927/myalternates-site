@@ -146,17 +146,41 @@
         }).join('') + '</tr>';
     }
     var chart = buildChart(s);
-    return '<div class="scm-section"><h2>Trailing returns</h2>' +
-      (chart ? '<div class="scm-legend"><span><i class="scheme"></i>' + esc(s.schemeName) + '</span>' +
-        (s.benchmark.name ? '<span><i class="bench"></i>' + esc(s.benchmark.name) + '</span>' : '') + '</div>' +
-        '<div class="scm-chart-wrap" id="scmChartWrap">' + chart + '</div>' : '') +
+    var tableHtml =
       '<div class="scm-table-wrap"><table class="scm-perf-table"><thead><tr><th>Returns (ann.)</th>' +
       RET_COLS.map(function (c) { return '<th>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
       row(s.schemeName, s.returns, '') +
       (s.benchmark.name ? row(s.benchmark.name, s.benchmark, 'bench-row') : '') +
-      '</tbody></table></div>' +
+      '</tbody></table></div>';
+    var chartHtml = chart
+      ? '<div class="scm-chart-wrap" id="scmChartWrap">' + chart + '</div>' +
+        '<div class="scm-legend"><span><i class="scheme"></i>' + esc(s.schemeName) + '</span>' +
+        (s.benchmark.name ? '<span><i class="bench"></i>' + esc(s.benchmark.name) + '</span>' : '') + '</div>'
+      : '';
+
+    return '<div class="scm-section"><h2>Trailing returns</h2>' +
+      (chart ? '<div class="scm-view-toggle"><button type="button" class="on" data-view="chart">Chart</button>' +
+        '<button type="button" data-view="table">Table</button></div>' : '') +
+      '<div id="scmChartPane">' + chartHtml + '</div>' +
+      '<div id="scmTablePane" style="display:' + (chart ? 'none' : 'block') + ';">' + tableHtml + '</div>' +
       (s.asOf ? '<p class="scm-asof">As of ' + esc(s.asOf) + '</p>' : '') +
       '</div>';
+  }
+
+  function wireViewToggle(section) {
+    var btns = section.querySelectorAll('.scm-view-toggle [data-view]');
+    if (!btns.length) return;
+    var chartPane = section.querySelector('#scmChartPane');
+    var tablePane = section.querySelector('#scmTablePane');
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btns.forEach(function (b) { b.classList.remove('on'); });
+        btn.classList.add('on');
+        var showChart = btn.dataset.view === 'chart';
+        chartPane.style.display = showChart ? 'block' : 'none';
+        tablePane.style.display = showChart ? 'none' : 'block';
+      });
+    });
   }
 
   // Weight is already a % of the portfolio, so the meter fill width is just
@@ -259,11 +283,11 @@
       '</div></div>' +
       '<div class="scm-body wrap">' +
       '<div class="scm-section" id="scMeetingSection"></div>' +
+      factsSection(p) +
+      (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       perfSection(s) +
       holdingsSection(s) +
       sectorsSection(s) +
-      (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
-      factsSection(p) +
       flagsSection(p) +
       fundHouseSection(s) +
       '<p class="scm-disclaimer">Data shown is sourced from Finalyca / scheme filings and may lag the live factsheet. Past performance is not indicative of future results and is not a guarantee. This is not investment advice — please read all scheme-related documents carefully before investing.</p>' +
@@ -271,6 +295,7 @@
 
     var chartWrap = document.getElementById('scmChartWrap');
     if (chartWrap) wireTooltip(chartWrap);
+    wireViewToggle(root);
     loadMeetingAction(s);
 
     // Scheduling happens through a full-screen modal that lives outside this

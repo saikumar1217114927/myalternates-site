@@ -30,8 +30,9 @@
     var logo = s.amcLogo
       ? '<img class="sr-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;sr-logo-fallback&quot;>' + esc((s.amcName || '?').charAt(0)) + '</div>\'">'
       : '<div class="sr-logo-fallback">' + esc((s.amcName || s.productName || '?').charAt(0)) + '</div>';
-    return '<div class="scheme-row">' +
-      '<div class="sr-amc">' + logo + '<div><div class="sc-amc">' + esc(s.amcName || s.productName) + '</div>' +
+    return '<div class="scheme-row' + (s.featured ? ' featured' : '') + '">' +
+      '<div class="sr-amc">' + logo + '<div><div class="sc-amc">' + esc(s.amcName || s.productName) +
+      (s.featured ? '<span class="sr-featured-tag">★ Featured</span>' : '') + '</div>' +
       '<div class="sr-scheme-name">' + esc(s.schemeName) + '</div></div></div>' +
       '<div class="sr-rets">' + retBlock('1M', r.r1m) + retBlock('3M', r.r3m) + retBlock('1Y', r.r1y) + '</div>' +
       '<div class="sr-si">' + retBlock('SI', r.si) +
