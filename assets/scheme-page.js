@@ -202,11 +202,53 @@
     if (p.minInvestment) facts.push(['Minimum investment', money(p.minInvestment)]);
     if (p.minLockinMonths) facts.push(['Minimum lock-in', p.minLockinMonths + ' month' + (p.minLockinMonths > 1 ? 's' : '')]);
     if (p.exitLoad) facts.push(['Exit load', p.exitLoad]);
-    if (p.feeStructure) facts.push(['Fee structure', p.feeStructure]);
     if (p.expenseRatio != null) facts.push(['Expense ratio', p.expenseRatio + '%']);
     if (!facts.length) return '';
     return '<div class="scm-section"><h2>Scheme profile</h2><div class="scm-facts">' +
       facts.map(function (f) { return '<div class="scm-fact"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; }).join('') +
+      '</div></div>';
+  }
+
+  // Fee structure comes back as one free-text string (e.g. "Fixed fee: 2.50%,
+  // Variable Fee: 1.50%, Hurdle Fee: 10.00%, Profit Sharing: 20% over 10%
+  // Hurdle") — split it into its labeled components. Each captured value runs
+  // up to the NEXT recognised label (not the next comma), since a value like
+  // Profit Sharing's own description often contains commas.
+  var FEE_LABELS = ['Fixed fee', 'Variable Fee', 'Hurdle Fee', 'Profit Sharing', 'Hybrid Fee'];
+  function parseFeeStructure(raw) {
+    if (!raw) return null;
+    var pattern = new RegExp('(' + FEE_LABELS.join('|') + ')\\s*:\\s*([\\s\\S]*?)(?=(?:' + FEE_LABELS.join('|') + ')\\s*:|$)', 'gi');
+    var out = {};
+    var m;
+    while ((m = pattern.exec(raw))) {
+      var label = m[1].toLowerCase();
+      var value = m[2].replace(/,\s*$/, '').trim();
+      if (!value) continue;
+      if (label.indexOf('fixed') > -1) out.fixed = value;
+      else if (label.indexOf('variable') > -1) out.variable = value;
+      else if (label.indexOf('profit sharing') > -1) out.profitSharing = value;
+      else if (label.indexOf('hurdle') > -1) out.hurdle = value;
+      else if (label.indexOf('hybrid') > -1) out.hybrid = value;
+    }
+    return out;
+  }
+
+  function feeStructureSection(p) {
+    if (!p.feeStructure) return '';
+    var parsed = parseFeeStructure(p.feeStructure);
+    var cards = [];
+    if (parsed) {
+      if (parsed.fixed) cards.push(['Fixed', parsed.fixed]);
+      if (parsed.variable) cards.push(['Variable', parsed.variable]);
+      if (parsed.profitSharing) cards.push(['Profit Sharing', parsed.profitSharing + (parsed.hurdle ? ' (Hurdle: ' + parsed.hurdle + ')' : '')]);
+    }
+    // Couldn't split it into the three buckets (format varies by AMC) — show
+    // the original text rather than lose the information.
+    if (!cards.length) {
+      return '<div class="scm-section"><h2>Fee structure</h2><p class="scm-objective">' + esc(p.feeStructure) + '</p></div>';
+    }
+    return '<div class="scm-section"><h2>Fee structure</h2><div class="scm-fee-cards">' +
+      cards.map(function (c) { return '<div class="scm-fee-card"><span>' + esc(c[0]) + '</span><b>' + esc(c[1]) + '</b></div>'; }).join('') +
       '</div></div>';
   }
 
@@ -260,20 +302,23 @@
 
     root.innerHTML =
       '<div class="scm-hero"><div class="wrap">' +
+      '<div class="scm-hero-top">' +
       '<div class="scm-hero-id">' + logo + '<div><div class="sc-amc">' + esc(s.amcName || s.productName) + '</div>' +
-      '<h1>' + esc(s.schemeName) + (s.planOption ? ' <span class="plan-opt">— ' + esc(s.planOption) + '</span>' : '') + '</h1></div></div>' +
+      '<h1>' + esc(s.schemeName) + '</h1></div></div>' +
+      '<div class="scm-hero-meeting" id="scMeetingSection"></div>' +
+      '</div>' +
       (chips.length ? '<div class="scm-chips">' + chips.map(function (c) {
         return '<div class="scm-chip"><span>' + esc(c[0]) + '</span><b>' + esc(c[1]) + '</b></div>';
       }).join('') + '</div>' : '') +
       '</div></div>' +
       '<div class="scm-body wrap">' +
-      '<div class="scm-section" id="scMeetingSection"></div>' +
       factsSection(p) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       trailingReturnsSection(s) +
       schemeReturnsSection(s) +
       holdingsSection(s) +
       sectorsSection(s) +
+      feeStructureSection(p) +
       flagsSection(p) +
       fundHouseSection(s) +
       '<p class="scm-disclaimer">Data shown is sourced from Finalyca / scheme filings and may lag the live factsheet. Past performance is not indicative of future results and is not a guarantee. This is not investment advice — please read all scheme-related documents carefully before investing.</p>' +

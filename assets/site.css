@@ -389,10 +389,28 @@ nav.links a:hover::after{width:100%;}
 .scm-hero{background:var(--ink); color:var(--paper); padding:52px 0 34px;
   background-image:radial-gradient(ellipse 800px 420px at 85% -20%, rgba(201,162,75,0.14), transparent 60%);}
 .scm-hero .sc-amc{color:var(--gold-light);}
+.scm-hero-top{display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:22px;}
 .scm-hero-id{display:flex; align-items:center; gap:12px;}
 .scm-hero-logo{width:44px; height:44px; border-radius:9px; object-fit:contain; background:#fff; border:1px solid var(--line); flex:none;}
-.scm-hero h1{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(26px,3.4vw,40px); margin:10px 0 22px; line-height:1.18;}
+.scm-hero h1{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(26px,3.4vw,40px); margin:10px 0 0; line-height:1.18;}
 .scm-hero h1 .plan-opt{color:var(--muted-light); font-weight:400; font-size:0.62em;}
+
+/* the "your call is scheduled" card, tucked in the hero's top-right corner
+   instead of taking a full-width slot in the body */
+.scm-hero-meeting{flex:0 0 auto; width:280px; max-width:100%;}
+.scm-hero-meeting:empty{display:none;}
+.scm-hero-meeting .ma-meeting{
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  box-shadow:0 18px 40px -18px rgba(0,0,0,0.5);
+}
+.scm-hero-meeting .ma-meeting-label{color:var(--gold-light);}
+.scm-hero-meeting .ma-meeting-when{color:var(--paper); font-size:15px;}
+.scm-hero-meeting .ma-meeting-actions{flex-direction:column; align-items:stretch;}
+.scm-hero-meeting .ma-meeting .btn-ghost{background:transparent; color:var(--paper) !important; border:1px solid rgba(255,255,255,0.25) !important;}
+.scm-hero-meeting .ma-meeting .btn-ghost:hover{border-color:var(--gold) !important;}
+.scm-hero-meeting .ma-meeting-ok{background:rgba(79,169,140,0.16); border-color:rgba(79,169,140,0.4); color:var(--emerald-light);}
+@media (max-width:640px){ .scm-hero-meeting{width:100%;} }
 
 .scm-chips{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px;
   background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
@@ -459,6 +477,11 @@ nav.links a:hover::after{width:100%;}
 .scm-facts{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px 28px;}
 .scm-fact span{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:5px;}
 .scm-fact b{font-size:14.5px; color:var(--ink-text); font-weight:600; line-height:1.4;}
+
+.scm-fee-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:18px;}
+.scm-fee-card{background:#fff; border:1px solid #E4DFD1; border-radius:12px; padding:20px 22px;}
+.scm-fee-card span{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--gold); margin-bottom:8px;}
+.scm-fee-card b{display:block; font-size:15px; color:var(--ink-text); font-weight:600; line-height:1.45;}
 
 .scm-flags{display:flex; flex-wrap:wrap; gap:8px;}
 .scm-flag{font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:999px; border:1px solid #E4DFD1;}
