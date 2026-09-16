@@ -187,16 +187,16 @@
 
   function holdingsSection(s) {
     if (!s.holdings || !s.holdings.length) return '';
-    return '<div class="scm-section"><h2>Top holdings</h2><div class="scm-meter-list">' +
+    return '<div class="scm-section"><h2>Top holdings</h2><div class="scm-meter-card"><div class="scm-meter-list">' +
       s.holdings.map(function (h) { return meterRow(h.name, [h.sector, h.cap].filter(Boolean).join(' · '), h.weight); }).join('') +
-      '</div></div>';
+      '</div></div></div>';
   }
 
   function sectorsSection(s) {
     if (!s.sectors || !s.sectors.length) return '';
-    return '<div class="scm-section"><h2>Sector allocation</h2><div class="scm-meter-list">' +
+    return '<div class="scm-section"><h2>Sector allocation</h2><div class="scm-meter-card"><div class="scm-meter-list">' +
       s.sectors.map(function (sec) { return meterRow(sec.name, '', sec.weight); }).join('') +
-      '</div></div>';
+      '</div></div></div>';
   }
 
   function factsSection(p) {
@@ -242,9 +242,27 @@
     var parsed = parseFeeStructure(p.feeStructure);
     var cards = [];
     if (parsed) {
+      var variableVal = parsed.variable || '';
+      var profitVal = parsed.profitSharing || '';
+      // Some AMCs' own Profit Sharing text names a "Variable Option" inline
+      // (e.g. "Profit Sharing: Variable Option: 20% ... or Fixed 1% + ...") —
+      // that clause is variable-fee information, so pull it into the
+      // Variable card and leave the other (fixed-linked) clause in Profit
+      // Sharing, rather than burying "Variable" content inside that card.
+      if (profitVal) {
+        var vm = profitVal.match(/^([\s\S]*?)\bVariable\b\s*(?:Option)?\s*:?\s*([\s\S]*)$/i);
+        if (vm) {
+          var before = vm[1].trim();
+          var afterParts = vm[2].split(/\s+or\s+/i);
+          var variablePart = afterParts[0].trim();
+          var rest = afterParts.slice(1).join(' or ').trim();
+          variableVal = variableVal ? (variableVal + ' · ' + variablePart) : variablePart;
+          profitVal = (before + ' ' + rest).trim();
+        }
+      }
       if (parsed.fixed) cards.push(['Fixed', parsed.fixed]);
-      if (parsed.variable) cards.push(['Variable', parsed.variable]);
-      if (parsed.profitSharing) cards.push(['Profit Sharing', parsed.profitSharing + (parsed.hurdle ? ' (Hurdle: ' + parsed.hurdle + ')' : '')]);
+      if (variableVal) cards.push(['Variable', variableVal]);
+      if (profitVal) cards.push(['Profit Sharing', profitVal + (parsed.hurdle ? ' (Hurdle: ' + parsed.hurdle + ')' : '')]);
     }
     // Couldn't split it into the three buckets (format varies by AMC) — show
     // the original text rather than lose the information.
