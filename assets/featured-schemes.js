@@ -108,7 +108,15 @@
       }
       return true;
     });
+    // Featured picks always lead, in their admin-assigned position (1, 2,
+    // 3...) — the sort/search/filter controls only reorder the rest below
+    // them, never bump a featured scheme out of its slot.
     list.sort(function (a, b) {
+      var af = Number(a.featured) || 0, bf = Number(b.featured) || 0;
+      if (af > 0 || bf > 0) {
+        if (af > 0 && bf > 0) return af - bf;
+        return af > 0 ? -1 : 1;
+      }
       var av = (a.returns && a.returns[state.sortKey]), bv = (b.returns && b.returns[state.sortKey]);
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
