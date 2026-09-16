@@ -113,7 +113,7 @@
     if (mtg && mtg.date) {
       container.innerHTML =
         '<div class="ma-meeting-row">' +
-        '<span class="mmr-when">' + esc(fmtMtgDate(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) + ' IST' : '') + '</span>' +
+        '<span class="mmr-badge">Upcoming meeting scheduled on <b>' + esc(fmtMtgDate(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) + ' IST' : '') + '</b></span>' +
         '<button type="button" class="mmr-btn" data-resch>Reschedule</button>' +
         (opts.discussionNote ?
           '<span class="mmr-add-wrap"><button type="button" class="mmr-add" data-disc>+ Add topic</button>' +
