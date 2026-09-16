@@ -566,7 +566,10 @@ nav.links a:hover::after{width:100%;}
 .scm-perf-table td.pos{color:var(--emerald); font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; font-weight:600;}
 .scm-perf-table td.neg{color:#B5502E; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; font-weight:600;}
 .scm-perf-table td.na{color:var(--muted-light); font-family:'IBM Plex Mono',monospace;}
-.scm-asof{font-size:11.5px; color:var(--muted-light); white-space:nowrap; flex:none;}
+.scm-asof{
+  font-size:11.5px; font-weight:600; color:var(--muted); white-space:nowrap; flex:none;
+  background:var(--paper-2); border:1px solid #E4DFD1; padding:5px 12px; border-radius:999px;
+}
 
 .scm-meter-card{background:#fff; border:1px solid #E4DFD1; border-radius:14px; padding:8px 22px;}
 .scm-meter-list{display:flex; flex-direction:column;}
