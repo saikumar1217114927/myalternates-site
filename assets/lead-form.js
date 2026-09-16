@@ -1126,6 +1126,14 @@
     clearToken: clearSession,
     send: send,
     checkStatus: function (token) { return send({ action: 'getLeadSessionStatus', token: token }); },
+    hasFlaggedInterest: function (interest) { return flaggedInterests().indexOf(interest) >= 0; },
+    // Same "Yes, add it" action the enquiry form's own returning-visitor
+    // panel uses — exposed so another widget on the page (e.g. the hero's
+    // compact meeting status) can offer it without duplicating the logic.
+    addInterest: function (sess, interest, path) {
+      return send({ action: 'addInterest', leadId: sess.leadId, email: sess.email, vid: getVid(), interest: interest, path: path || location.pathname })
+        .then(function (r) { if (r && r.ok && r.found) rememberFlag(interest); return r; });
+    },
     addDiscussionNote: function (token, note) { return send({ action: 'addMeetingDiscussionNote', token: token, note: note }); },
     requestOtp: function (email) { return send({ action: 'requestLeadEmailOtp', email: email, vid: getVid() }); },
     verifyOtp: function (email, otp) {

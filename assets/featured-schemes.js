@@ -44,8 +44,6 @@
     if (!schemes.length) { host.remove(); return; } // nothing curated yet — don't show an empty section
     host.innerHTML =
       '<div class="wrap">' +
-      '<div class="section-head"><div><div class="section-tag">Real examples</div><h2>Schemes on the platform</h2></div>' +
-      '<p>Unmasked names, live return data and the full scheme profile — no factsheet request needed.</p></div>' +
       '<div class="scheme-list">' + schemes.map(rowHtml).join('') + '</div>' +
       '<p class="disc">Returns are trailing, annualised beyond one year, as of the date shown. Past performance is not indicative of future results — data sourced from Finalyca / scheme filings.</p>' +
       '</div>';
@@ -59,8 +57,7 @@
   }
 
   function showGate() {
-    host.innerHTML = '<div class="wrap"><div class="section-head"><div><div class="section-tag">Real examples</div>' +
-      '<h2>Schemes on the platform</h2></div></div><div id="pgGate"></div></div>';
+    host.innerHTML = '<div class="wrap"><div id="pgGate"></div></div>';
     window.maRenderGate(document.getElementById('pgGate'),
       'Scheme performance data is available to registered users only — verify your email to see live returns and the full profile for every scheme on the platform.',
       function () { loadSchemes(); });
