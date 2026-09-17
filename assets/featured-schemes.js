@@ -1,9 +1,12 @@
 /* ==========================================================================
    myAlternates — featured schemes: search + sidebar filters (sort, strategy,
    category, AUM) driving a card list. Renders on a product page, driven by
-   <section class="p-schemes" data-schemes="PMS">. The list itself is open to
-   everyone — up to 10 schemes an admin has run the Performance action for.
-   Registration only happens when a visitor clicks "Explore": an
+   <section class="p-schemes" data-schemes="PMS"> or data-schemes="AIF"> (the
+   AIF page additionally gets a fixed All/Cat I/Cat II/Cat III tab row, since
+   that's a regulatory taxonomy Finalyca's classification field carries, not
+   a strategy tag). The list itself is open to everyone — up to 50 schemes an
+   admin has run the Performance action for. Registration only happens when a
+   visitor clicks "Explore": an
    already-registered visitor goes straight to scheme.html?id=<planId>; an
    anonymous one first fills the full registration form in a modal, then is
    taken there.
@@ -14,9 +17,14 @@
 
   var API_URL = 'https://myalternates-backend.onrender.com/';
   var productCode = host.dataset.schemes || 'PMS';
+  var PRODUCT_LABEL = { PMS: 'PMS', AIF: 'AIF' }[productCode] || productCode;
+  var PRODUCT_INTEREST = {
+    PMS: 'Portfolio Management Services (PMS)',
+    AIF: 'Alternative Investment Fund (AIF)'
+  }[productCode] || 'Portfolio Management Services (PMS)';
 
   var allSchemes = [];
-  var state = { q: '', strategy: 'All', category: 'All', aum: 'All', sortKey: 'r1y', sortDir: 'desc' };
+  var state = { q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc' };
 
   var AUM_BANDS = [
     { value: 'All', label: 'All' },
@@ -48,6 +56,16 @@
     return c || p.assetClass || s.productName || '';
   }
   function strategyOf(s) { return (s.profile && s.profile.assetClass) || ''; }
+  // AIF-only: Finalyca's classification for an AIF scheme leads with its
+  // SEBI category, e.g. "CAT III - LONG SHORT" or "CAT II - VENTURE DEBT" —
+  // pull just "I" / "II" / "III" out of that prefix. Checked longest-first
+  // (III/II) since "CAT II" and "CAT III" both start with the same letters
+  // as "CAT I".
+  function aifCategoryOf(s) {
+    var c = String((s.profile && s.profile.classification) || '').trim();
+    var m = /^CAT\s+(III|II|I)\b/i.exec(c);
+    return m ? m[1].toUpperCase() : '';
+  }
   function aumOf(s) { return (s.profile && s.profile.aum != null) ? Number(s.profile.aum) : null; }
   function fmtAum(s) {
     var v = aumOf(s);
@@ -100,6 +118,7 @@
       }
       if (state.strategy !== 'All' && strategyOf(s) !== state.strategy) return false;
       if (state.category !== 'All' && categoryLabel(s) !== state.category) return false;
+      if (productCode === 'AIF' && state.aifCat !== 'All' && aifCategoryOf(s) !== state.aifCat) return false;
       if (state.aum !== 'All') {
         var band = state.aum.split('-');
         var lo = Number(band[0]), hi = Number(band[1]);
@@ -179,6 +198,15 @@
   }
 
   function wireSidebar() {
+    host.querySelectorAll('.ps-cat-tab').forEach(function (btn) {
+      btn.onclick = function () {
+        host.querySelectorAll('.ps-cat-tab').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        state.aifCat = btn.dataset.cat;
+        applyFilters();
+      };
+    });
+
     var searchInput = host.querySelector('#pssSearch');
     searchInput.addEventListener('input', function () { state.q = searchInput.value; applyFilters(); });
 
@@ -210,12 +238,26 @@
     aumSel.addEventListener('change', function () { state.aum = aumSel.value; applyFilters(); });
 
     host.querySelector('#pssClear').onclick = function () {
-      state = { q: '', strategy: 'All', category: 'All', aum: 'All', sortKey: 'r1y', sortDir: 'desc' };
+      state = { q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc' };
       searchInput.value = ''; sortSel.value = 'r1y'; catSel.value = 'All'; aumSel.value = 'All';
       host.querySelectorAll('.pss-dir-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.dir === 'desc'); });
       host.querySelectorAll('.pss-pill').forEach(function (b) { b.classList.toggle('active', b.dataset.val === 'All'); });
+      host.querySelectorAll('.ps-cat-tab').forEach(function (b) { b.classList.toggle('active', b.dataset.cat === 'All'); });
       applyFilters();
     };
+  }
+
+  // AIF-only tab row (All / Category I / II / III) sitting above the
+  // sidebar+list — a fixed, regulatory taxonomy, so all three tabs always
+  // show regardless of how many synced schemes currently fall into each.
+  function catTabsHtml() {
+    if (productCode !== 'AIF') return '';
+    var tabs = [['All', 'All AIF'], ['I', 'Category I'], ['II', 'Category II'], ['III', 'Category III']];
+    return '<div class="ps-cat-tabs" id="psCatTabs">' +
+      tabs.map(function (t) {
+        return '<button type="button" class="ps-cat-tab' + (t[0] === 'All' ? ' active' : '') + '" data-cat="' + esc(t[0]) + '">' + esc(t[1]) + '</button>';
+      }).join('') +
+      '</div>';
   }
 
   function renderList(schemes) {
@@ -226,9 +268,10 @@
       '<div class="p-schemes-head">' +
       '<div class="section-head">' +
       '<div class="section-tag">Live on the platform</div>' +
-      '<h2>Explore PMS Schemes</h2>' +
+      '<h2>Explore ' + esc(PRODUCT_LABEL) + ' Schemes</h2>' +
       '</div>' +
       '</div>' +
+      catTabsHtml() +
       '<div class="p-schemes-body">' +
       sidebarHtml() +
       '<div class="p-schemes-list">' +
@@ -264,13 +307,13 @@
 
     window.maRenderFullGate(overlay.querySelector('.ma-modal-body'), {
       message: 'Create your free account to see this scheme\'s live returns and full profile.',
-      interest: 'Portfolio Management Services (PMS)',
+      interest: PRODUCT_INTEREST,
       onVerified: function () { location.href = 'scheme?id=' + encodeURIComponent(planId); }
     });
   }
 
   function loadSchemes() {
-    fetch(API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) + '&limit=10')
+    fetch(API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) + '&limit=50')
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d && d.ok) renderList(d.schemes || []); else host.remove(); })
       .catch(function () { host.remove(); });

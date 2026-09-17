@@ -333,6 +333,17 @@ nav.links a:hover::after{width:100%;}
 .sc-discover:hover{background:var(--ink-3); transform:translateY(-1px);}
 .p-schemes .disc{font-size:11.5px; color:var(--muted-light); margin-top:22px; line-height:1.6;}
 .p-schemes .section-head{margin-bottom:28px; max-width:560px;}
+
+/* ---- AIF-only: All / Cat I / Cat II / Cat III tabs above the sidebar+list ---- */
+.ps-cat-tabs{display:flex; gap:26px; flex-wrap:wrap; border-bottom:1px solid #E4DDC9; margin-bottom:26px;}
+.ps-cat-tab{
+  background:none; border:none; border-bottom:2px solid transparent; font-family:inherit;
+  font-size:13.5px; font-weight:600; color:var(--muted); padding:0 0 12px; cursor:pointer;
+  transition:color .15s ease, border-color .15s ease;
+}
+.ps-cat-tab:hover{color:var(--ink-text);}
+.ps-cat-tab.active{color:var(--ink-text); border-bottom-color:var(--gold);}
+
 .p-schemes-body{display:grid; grid-template-columns:320px 1fr; gap:28px; align-items:start;}
 
 /* ---- sidebar: search + sort + strategy/category/AUM filters ---- */
