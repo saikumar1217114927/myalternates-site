@@ -35,6 +35,7 @@ const PRECACHE_URLS = [
   './assets/lead-form.js',
   './assets/google-signin.js',
   './assets/nav.js',
+  './assets/nav-search.js',
   './assets/event-banner.js',
   './assets/product-metrics.js',
   './assets/session-gate.js',
