@@ -252,44 +252,55 @@
     return (!v || v.toUpperCase() === 'N') ? '' : v;
   }
 
+  // The raw lookup, no DOM side effects — resolves { area, city, state }
+  // (each '' if not found). Exposed on window.MASession too, so another
+  // registration form on the page (the Discover-flow gate) can drive the
+  // same "confirm manually if not found" UI without a second ZipCodeBase
+  // key/URL living in two files.
+  function fetchPincodeLocation(code, country) {
+    return fetch(ZIPCODEBASE_URL + '?codes=' + encodeURIComponent(code) + '&apikey=' + ZIPCODEBASE_API_KEY + '&country=' + encodeURIComponent(country || 'IN'))
+      .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); })
+      .then(function (data) { return (data && data.results && data.results[code]) || null; })
+      .catch(function () { return null; })
+      .then(function (entries) {
+        var m = (entries && entries.length) ? entries[0] : null;
+        // Response shape mirrors index.html: area <- city, city <- province, state <- state_en
+        return {
+          area: m ? clean(m.city) : '',
+          city: m ? clean(m.province) : '',
+          state: m ? (clean(m.state_en) || clean(m.state)) : ''
+        };
+      });
+  }
+
   function lookupPincode(code) {
     var country = countrySel.value || 'IN';
     var reqId = ++pinReqId;
     setStatus('Looking up pincode…', 'loading');
 
-    return fetch(ZIPCODEBASE_URL + '?codes=' + encodeURIComponent(code) + '&apikey=' + ZIPCODEBASE_API_KEY + '&country=' + encodeURIComponent(country))
-      .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); })
-      .then(function (data) { return (data && data.results && data.results[code]) || null; })
-      .catch(function () { return null; })
-      .then(function (entries) {
-        if (reqId !== pinReqId) return; // superseded
-        var m = (entries && entries.length) ? entries[0] : null;
-        // Response shape mirrors index.html: area <- city, city <- province, state <- state_en
-        var area = m ? clean(m.city) : '';
-        var city = m ? clean(m.province) : '';
-        var state = m ? (clean(m.state_en) || clean(m.state)) : '';
+    return fetchPincodeLocation(code, country).then(function (loc) {
+      if (reqId !== pinReqId) return; // superseded
+      detected.area = loc.area;
+      detected.city = loc.city;
+      detected.state = loc.state;
 
-        detected.area = area;
-        detected.city = city;
-        detected.state = state;
+      if (!loc.city || !loc.state) {
+        // Empty / "N" / partial — fall back to manual entry, pre-filling
+        // whatever we did get.
+        if (cityInput) cityInput.value = loc.city;
+        if (stateInput) stateInput.value = loc.state;
+        showManual();
+        setStatus((loc.city || loc.state)
+          ? 'Please confirm your city and state below.'
+          : 'Enter your city and state below.', 'warn');
+        return;
+      }
 
-        if (!city || !state) {
-          // Empty / "N" / partial — fall back to manual entry, pre-filling
-          // whatever we did get.
-          if (cityInput) cityInput.value = city;
-          if (stateInput) stateInput.value = state;
-          showManual();
-          setStatus((city || state)
-            ? 'Please confirm your city and state below.'
-            : 'Enter your city and state below.', 'warn');
-          return;
-        }
-
-        if (cityInput) cityInput.value = city;
-        if (stateInput) stateInput.value = state;
-        hideManual();
-        setStatus(city + ', ' + state, 'ok');
-      });
+      if (cityInput) cityInput.value = loc.city;
+      if (stateInput) stateInput.value = loc.state;
+      hideManual();
+      setStatus(loc.city + ', ' + loc.state, 'ok');
+    });
   }
 
   function wirePincode() {
@@ -1131,6 +1142,9 @@
     // without keeping a second copy of ~190 countries in sync.
     countries: COUNTRIES,
     dialCodes: DIAL_CODES,
+    // (pincode, countryIso) -> Promise<{area, city, state}> — city/state are
+    // '' when the lookup didn't find them, so the caller shows manual entry.
+    lookupPincode: fetchPincodeLocation,
     checkStatus: function (token) { return send({ action: 'getLeadSessionStatus', token: token }); },
     hasFlaggedInterest: function (interest) { return flaggedInterests().indexOf(interest) >= 0; },
     // Same "Yes, add it" action the enquiry form's own returning-visitor
@@ -1164,6 +1178,13 @@
         leadId: sess.leadId, visitorId: getVid(), path: location.pathname,
         rescheduleMeetingId: rescheduleMeetingId || '', mode: (sess.upcomingMeeting && sess.upcomingMeeting.mode) || '', rowNumber: null
       };
+      // sess (from getLeadSessionStatus / verifyLeadEmailOtp) carries the
+      // assigned expert's {name, photo} — without this, renderExpertCall()
+      // finds the module-level `expert` still empty and the scheduler shows
+      // no mapped-user avatar on pages that open it via this entry point
+      // (e.g. scheme.html's meeting-action panel) instead of the enquiry
+      // form's own submit flow.
+      if (sess.expert) expert = sess.expert;
       submitPromise = Promise.resolve();
       openSchedule();
     }

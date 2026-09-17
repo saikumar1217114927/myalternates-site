@@ -1,13 +1,14 @@
 /* ==========================================================================
-   myAlternates — compact "your call is scheduled" state in the hero.
-   Once a registered visitor has an upcoming call, the page's own hero CTA
-   ("Talk to an expert →") becomes "Reschedule →" and a small line under it
-   shows the date/time plus a one-click "add this interest".
+   myAlternates — compact "your call is scheduled" info line in the hero.
+   The hero CTA itself ("Talk to an expert →" -> "Reschedule") is handled
+   generically by session-gate.js for every data-ma-talk element on the
+   page; this file only owns the small line under it showing the date/time
+   plus a one-click "add this interest" — the one piece that's unique to
+   this hero, not shared with the nav CTA.
    ========================================================================== */
 (function () {
-  var ctaBtn = document.getElementById('heroTalkBtn');
   var info = document.getElementById('heroMeetingInfo');
-  if (!ctaBtn || !info || !window.MASession) return;
+  if (!info || !window.MASession) return;
 
   var token = MASession.getToken();
   if (!token) return;
@@ -25,25 +26,15 @@
 
   function render(sess) {
     var mtg = sess.upcomingMeeting;
-    if (!mtg || !mtg.date) return; // no call yet — leave the normal CTA as-is
+    if (!mtg || !mtg.date) { info.innerHTML = ''; return; } // no call yet
 
     var interest = 'Portfolio Management Services (PMS)'; // this widget is PMS-only
-
-    ctaBtn.textContent = 'Reschedule →';
-    ctaBtn.removeAttribute('href');
-    ctaBtn.setAttribute('role', 'button');
-    ctaBtn.style.cursor = 'pointer';
-    ctaBtn.onclick = function (e) {
-      e.preventDefault();
-      MASession.openSchedule(sess, mtg.meetingId, interest);
-    };
-
-    var already = interest && MASession.hasFlaggedInterest(interest);
+    var already = MASession.hasFlaggedInterest(interest);
     info.innerHTML =
       '<span class="hmi-when">📅 Your call: <b>' + esc(fmtWhen(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) : '') + '</b></span>' +
-      (interest ? (already
+      (already
         ? '<span class="hmi-added">✓ ' + esc(interest) + ' added</span>'
-        : '<button type="button" class="hmi-add" id="hmiAdd">+ Add ' + esc(interest) + '</button>') : '');
+        : '<button type="button" class="hmi-add" id="hmiAdd">+ Add ' + esc(interest) + '</button>');
 
     var addBtn = info.querySelector('#hmiAdd');
     if (addBtn) addBtn.onclick = function () {

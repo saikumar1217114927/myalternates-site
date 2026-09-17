@@ -69,18 +69,26 @@
       '</div>' +
       '<select name="country" aria-label="Country">' + countryOptionsHtml(countries) + '</select>' +
       '<input type="text" name="pincode" placeholder="Pincode / ZIP" required>' +
+      '<span class="mgf-status" data-status></span>' +
+      '<div class="mgf-manual" data-manual hidden>' +
+      '<input type="text" name="city" placeholder="City">' +
+      '<input type="text" name="state" placeholder="State">' +
+      '</div>' +
       '<button type="submit" class="btn-gold">Continue →</button>' +
       '</form>' +
       '</div>';
     wireCountryDialSync(container);
     var form = container.querySelector('.ma-full-form');
+    wirePincodeLookup(form);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var lead = {
         name: form.name.value.trim(), email: form.email.value.trim(),
         mobileCountryCode: form.mobileCc.value, mobile: form.mobile.value.trim(),
         country: form.country.options[form.country.selectedIndex].textContent,
-        pincode: form.pincode.value.trim(), interest: opts.interest || ''
+        pincode: form.pincode.value.trim(),
+        city: form.city.value.trim(), state: form.state.value.trim(),
+        interest: opts.interest || ''
       };
       if (!lead.name || !lead.email || !lead.mobile || !lead.pincode) return;
       var btn = form.querySelector('button');
@@ -95,6 +103,44 @@
       });
     });
   };
+
+  // Pincode -> city/state, same logic as the enquiry form: look it up as
+  // soon as the pincode looks complete, and if it can't be resolved (or
+  // only partly resolves), reveal the City/State inputs so the visitor
+  // confirms them manually instead of silently submitting blanks.
+  function wirePincodeLookup(form) {
+    var pinInput = form.pincode, statusEl = form.querySelector('[data-status]'), manualRow = form.querySelector('[data-manual]');
+    var pinDebounce = null, pinReqId = 0;
+    function setStatus(text, kind) { statusEl.textContent = text || ''; statusEl.className = 'mgf-status' + (kind ? ' ' + kind : ''); }
+    function showManual() { manualRow.hidden = false; }
+    function hideManual() { manualRow.hidden = true; }
+    function reset() { pinReqId++; form.city.value = ''; form.state.value = ''; hideManual(); setStatus('', ''); }
+
+    pinInput.addEventListener('input', function () {
+      clearTimeout(pinDebounce);
+      setStatus('', '');
+      var v = pinInput.value.trim();
+      var country = form.country.value || 'IN';
+      var ready = country === 'IN' ? v.length === 6 : v.length >= 3;
+      if (!ready) { pinReqId++; return; }
+      pinDebounce = setTimeout(function () {
+        var reqId = ++pinReqId;
+        setStatus('Looking up pincode…', 'loading');
+        window.MASession.lookupPincode(v, country).then(function (loc) {
+          if (reqId !== pinReqId) return; // superseded by a newer keystroke
+          form.city.value = loc.city; form.state.value = loc.state;
+          if (!loc.city || !loc.state) {
+            showManual();
+            setStatus((loc.city || loc.state) ? 'Please confirm your city and state below.' : 'Enter your city and state below.', 'warn');
+            return;
+          }
+          hideManual();
+          setStatus(loc.city + ', ' + loc.state, 'ok');
+        });
+      }, 400);
+    });
+    form.country.addEventListener('change', reset);
+  }
 
   function showFullOtpStep(container, lead, onVerified) {
     container.innerHTML =
@@ -243,21 +289,108 @@
     });
   };
 
+  // Every "Talk to an Expert" link (nav + hero CTAs) reads "Reschedule"
+  // instead once the visitor has an upcoming call — until then it's left
+  // exactly as authored. Applies to every data-ma-talk element on the page
+  // uniformly (not just the hero), so pms.html and aif.html both get this
+  // for free without a page-specific widget for each.
+  function applyTalkToExpertLabels(links, scheduled) {
+    links.forEach(function (el) {
+      if (!el.hasAttribute('data-ma-talk-orig')) el.setAttribute('data-ma-talk-orig', el.textContent);
+      var orig = el.getAttribute('data-ma-talk-orig');
+      el.textContent = scheduled ? ('Reschedule' + (/→\s*$/.test(orig) ? ' →' : '')) : orig;
+    });
+  }
+  function refreshTalkToExpertState(links) {
+    var token = window.MASession && window.MASession.getToken();
+    if (!token) { applyTalkToExpertLabels(links, false); return; }
+    window.MASession.checkStatus(token).then(function (sess) {
+      applyTalkToExpertLabels(links, !!(sess && sess.ok && sess.loggedIn && sess.upcomingMeeting && sess.upcomingMeeting.date));
+    });
+  }
+
   // Auto-wire every "Talk to an Expert" link marked up with data-ma-talk="
   // <interest>" (nav + hero CTAs on pms.html/aif.html) to the flow above,
   // instead of just following its href="#schemes" fallback. Uses .onclick
-  // (a plain property), not addEventListener, so a page-specific widget
-  // that later takes the same button over for its own purpose (e.g.
-  // hero-meeting.js turning it into "Reschedule" once a call exists)
-  // cleanly replaces this default rather than both firing.
+  // (a plain property, not addEventListener) so nothing can double-fire.
   function wireTalkToExpertLinks() {
-    document.querySelectorAll('[data-ma-talk]').forEach(function (el) {
+    var links = document.querySelectorAll('[data-ma-talk]');
+    if (!links.length) return;
+    links.forEach(function (el) {
       el.onclick = function (e) {
         e.preventDefault();
         window.maOpenTalkToExpert(el.getAttribute('data-ma-talk'));
       };
     });
+    refreshTalkToExpertState(links);
+    document.addEventListener('ma:scheduled', function () { refreshTalkToExpertState(links); });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireTalkToExpertLinks);
-  else wireTalkToExpertLinks();
+
+  // Registered-visitor profile icon (id="maProfile") next to the Talk to an
+  // Expert CTA — hidden for an anonymous visitor, shown once a session
+  // token checks out live. Its panel shows the visitor's own registered
+  // details and, if one's assigned and opted into lead-facing display,
+  // their expert's photo + contact info.
+  function wireProfileWidget() {
+    var wrap = document.getElementById('maProfile');
+    var btn = document.getElementById('maProfileBtn');
+    var panel = document.getElementById('maProfilePanel');
+    if (!wrap || !btn || !panel) return;
+
+    function renderPanel(sess) {
+      var expert = sess.expert;
+      panel.innerHTML =
+        '<div class="npp-section">' +
+        '<div class="npp-label">Your details</div>' +
+        '<div class="npp-name">' + esc(sess.name || 'Registered visitor') + '</div>' +
+        (sess.email ? '<div class="npp-row">' + esc(sess.email) + '</div>' : '') +
+        (sess.mobile ? '<div class="npp-row">' + esc(sess.mobileCountryCode || '') + ' ' + esc(sess.mobile) + '</div>' : '') +
+        '</div>' +
+        (expert ? (
+          '<div class="npp-section npp-expert">' +
+          '<div class="npp-label">Your expert</div>' +
+          '<div class="npp-expert-row">' +
+          (expert.photo
+            ? '<img class="npp-avatar" src="' + esc(expert.photo) + '" alt="">'
+            : '<div class="npp-avatar-fallback">' + esc((expert.name || '?').charAt(0)) + '</div>') +
+          '<div>' +
+          '<div class="npp-name">' + esc(expert.name || '') + '</div>' +
+          (expert.email ? '<div class="npp-row">' + esc(expert.email) + '</div>' : '') +
+          (expert.mobile ? '<div class="npp-row">' + esc(expert.mobile) + '</div>' : '') +
+          '</div></div></div>'
+        ) : '') +
+        '<button type="button" class="npp-signout" data-signout>Sign out</button>';
+      panel.querySelector('[data-signout]').onclick = function () {
+        window.MASession.clearToken();
+        location.reload();
+      };
+    }
+
+    function load() {
+      var token = window.MASession && window.MASession.getToken();
+      if (!token) { wrap.hidden = true; panel.hidden = true; return; }
+      window.MASession.checkStatus(token).then(function (sess) {
+        if (!sess || !sess.ok || !sess.loggedIn) { wrap.hidden = true; panel.hidden = true; return; }
+        wrap.hidden = false;
+        renderPanel(sess);
+      });
+    }
+    load();
+    document.addEventListener('ma:scheduled', load);
+
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      panel.hidden = !panel.hidden;
+    };
+    document.addEventListener('click', function (e) {
+      if (!panel.hidden && !wrap.contains(e.target)) panel.hidden = true;
+    });
+  }
+
+  function initNavWidgets() {
+    wireTalkToExpertLinks();
+    wireProfileWidget();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initNavWidgets);
+  else initNavWidgets();
 })();
