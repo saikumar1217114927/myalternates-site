@@ -64,7 +64,7 @@
 
   function retCol(label, v) {
     var cls = v == null ? 'na' : (v >= 0 ? 'pos' : 'neg');
-    return '<div class="sr-ret"><b class="' + cls + '">' + (v == null ? '–' : pct(v)) + '</b><span>' + esc(label) + '</span></div>';
+    return '<div class="sr-ret"><b class="' + cls + '">' + (v == null ? 'NA' : pct(v)) + '</b><span>' + esc(label) + '</span></div>';
   }
 
   function rowHtml(s) {
