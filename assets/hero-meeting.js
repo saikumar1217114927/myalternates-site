@@ -34,7 +34,10 @@
     whenEl.innerHTML =
       '<span class="hmi-when">📅 Your call: <b>' + esc(fmtWhen(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) : '') + '</b></span>';
 
-    var already = MASession.hasFlaggedInterest(interest);
+    // Server truth, not a permanent local flag — once a topic gets discussed
+    // and a new call is booked, it drops off sess.pendingInterests and the
+    // button reappears instead of staying stuck on "added" forever.
+    var already = (sess.pendingInterests || []).indexOf(interest) >= 0;
     addEl.innerHTML = already
       ? '<span class="hmi-added">✓ ' + esc(interest) + ' added</span>'
       : '<button type="button" class="hmi-add" id="hmiAdd" title="If you select this, it will be discussed in your next meeting.">+ Add Topic</button>';

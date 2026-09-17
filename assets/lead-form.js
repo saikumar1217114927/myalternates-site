@@ -187,8 +187,6 @@
       localStorage.removeItem('maLeadSession'); localStorage.removeItem('maLead'); localStorage.removeItem('maInterests');
     } catch (e) {}
   }
-  function flaggedInterests() { try { return JSON.parse(ls('maInterests') || '[]'); } catch (e) { return []; } }
-  function rememberFlag(x) { var a = flaggedInterests(); if (a.indexOf(x) < 0) { a.push(x); ls('maInterests', JSON.stringify(a)); } }
   function firstUtm() {
     try { var s = JSON.parse(ls('maUtm') || 'null'); if (s && s.source) return s; } catch (e) {}
     var q = new URLSearchParams(location.search);
@@ -837,7 +835,7 @@
           '<div class="lr-title">Welcome back' + (first ? ', ' + escHtml(first) : '') + '</div>' +
           '<div class="lr-body"></div>';
         host.appendChild(box);
-        renderReturning(box.querySelector('.lr-body'), stored, interest, r.upcomingMeeting || null, function backToForm() {
+        renderReturning(box.querySelector('.lr-body'), stored, interest, r.upcomingMeeting || null, r.pendingInterests || [], function backToForm() {
           box.remove();
           form.style.display = '';
           if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = ''; });
@@ -846,8 +844,11 @@
       .catch(function () { /* leave the normal form in place */ });
   }
 
-  function renderReturning(bodyEl, stored, interest, mtg, backToForm) {
-    var already = interest && flaggedInterests().indexOf(interest) >= 0;
+  function renderReturning(bodyEl, stored, interest, mtg, pendingInterests, backToForm) {
+    // Server truth (getLeadPublic's pendingInterests), not a permanent local
+    // flag — once this topic gets discussed and a new call is booked, it
+    // drops off the list and the "want your expert to cover X" ask returns.
+    var already = interest && (pendingInterests || []).indexOf(interest) >= 0;
     var html;
     if (mtg && mtg.date) {
       html = '<div class="lr-meeting">' +
@@ -881,7 +882,7 @@
       yes.disabled = true; yes.textContent = 'Adding…';
       send({ action: 'addInterest', leadId: stored.leadId, email: stored.email, vid: getVid(), interest: interest, path: location.pathname })
         .then(function (r) {
-          if (r && r.ok && r.found) { rememberFlag(interest); if (ask) ask.innerHTML = '<div class="lr-done">Added — your expert will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
+          if (r && r.ok && r.found) { if (ask) ask.innerHTML = '<div class="lr-done">Added — your expert will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
           else { yes.disabled = false; yes.textContent = 'Yes, add it'; }
         });
     };
@@ -973,7 +974,10 @@
   }
 
   function renderSessionBody(bodyEl, sess, token, interest, signOut) {
-    var already = interest && flaggedInterests().indexOf(interest) >= 0;
+    // Server truth (getLeadSessionStatus's pendingInterests), not a permanent
+    // local flag — once this topic gets discussed and a new call is booked,
+    // it drops off the list and the "want your expert to cover X" ask returns.
+    var already = interest && (sess.pendingInterests || []).indexOf(interest) >= 0;
     var mtg = sess.upcomingMeeting;
     var html;
     if (mtg && mtg.date) {
@@ -1011,7 +1015,7 @@
       yes.disabled = true; yes.textContent = 'Adding…';
       send({ action: 'addInterest', leadId: sess.leadId, email: sess.email, vid: getVid(), interest: interest, path: location.pathname })
         .then(function (r) {
-          if (r && r.ok && r.found) { rememberFlag(interest); if (ask) ask.innerHTML = '<div class="lr-done">Added — your expert will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
+          if (r && r.ok && r.found) { if (ask) ask.innerHTML = '<div class="lr-done">Added — your expert will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
           else { yes.disabled = false; yes.textContent = 'Yes, add it'; }
         });
     };
@@ -1146,13 +1150,13 @@
     // '' when the lookup didn't find them, so the caller shows manual entry.
     lookupPincode: fetchPincodeLocation,
     checkStatus: function (token) { return send({ action: 'getLeadSessionStatus', token: token }); },
-    hasFlaggedInterest: function (interest) { return flaggedInterests().indexOf(interest) >= 0; },
     // Same "Yes, add it" action the enquiry form's own returning-visitor
     // panel uses — exposed so another widget on the page (e.g. the hero's
     // compact meeting status) can offer it without duplicating the logic.
+    // Whether it's already flagged is server truth (checkStatus's
+    // pendingInterests), not tracked locally — see hero-meeting.js.
     addInterest: function (sess, interest, path) {
-      return send({ action: 'addInterest', leadId: sess.leadId, email: sess.email, vid: getVid(), interest: interest, path: path || location.pathname })
-        .then(function (r) { if (r && r.ok && r.found) rememberFlag(interest); return r; });
+      return send({ action: 'addInterest', leadId: sess.leadId, email: sess.email, vid: getVid(), interest: interest, path: path || location.pathname });
     },
     addDiscussionNote: function (token, note) { return send({ action: 'addMeetingDiscussionNote', token: token, note: note }); },
     requestOtp: function (email) { return send({ action: 'requestLeadEmailOtp', email: email, vid: getVid() }); },
