@@ -45,14 +45,61 @@
     });
   }
 
-  // Full registration form (name, email, mobile, country, pincode) — a
-  // visitor fills this once, verifies the emailed code, and is registered
-  // with the same identity the enquiry form creates. Used wherever a
-  // visitor needs to register before seeing gated content — the Discover
-  // flow, and "Talk to an Expert" for an anonymous visitor.
+  // Entry point wherever a visitor needs to register/log in before seeing
+  // gated content — the Discover flow, "Talk to an Expert" for an anonymous
+  // visitor, and scheme.html's direct-link fallback. Defaults to the light
+  // Login step (existing users are the common case reopening the site); a
+  // link switches to the full Register step for someone genuinely new.
   // opts: { message, interest, onVerified(token, result) }.
   window.maRenderFullGate = function (container, opts) {
     opts = opts || {};
+    renderLoginStep(container, opts);
+  };
+
+  // Existing-user path: just an identifier (either channel), no re-typing
+  // name/pincode/etc. they already gave us. requestLeadOtp/verifyLeadOtp
+  // both tolerate email OR mobile being blank, so whichever the visitor
+  // typed here is all that's ever sent.
+  function renderLoginStep(container, opts) {
+    container.innerHTML =
+      '<div class="ma-gate ma-gate-full">' +
+      '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
+      '<h3>Log in to continue</h3>' +
+      (opts.message ? '<p>' + esc(opts.message) + '</p>' : '') +
+      '<form class="ma-gate-form">' +
+      '<input type="text" name="contact" placeholder="Email or mobile number" required autocomplete="username">' +
+      '<button type="submit" class="btn-gold">Continue →</button>' +
+      '</form>' +
+      '<button type="button" class="ma-gate-link" data-newuser>New here? Register</button>' +
+      '</div>';
+    var form = container.querySelector('.ma-gate-form');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var raw = form.contact.value.trim();
+      if (!raw) return;
+      var isEmail = raw.indexOf('@') > -1;
+      var lead = {
+        name: '', email: isEmail ? raw : '',
+        mobileCountryCode: isEmail ? '' : '+91', mobile: isEmail ? '' : raw.replace(/\D+/g, ''),
+        country: '', pincode: '', city: '', state: '', interest: opts.interest || ''
+      };
+      var btn = form.querySelector('button');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      window.MASession.requestOtp(lead.email, lead.mobileCountryCode, lead.mobile).then(function (r) {
+        if (!r || !r.ok) {
+          btn.disabled = false; btn.textContent = 'Continue →';
+          alert((r && r.error) || 'Could not send a code — please try again.');
+          return;
+        }
+        showFullOtpStep(container, lead, opts.onVerified);
+      });
+    });
+    container.querySelector('[data-newuser]').onclick = function () { renderRegisterStep(container, opts); };
+  }
+
+  // New-visitor path: the full form (name, email, mobile, country,
+  // pincode) — same fields the enquiry form itself captures.
+  function renderRegisterStep(container, opts) {
     var countries = (window.MASession && window.MASession.countries) || [];
     var dialCodes = (window.MASession && window.MASession.dialCodes) || {};
     container.innerHTML =
@@ -72,6 +119,7 @@
       '<span class="mgf-status" data-status></span>' +
       '<button type="submit" class="btn-gold">Continue →</button>' +
       '</form>' +
+      '<button type="button" class="ma-gate-link" data-login>Already registered? Log in</button>' +
       '</div>';
     wireCountryDialSync(container);
     var form = container.querySelector('.ma-full-form');
@@ -99,7 +147,8 @@
         showFullOtpStep(container, lead, opts.onVerified);
       });
     });
-  };
+    container.querySelector('[data-login]').onclick = function () { renderLoginStep(container, opts); };
+  }
 
   // Pincode -> city/state, same lookup the enquiry form uses. Display-only:
   // nothing is ever shown to type into — until it resolves, the status line
@@ -140,11 +189,17 @@
   // a channel up front or switch between them.
   function showFullOtpStep(container, lead, onVerified) {
     var mobileLabel = (lead.mobileCountryCode || '') + ' ' + (lead.mobile || '');
+    // The Login step only ever collects one of email/mobile — only mention
+    // whichever channel(s) a code was actually sent to.
+    var both = lead.email && lead.mobile;
+    var dest = both
+      ? 'to <b>' + esc(lead.email) + '</b> and by SMS to <b>' + esc(mobileLabel) + '</b>'
+      : lead.email ? 'to <b>' + esc(lead.email) + '</b>' : 'by SMS to <b>' + esc(mobileLabel) + '</b>';
     container.innerHTML =
       '<div class="ma-gate ma-gate-full">' +
       '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
       '<h3>Verify your details</h3>' +
-      '<p>We sent a 6-digit code to <b>' + esc(lead.email) + '</b> and by SMS to <b>' + esc(mobileLabel) + '</b> — enter whichever arrives first.</p>' +
+      '<p>We sent a 6-digit code ' + dest + (both ? ' — enter whichever arrives first.' : '.') + '</p>' +
       '<form class="ma-gate-form ma-gate-otp"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" required>' +
       '<button type="submit" class="btn-gold">Verify</button></form>' +
       '<button type="button" class="ma-gate-link" data-resend>Resend code</button>' +

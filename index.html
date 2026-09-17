@@ -1974,8 +1974,8 @@
     box.className = 'ma-otp';
     box.style.cssText = 'padding:4px 2px;';
     box.innerHTML =
-      '<div style="font:700 20px/1.3 Fraunces,serif;margin:0 0 8px">Verify your email</div>' +
-      '<p style="font-size:13.5px;color:var(--muted,#6C7178);margin:0 0 16px;line-height:1.55">We sent a 6-digit code to <b>' + maEscHtml(rec.email) + '</b>. Enter it below to confirm your enquiry.</p>' +
+      '<div style="font:700 20px/1.3 Fraunces,serif;margin:0 0 8px">Verify your details</div>' +
+      '<p style="font-size:13.5px;color:var(--muted,#6C7178);margin:0 0 16px;line-height:1.55">We sent a 6-digit code to <b>' + maEscHtml(rec.email) + '</b> and by SMS to <b>' + maEscHtml((rec.mobileCountryCode || '') + ' ' + (rec.mobile || '')) + '</b> — enter whichever arrives first.</p>' +
       '<input type="text" id="maOtpCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code" style="font-size:22px;letter-spacing:.35em;text-align:center;font-weight:700;padding:12px 14px;width:100%;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box;">' +
       '<div id="maOtpErr" style="display:none;color:#a3402f;font-size:13px;margin-top:8px;"></div>' +
       '<div style="margin-top:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">' +
@@ -1997,7 +1997,7 @@
       if(!/^[0-9]{6}$/.test(otp)){ showErr('Enter the 6-digit code.'); return; }
       errEl.style.display = 'none';
       verifyBtn.disabled = true; verifyBtn.textContent = 'Verifying…';
-      const payload = Object.assign({}, rec, { action:'verifyLeadEmailOtp', otp });
+      const payload = Object.assign({}, rec, { action:'verifyLeadOtp', otp });
       sendToLeadsSheet(payload).then((res) => {
         verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & continue';
         if(!res || !res.ok){ showErr((res && res.error) || 'Could not verify — please try again.'); return; }
@@ -2020,7 +2020,10 @@
 
     document.getElementById('maOtpResend').onclick = (ev) => {
       ev.target.disabled = true; ev.target.textContent = 'Sending…';
-      sendToLeadsSheet({ action:'requestLeadEmailOtp', email: rec.email, vid: rec.visitorId }).then((res) => {
+      sendToLeadsSheet({
+        action:'requestLeadOtp', email: rec.email,
+        mobileCountryCode: rec.mobileCountryCode, mobile: rec.mobile, vid: rec.visitorId
+      }).then((res) => {
         ev.target.disabled = false; ev.target.textContent = 'Resend code';
         if(!res || !res.ok){ showErr((res && res.error) || 'Could not resend — please try again.'); return; }
         codeInput.value = ''; codeInput.focus();
@@ -2102,10 +2105,14 @@
       return;
     }
 
-    // Everyone else verifies their email first — the lead is only created once
-    // the code is confirmed (see verifyLeadEmailOtp on the backend).
+    // Everyone else verifies first — one code, sent to both email and SMS at
+    // once (see requestLeadOtp/verifyLeadOtp on the backend) — the lead is
+    // only created once that code is confirmed.
     btn.textContent = 'Sending code…';
-    const otpRes = await sendToLeadsSheet({ action:'requestLeadEmailOtp', email: leadRecord.email, vid: leadRecord.visitorId });
+    const otpRes = await sendToLeadsSheet({
+      action:'requestLeadOtp', email: leadRecord.email,
+      mobileCountryCode: leadRecord.mobileCountryCode, mobile: leadRecord.mobile, vid: leadRecord.visitorId
+    });
     if(!otpRes || !otpRes.ok){
       btn.disabled = false; btn.textContent = originalBtnLabel;
       alert((otpRes && otpRes.error) || 'Could not send a verification code — please try again.');
