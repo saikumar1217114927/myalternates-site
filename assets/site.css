@@ -519,7 +519,7 @@ nav.links a:hover::after{width:100%;}
   background-repeat:no-repeat; background-position:right 12px center; background-size:14px;
   padding-right:32px;
 }
-.ma-full-form select option{color:#000;}
+.ma-full-form select option{color:var(--paper); background:var(--ink-2);}
 .ma-full-form input:focus, .ma-full-form select:focus{outline:none; border-color:var(--gold);}
 .mgf-mobile{display:flex; gap:8px;}
 .mgf-cc{flex:0 0 108px;}
@@ -528,7 +528,6 @@ nav.links a:hover::after{width:100%;}
 .mgf-status{font-size:12px; color:var(--muted-light); margin-top:-6px;}
 .mgf-status.ok{color:var(--emerald-light);}
 .mgf-status.warn{color:var(--gold-light);}
-.mgf-manual{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 
 /* modal overlay wrapping the gate when triggered from "Discover" / "Talk to an Expert" */
 .ma-modal-overlay{position:fixed; inset:0; z-index:2200; background:rgba(11,14,19,0.6); display:flex; align-items:center; justify-content:center; padding:20px; animation:sched-in .2s ease;}

@@ -70,16 +70,13 @@
       '<select name="country" aria-label="Country">' + countryOptionsHtml(countries) + '</select>' +
       '<input type="text" name="pincode" placeholder="Pincode / ZIP" required>' +
       '<span class="mgf-status" data-status></span>' +
-      '<div class="mgf-manual" data-manual hidden>' +
-      '<input type="text" name="city" placeholder="City">' +
-      '<input type="text" name="state" placeholder="State">' +
-      '</div>' +
       '<button type="submit" class="btn-gold">Continue →</button>' +
       '</form>' +
       '</div>';
     wireCountryDialSync(container);
     var form = container.querySelector('.ma-full-form');
-    wirePincodeLookup(form);
+    var detectedLocation = { city: '', state: '' };
+    wirePincodeLookup(form, detectedLocation);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var lead = {
@@ -87,7 +84,7 @@
         mobileCountryCode: form.mobileCc.value, mobile: form.mobile.value.trim(),
         country: form.country.options[form.country.selectedIndex].textContent,
         pincode: form.pincode.value.trim(),
-        city: form.city.value.trim(), state: form.state.value.trim(),
+        city: detectedLocation.city, state: detectedLocation.state,
         interest: opts.interest || ''
       };
       if (!lead.name || !lead.email || !lead.mobile || !lead.pincode) return;
@@ -104,21 +101,20 @@
     });
   };
 
-  // Pincode -> city/state, same logic as the enquiry form: look it up as
-  // soon as the pincode looks complete, and if it can't be resolved (or
-  // only partly resolves), reveal the City/State inputs so the visitor
-  // confirms them manually instead of silently submitting blanks.
-  function wirePincodeLookup(form) {
-    var pinInput = form.pincode, statusEl = form.querySelector('[data-status]'), manualRow = form.querySelector('[data-manual]');
+  // Pincode -> city/state, same lookup the enquiry form uses. Display-only:
+  // nothing is ever shown to type into — until it resolves, the status line
+  // stays silent (or shows "Looking up…"); once resolved it just states the
+  // city/state as text. A pincode ZipCodeBase can't place submits with
+  // city/state blank rather than asking the visitor to fill them in by hand.
+  function wirePincodeLookup(form, detected) {
+    var pinInput = form.pincode, statusEl = form.querySelector('[data-status]');
     var pinDebounce = null, pinReqId = 0;
     function setStatus(text, kind) { statusEl.textContent = text || ''; statusEl.className = 'mgf-status' + (kind ? ' ' + kind : ''); }
-    function showManual() { manualRow.hidden = false; }
-    function hideManual() { manualRow.hidden = true; }
-    function reset() { pinReqId++; form.city.value = ''; form.state.value = ''; hideManual(); setStatus('', ''); }
 
     pinInput.addEventListener('input', function () {
       clearTimeout(pinDebounce);
       setStatus('', '');
+      detected.city = ''; detected.state = '';
       var v = pinInput.value.trim();
       var country = form.country.value || 'IN';
       var ready = country === 'IN' ? v.length === 6 : v.length >= 3;
@@ -128,18 +124,15 @@
         setStatus('Looking up pincode…', 'loading');
         window.MASession.lookupPincode(v, country).then(function (loc) {
           if (reqId !== pinReqId) return; // superseded by a newer keystroke
-          form.city.value = loc.city; form.state.value = loc.state;
-          if (!loc.city || !loc.state) {
-            showManual();
-            setStatus((loc.city || loc.state) ? 'Please confirm your city and state below.' : 'Enter your city and state below.', 'warn');
-            return;
-          }
-          hideManual();
+          if (!loc.city || !loc.state) { setStatus('', ''); return; } // stays silent — nothing to show yet
+          detected.city = loc.city; detected.state = loc.state;
           setStatus(loc.city + ', ' + loc.state, 'ok');
         });
       }, 400);
     });
-    form.country.addEventListener('change', reset);
+    form.country.addEventListener('change', function () {
+      pinReqId++; detected.city = ''; detected.state = ''; setStatus('', '');
+    });
   }
 
   function showFullOtpStep(container, lead, onVerified) {
