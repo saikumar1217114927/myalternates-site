@@ -671,7 +671,12 @@ nav.links a:hover::after{width:100%;}
 .scm-legend i.scheme{background:var(--gold);}
 .scm-legend i.bench{background:var(--muted-light);}
 .scm-chart-wrap{position:relative; border:1px solid #E4DFD1; border-radius:12px; background:#fff; padding:22px 18px 10px; overflow-x:auto;}
-.scm-chart-wrap svg{display:block; overflow:visible;}
+/* The SVG's viewBox is a fixed 900x260, but was rendering at that literal
+   pixel size regardless of the card's real (often much wider) content width
+   — leaving a large blank strip to the right of the bars. Scaling to fill
+   the container (viewBox keeps the coordinate system + aspect ratio) also
+   grows the height proportionally, giving the bars more vertical room. */
+.scm-chart-wrap svg{display:block; overflow:visible; width:100%; height:auto;}
 .scm-bar{cursor:pointer;}
 .scm-bar.scheme{fill:var(--gold);}
 .scm-bar.bench{fill:#C7C2B4;}

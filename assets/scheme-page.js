@@ -96,14 +96,14 @@
     var maxV = Math.max(0, Math.max.apply(null, vals));
     var minV = Math.min(0, Math.min.apply(null, vals));
     var range = (maxV - minV) || 1;
-    maxV += range * 0.08; minV -= range * 0.08;
+    maxV += range * 0.06; minV -= range * 0.06;
     var scale = plotH / (maxV - minV);
     // Snap to a half-pixel so the 1px baseline stroke lands crisply on one
     // pixel row instead of straddling two — against a plain white card that
     // sub-pixel blur read as the bars sitting slightly off the baseline.
     var zeroY = Math.round(padTop + maxV * scale - 0.5) + 0.5;
     var groupW = plotW / RET_COLS.length;
-    var barW = Math.min(22, groupW * 0.3);
+    var barW = Math.min(28, groupW * 0.34);
     var gapBetween = 6;
 
     // No static value labels on the bars — with 9 grouped pairs, printing all
@@ -182,11 +182,11 @@
     var maxV = Math.max(0, Math.max.apply(null, vals));
     var minV = Math.min(0, Math.min.apply(null, vals));
     var range = (maxV - minV) || 1;
-    maxV += range * 0.08; minV -= range * 0.08;
+    maxV += range * 0.06; minV -= range * 0.06;
     var scale = plotH / (maxV - minV);
     var zeroY = Math.round(padTop + maxV * scale - 0.5) + 0.5;
     var groupW = plotW / rows.length;
-    var barW = Math.min(20, groupW * 0.6);
+    var barW = Math.min(30, groupW * 0.68);
 
     var bars = '', axisLabels = '';
     rows.forEach(function (r, i) {
