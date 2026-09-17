@@ -140,11 +140,45 @@
   .nav-goals .nav-menu{min-width:214px; max-height:70vh; overflow-y:auto;}
   .nav-cta{
     background:var(--gold); color:var(--ink) !important;
-    padding:10px 32px; font-weight:700; font-size:13.5px;
-    border-radius:3px; letter-spacing:0.02em;
+    padding:11px 32px; font-weight:700; font-size:13.5px;
+    border-radius:999px; letter-spacing:0.02em;
     transition:background .2s ease, transform .2s ease;
   }
   .nav-cta:hover{background:var(--gold-light); transform:translateY(-1px);}
+
+  /* ---------- REGISTERED-VISITOR PROFILE ICON (nav) ---------- */
+  .nav-profile{position:relative;}
+  .nav-profile-btn{
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+    background:var(--ink-3); color:var(--gold-light); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; padding:0;
+    transition:border-color .18s ease, background .18s ease;
+  }
+  .nav-profile-btn svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+  .nav-profile-btn:hover{border-color:var(--gold);}
+  .nav-profile-panel{
+    position:absolute; top:100%; right:0; margin-top:10px; width:280px;
+    background:var(--ink-3); border:1px solid var(--line); border-radius:10px;
+    padding:16px; z-index:50; box-shadow:0 20px 40px rgba(0,0,0,0.4);
+  }
+  .npp-label{font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted-light); margin-bottom:8px;}
+  .npp-section{padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid var(--line);}
+  .npp-section:last-of-type{border-bottom:0; margin-bottom:10px; padding-bottom:0;}
+  .npp-name{font-family:'Fraunces', Georgia, serif; font-size:15px; color:var(--paper); margin-bottom:4px;}
+  .npp-row{font-size:12.5px; color:var(--muted-light); line-height:1.6; word-break:break-word;}
+  .npp-expert-row{display:flex; align-items:center; gap:12px;}
+  .npp-avatar{width:44px; height:44px; border-radius:50%; object-fit:cover; flex:none;}
+  .npp-avatar-fallback{
+    width:44px; height:44px; border-radius:50%; background:var(--ink-2); color:var(--gold-light);
+    font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; flex:none;
+  }
+  .npp-signout{
+    width:100%; background:none; border:1px solid var(--line); color:var(--muted-light);
+    font-family:inherit; font-size:12.5px; font-weight:600; padding:9px; border-radius:6px; cursor:pointer;
+    transition:border-color .18s ease, color .18s ease;
+  }
+  .npp-signout:hover{border-color:var(--gold); color:var(--gold-light);}
+
   .burger{display:none; background:none; border:none; color:var(--paper); font-size:24px; cursor:pointer;}
 
   /* ---------- HERO ---------- */
@@ -866,6 +900,12 @@
         </div>
       </div>
       <a href="#enquiry" class="nav-cta">Talk to an Expert</a>
+      <div class="nav-profile" id="maProfile" hidden>
+        <button type="button" class="nav-profile-btn" id="maProfileBtn" aria-label="Your profile">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path></svg>
+        </button>
+        <div class="nav-profile-panel" id="maProfilePanel" hidden></div>
+      </div>
     </nav>
     <button class="burger" aria-label="Menu">☰</button>
   </div>
@@ -2495,6 +2535,8 @@ scheduleForm.addEventListener('submit', async function(e){
 })();
 </script>
 
+<script src="assets/lead-form.js"></script>
+<script src="assets/session-gate.js"></script>
 <script src="assets/nav.js" defer></script>
 <script src="assets/event-banner.js" defer></script>
 </body>
