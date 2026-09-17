@@ -206,6 +206,29 @@
       '</aside>';
   }
 
+  // Backend search for this product, beyond whatever's already loaded — the
+  // list itself only ever holds the top ~50 (sorted by how recently each
+  // scheme's performance was synced), so a real match further down that
+  // order wouldn't otherwise show up just because the sidebar box filters
+  // client-side. Merges any newly-found schemes into allSchemes (never
+  // removes any) and re-applies the current filters.
+  function expandSearch(term) {
+    var url = API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) +
+      '&q=' + encodeURIComponent(term) + '&limit=100';
+    fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ok) return;
+      var input = host.querySelector('#pssSearch');
+      if (!input || input.value.trim() !== term) return; // stale — a newer keystroke has moved on
+      var known = {};
+      allSchemes.forEach(function (s) { known[s.planId] = true; });
+      var added = false;
+      (d.schemes || []).forEach(function (s) {
+        if (!known[s.planId]) { allSchemes.push(s); known[s.planId] = true; added = true; }
+      });
+      if (added) applyFilters();
+    }).catch(function () {});
+  }
+
   function wireSidebar() {
     host.querySelectorAll('.ps-cat-tab').forEach(function (btn) {
       btn.onclick = function () {
@@ -217,7 +240,16 @@
     });
 
     var searchInput = host.querySelector('#pssSearch');
-    searchInput.addEventListener('input', function () { state.q = searchInput.value; applyFilters(); });
+    var searchTimer = null;
+    searchInput.addEventListener('input', function () {
+      state.q = searchInput.value; applyFilters(); // instant: filters whatever's already loaded
+      // Then widen beyond that — a scheme can rank outside the normal
+      // top-N (sorted by how recently its performance was synced) and
+      // still be a real, valid match the visitor is looking for.
+      var term = searchInput.value.trim();
+      clearTimeout(searchTimer);
+      if (term.length >= 2) searchTimer = setTimeout(function () { expandSearch(term); }, 300);
+    });
 
     var sortSel = host.querySelector('#pssSort');
     sortSel.addEventListener('change', function () { state.sortKey = sortSel.value; applyFilters(); });
