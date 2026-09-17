@@ -137,13 +137,13 @@ nav.links a:hover::after{width:100%;}
    confirmed live, next to the Talk to an Expert / Reschedule CTA. */
 .nav-profile{position:relative;}
 .nav-profile-btn{
-  width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
-  background:var(--ink-3); color:var(--gold-light); cursor:pointer;
+  width:38px; height:38px; border-radius:50%; border:1px solid var(--gold);
+  background:var(--gold); color:var(--ink); cursor:pointer;
   display:flex; align-items:center; justify-content:center; padding:0;
   transition:border-color .18s ease, background .18s ease;
 }
 .nav-profile-btn svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
-.nav-profile-btn:hover{border-color:var(--gold);}
+.nav-profile-btn:hover{background:var(--gold-light); border-color:var(--gold-light);}
 .nav-profile-panel{
   position:absolute; top:100%; right:0; margin-top:10px; width:280px;
   background:var(--ink-3); border:1px solid var(--line); border-radius:10px;
@@ -459,9 +459,9 @@ nav.links a:hover::after{width:100%;}
 .p-schemes-sidebar > .ps-search + .pss-group{padding-top:0; border-top:0;}
 .pss-group label{font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted);}
 .pss-group select{
-  width:100%; appearance:none; -webkit-appearance:none; font-family:inherit; font-size:13.5px; color:var(--ink-text);
+  width:100%; height:52px; appearance:none; -webkit-appearance:none; font-family:inherit; font-size:13.5px; color:var(--ink-text);
   background:var(--paper-2) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%236C7178"><path d="M5.5 7.5l4.5 5 4.5-5z"/></svg>') no-repeat right 10px center / 14px;
-  border:1px solid #E4DDC9; border-radius:9px; padding:9px 30px 9px 11px; cursor:pointer;
+  border:1px solid #E4DDC9; border-radius:9px; padding:0 30px 0 11px; cursor:pointer;
 }
 .pss-group select:focus{outline:none; border-color:var(--gold);}
 .pss-dir{display:flex; gap:0; border:1px solid #E4DDC9; border-radius:9px; overflow:hidden;}
@@ -662,10 +662,6 @@ nav.links a:hover::after{width:100%;}
 
 .scm-two-col{display:grid; grid-template-columns:1fr 1fr; gap:20px 40px; margin-bottom:44px;}
 .scm-two-col .scm-section{margin-bottom:0;}
-/* Trailing returns (9 grouped periods) needs less room than the yearly
-   chart (up to 17 single bars, plus its own toggle) — trim the left
-   column a bit and give the right one the space back. */
-.scm-two-col.scm-returns-row{grid-template-columns:0.85fr 1.15fr;}
 @media (max-width:800px){ .scm-two-col{grid-template-columns:1fr; gap:44px;} }
 
 /* legend + chart */

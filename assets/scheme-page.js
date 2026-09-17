@@ -175,7 +175,7 @@
 
   function buildYearlyChart(rows) {
     if (!rows || !rows.length) return '';
-    var W = 620, H = 260, padL = 6, padR = 6, padTop = 14, padBottom = 26;
+    var W = 900, H = 260, padL = 6, padR = 6, padTop = 14, padBottom = 26;
     var plotW = W - padL - padR, plotH = H - padTop - padBottom;
     var vals = rows.map(function (r) { return r.ret; }).filter(function (v) { return v != null; });
     if (!vals.length) return '';
@@ -432,14 +432,10 @@
       ? '<img class="scm-hero-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.remove()">'
       : '';
 
-    // Side by side only when there's actually something on both sides — most
-    // schemes won't have yearly data yet (a brand-new, separately-fetched
-    // endpoint), and a lone 1fr/1fr column would leave an awkward empty gap.
-    var trailingHtml = trailingReturnsSection(s);
-    var yearlyHtml = historicReturnsSection(s);
-    var returnsRow = (trailingHtml && yearlyHtml)
-      ? '<div class="scm-two-col scm-returns-row">' + trailingHtml + yearlyHtml + '</div>'
-      : (trailingHtml + yearlyHtml);
+    // Stacked, full width, Yearly returns above Trailing returns — not side
+    // by side (that read as cramped: two charts of very different bar counts
+    // squeezed into half-width columns each).
+    var returnsRow = historicReturnsSection(s) + trailingReturnsSection(s);
 
     root.innerHTML =
       '<div class="scm-hero"><div class="wrap">' +
