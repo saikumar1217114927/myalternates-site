@@ -361,8 +361,23 @@ nav.links a:hover::after{width:100%;}
   background:var(--gold); color:var(--ink); font-weight:700; font-size:13px;
   padding:11px 22px; border-radius:9px; border:none; cursor:pointer; font-family:inherit;
   transition:background .2s ease, transform .15s ease; display:inline-block; white-space:nowrap;
+  position:relative; overflow:hidden;
 }
 .sc-discover:hover{background:var(--gold-light); transform:translateY(-1px);}
+/* left-to-right shine, flashing roughly every 2s — same effect as the
+   landing page's "Lowest PMS fee" ribbon (.fee-ribbon in index.html) */
+.sc-discover::after{
+  content:''; position:absolute; top:0; bottom:0; left:0; width:45%;
+  background:linear-gradient(100deg, transparent 0%, rgba(255,255,255,0.65) 50%, transparent 100%);
+  transform:translateX(-160%) skewX(-18deg);
+  animation:scDiscoverShine 2s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes scDiscoverShine{
+  0%   { transform:translateX(-160%) skewX(-18deg); }
+  28%  { transform:translateX(320%)  skewX(-18deg); }
+  100% { transform:translateX(320%)  skewX(-18deg); }
+}
 .p-schemes .disc{font-size:11.5px; color:var(--muted-light); margin-top:22px; line-height:1.6;}
 .p-schemes-head{display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px 24px; margin-bottom:28px;}
 .p-schemes .section-head{margin-bottom:0; max-width:560px;}
