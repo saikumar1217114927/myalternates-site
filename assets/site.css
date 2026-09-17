@@ -365,8 +365,11 @@ nav.links a:hover::after{width:100%;}
 .p-schemes .section-head{margin-bottom:0; max-width:560px;}
 /* The old hero's CTA row (Talk to an expert/Reschedule + a product-specific
    extra link) sits here now, opposite the heading — sized for this corner
-   rather than a full hero, with rounded (not the hero's sharp 3px) edges. */
-.p-schemes-cta{display:flex; flex-direction:column; align-items:flex-end; gap:10px;}
+   rather than a full hero, with rounded (not the hero's sharp 3px) edges.
+   One row: the "your call is scheduled" date pill, the Talk to an
+   expert/Reschedule button, then + Add Topic — the button stays the visual
+   centre between the two meeting-info pieces either side of it. */
+.p-schemes-cta{display:flex; flex-direction:row; align-items:center; flex-wrap:wrap; justify-content:flex-end; gap:14px;}
 .p-schemes-cta-row{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
 .p-schemes-cta-row .btn-gold{padding:11px 24px; font-size:13px; border-radius:9px;}
 .btn-ghost-sm{
@@ -375,9 +378,10 @@ nav.links a:hover::after{width:100%;}
   display:inline-block; transition:border-color .2s ease;
 }
 .btn-ghost-sm:hover{border-color:var(--gold);}
-/* Upcoming-meeting info (pms.html only) — sits opposite the heading, on a
-   light section background rather than the dark hero it used to live in. */
-#heroMeetingInfo:not(:empty){display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+/* Upcoming-meeting info — the date half and the +Add Topic half sit either
+   side of the CTA button in .p-schemes-cta above; each collapses out of the
+   row entirely (no stray gap) when empty (anonymous visitor, or no call yet). */
+#heroMeetingWhen:empty, #heroMeetingAdd:empty{display:none;}
 .hmi-when{
   font-size:13px; font-weight:600; color:var(--muted); white-space:nowrap;
   background:#fff; border:1px solid #E4DDC9; padding:8px 14px; border-radius:999px;
@@ -390,7 +394,7 @@ nav.links a:hover::after{width:100%;}
 }
 .hmi-add:hover:not(:disabled){border-color:var(--gold);}
 .hmi-add:disabled{opacity:.6; cursor:default;}
-.hmi-added{font-size:12.5px; font-weight:600; color:var(--emerald);}
+.hmi-added{font-size:12.5px; font-weight:600; color:var(--emerald); white-space:nowrap;}
 
 /* ---- AIF-only: All / Cat I / Cat II / Cat III tabs above the sidebar+list ---- */
 .ps-cat-tabs{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:26px;}

@@ -273,13 +273,14 @@
     if (!schemes.length) { host.remove(); return; } // nothing curated yet — don't show an empty section
     allSchemes = schemes;
     // The hero's old CTA row (Talk to an expert/Reschedule + a product-
-    // specific extra link) and #heroMeetingInfo (the "your call is
-    // scheduled" line) both live here now, opposite the heading, instead of
-    // in a separate hero section — session-gate.js/hero-meeting.js only
-    // wire this new data-ma-talk button and query the DOM for
-    // #heroMeetingInfo once we tell them this section actually exists,
-    // since it all renders async (after this section's own schemes fetch)
-    // and would otherwise find nothing if they looked on script load.
+    // specific extra link) and the "your call is scheduled" pieces
+    // (#heroMeetingWhen / #heroMeetingAdd, either side of the button) both
+    // live here now, opposite the heading, instead of in a separate hero
+    // section — session-gate.js/hero-meeting.js only wire this new
+    // data-ma-talk button and query the DOM for those two ids once we tell
+    // them this section actually exists, since it all renders async (after
+    // this section's own schemes fetch) and would otherwise find nothing if
+    // they looked on script load.
     host.innerHTML =
       '<div class="wrap">' +
       '<div class="p-schemes-head">' +
@@ -292,11 +293,12 @@
       // with this same button — adding it here too would just duplicate it.
       (SHOW_HEADER_CTA ?
         '<div class="p-schemes-cta">' +
+        '<span id="heroMeetingWhen"></span>' +
         '<div class="p-schemes-cta-row">' +
         '<a href="#" class="btn-gold" data-ma-talk="' + esc(PRODUCT_INTEREST) + '">Talk to an expert →</a>' +
         (PRODUCT_EXTRA_LINK ? '<a href="' + esc(PRODUCT_EXTRA_LINK.href) + '" class="btn-ghost btn-ghost-sm">' + esc(PRODUCT_EXTRA_LINK.label) + '</a>' : '') +
         '</div>' +
-        '<div id="heroMeetingInfo"></div>' +
+        '<span id="heroMeetingAdd"></span>' +
         '</div>'
         : '') +
       '</div>' +
