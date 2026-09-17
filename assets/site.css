@@ -234,13 +234,6 @@ nav.links a:hover::after{width:100%;}
   max-width:600px; margin-bottom:34px;
 }
 .hero-cta-row{display:flex; flex-wrap:wrap; gap:14px;}
-#heroMeetingInfo:not(:empty){display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:18px;}
-.hmi-when{font-size:13.5px; color:var(--muted-light);}
-.hmi-when b{color:var(--paper); font-weight:700;}
-.hmi-add{background:none; border:1px solid var(--line); color:var(--gold-light); font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:999px; cursor:pointer; font-family:inherit; transition:border-color .15s ease, background .15s ease;}
-.hmi-add:hover:not(:disabled){border-color:var(--gold); background:rgba(201,162,75,0.1);}
-.hmi-add:disabled{opacity:.6; cursor:default;}
-.hmi-added{font-size:12.5px; font-weight:600; color:var(--emerald-light);}
 
 /* ---------- BUTTONS ---------- */
 .btn-gold{
@@ -368,7 +361,24 @@ nav.links a:hover::after{width:100%;}
 }
 .sc-discover:hover{background:var(--gold-light); transform:translateY(-1px);}
 .p-schemes .disc{font-size:11.5px; color:var(--muted-light); margin-top:22px; line-height:1.6;}
-.p-schemes .section-head{margin-bottom:28px; max-width:560px;}
+.p-schemes-head{display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px 24px; margin-bottom:28px;}
+.p-schemes .section-head{margin-bottom:0; max-width:560px;}
+/* Upcoming-meeting info (pms.html only) — sits opposite the heading, on a
+   light section background rather than the dark hero it used to live in. */
+#heroMeetingInfo:not(:empty){display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.hmi-when{
+  font-size:13px; font-weight:600; color:var(--muted); white-space:nowrap;
+  background:#fff; border:1px solid #E4DDC9; padding:8px 14px; border-radius:999px;
+}
+.hmi-when b{color:var(--ink-text); font-weight:700; margin-left:2px;}
+.hmi-add{
+  background:none; border:1px solid #E4DDC9; color:var(--ink-text); font-family:inherit;
+  font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:999px; cursor:pointer;
+  transition:border-color .15s ease;
+}
+.hmi-add:hover:not(:disabled){border-color:var(--gold);}
+.hmi-add:disabled{opacity:.6; cursor:default;}
+.hmi-added{font-size:12.5px; font-weight:600; color:var(--emerald);}
 
 /* ---- AIF-only: All / Cat I / Cat II / Cat III tabs above the sidebar+list ---- */
 .ps-cat-tabs{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:26px;}

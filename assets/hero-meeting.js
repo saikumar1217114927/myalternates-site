@@ -1,18 +1,15 @@
 /* ==========================================================================
-   myAlternates — compact "your call is scheduled" info line in the hero.
-   The hero CTA itself ("Talk to an expert →" -> "Reschedule") is handled
-   generically by session-gate.js for every data-ma-talk element on the
-   page; this file only owns the small line under it showing the date/time
-   plus a one-click "add this interest" — the one piece that's unique to
-   this hero, not shared with the nav CTA.
+   myAlternates — "your call is scheduled" info line, shown opposite the
+   "Explore PMS Schemes" heading (in the schemes section built by
+   featured-schemes.js) once a registered visitor has an upcoming call.
+   That section renders async — after its own schemes fetch — so this
+   doesn't run on script load; featured-schemes.js calls
+   window.maInitHeroMeetingInfo() itself once #heroMeetingInfo actually
+   exists in the DOM. The hero CTA text swap ("Talk to an expert" ->
+   "Reschedule") is handled generically by session-gate.js for every
+   data-ma-talk element on the page — this file only owns this one line.
    ========================================================================== */
 (function () {
-  var info = document.getElementById('heroMeetingInfo');
-  if (!info || !window.MASession) return;
-
-  var token = MASession.getToken();
-  if (!token) return;
-
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -24,7 +21,7 @@
     return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' });
   }
 
-  function render(sess) {
+  function render(info, sess) {
     var mtg = sess.upcomingMeeting;
     if (!mtg || !mtg.date) { info.innerHTML = ''; return; } // no call yet
 
@@ -50,11 +47,16 @@
   }
 
   function load() {
+    var info = document.getElementById('heroMeetingInfo');
+    if (!info || !window.MASession) return;
+    var token = MASession.getToken();
+    if (!token) return;
     MASession.checkStatus(token).then(function (r) {
-      if (r && r.ok && r.loggedIn) render(r);
+      if (r && r.ok && r.loggedIn) render(info, r);
     });
   }
-  load();
+
+  window.maInitHeroMeetingInfo = load;
   document.addEventListener('ma:scheduled', function (e) {
     if (e.detail && e.detail.scheduled) load();
   });

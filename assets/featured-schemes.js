@@ -264,6 +264,11 @@
   function renderList(schemes) {
     if (!schemes.length) { host.remove(); return; } // nothing curated yet — don't show an empty section
     allSchemes = schemes;
+    // #heroMeetingInfo (PMS only) used to live in the hero; it now sits
+    // opposite this heading instead — hero-meeting.js only queries the DOM
+    // for it once we tell it this section actually exists, since it renders
+    // async (after its own schemes fetch) and would otherwise find nothing
+    // if it looked immediately on script load.
     host.innerHTML =
       '<div class="wrap">' +
       '<div class="p-schemes-head">' +
@@ -271,6 +276,7 @@
       '<div class="section-tag">Live on the platform</div>' +
       '<h2>Explore ' + esc(PRODUCT_LABEL) + ' Schemes</h2>' +
       '</div>' +
+      '<div id="heroMeetingInfo"></div>' +
       '</div>' +
       catTabsHtml() +
       '<div class="p-schemes-body">' +
@@ -284,6 +290,7 @@
       '</div>';
     wireSidebar();
     applyFilters();
+    if (window.maInitHeroMeetingInfo) window.maInitHeroMeetingInfo();
   }
 
   function goToScheme(planId) {
