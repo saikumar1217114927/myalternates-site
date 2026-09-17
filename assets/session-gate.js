@@ -90,7 +90,7 @@
       if (!lead.name || !lead.email || !lead.mobile || !lead.pincode) return;
       var btn = form.querySelector('button');
       btn.disabled = true; btn.textContent = 'Sending…';
-      window.MASession.requestOtp(lead.email).then(function (r) {
+      window.MASession.requestOtp(lead.email, lead.mobileCountryCode, lead.mobile).then(function (r) {
         if (!r || !r.ok) {
           btn.disabled = false; btn.textContent = 'Continue →';
           alert((r && r.error) || 'Could not send a code — please try again.');
@@ -135,12 +135,16 @@
     });
   }
 
+  // One code, sent on both email and SMS at once (requestLeadOtp on the
+  // backend) — the visitor enters whichever arrives first, no need to pick
+  // a channel up front or switch between them.
   function showFullOtpStep(container, lead, onVerified) {
+    var mobileLabel = (lead.mobileCountryCode || '') + ' ' + (lead.mobile || '');
     container.innerHTML =
       '<div class="ma-gate ma-gate-full">' +
       '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
-      '<h3>Verify your email</h3>' +
-      '<p>We sent a 6-digit code to <b>' + esc(lead.email) + '</b>.</p>' +
+      '<h3>Verify your details</h3>' +
+      '<p>We sent a 6-digit code to <b>' + esc(lead.email) + '</b> and by SMS to <b>' + esc(mobileLabel) + '</b> — enter whichever arrives first.</p>' +
       '<form class="ma-gate-form ma-gate-otp"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" required>' +
       '<button type="submit" class="btn-gold">Verify</button></form>' +
       '<button type="button" class="ma-gate-link" data-resend>Resend code</button>' +
@@ -149,6 +153,7 @@
     var form = container.querySelector('.ma-gate-form');
     var err = container.querySelector('.ma-gate-err');
     form.querySelector('input').focus();
+
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var otp = form.querySelector('input').value.trim();
@@ -156,7 +161,7 @@
       err.style.display = 'none';
       var btn = form.querySelector('button');
       btn.disabled = true; btn.textContent = 'Verifying…';
-      window.MASession.verifyOtp(lead.email, otp, lead).then(function (r) {
+      window.MASession.verifyOtp(lead.email, lead.mobileCountryCode, lead.mobile, otp, lead).then(function (r) {
         if (!r || !r.ok) {
           btn.disabled = false; btn.textContent = 'Verify';
           err.textContent = (r && r.error) || 'Could not verify — please try again.';
@@ -164,8 +169,8 @@
           return;
         }
         window.MASession.saveToken(r.sessionToken);
-        // verifyLeadEmailOtp's own response doesn't echo back email/mobile —
-        // it only has the lead's id/name — so callers that need the full
+        // verifyLeadOtp's own response doesn't echo back email/mobile — it
+        // only has the lead's id/name — so callers that need the full
         // identity (e.g. opening the scheduler right after) get the
         // just-submitted form values passed along too.
         onVerified(r.sessionToken, r, lead);
@@ -173,7 +178,7 @@
     });
     container.querySelector('[data-resend]').onclick = function (ev) {
       ev.target.disabled = true; ev.target.textContent = 'Sending…';
-      window.MASession.requestOtp(lead.email).then(function () {
+      window.MASession.requestOtp(lead.email, lead.mobileCountryCode, lead.mobile).then(function () {
         ev.target.disabled = false; ev.target.textContent = 'Resend code';
       });
     };

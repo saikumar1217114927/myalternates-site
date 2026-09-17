@@ -560,7 +560,7 @@ nav.links a:hover::after{width:100%;}
 .ma-gate-form input:focus{outline:none; border-color:var(--gold);}
 .ma-gate-form.ma-gate-otp input{text-align:center; letter-spacing:.3em; font-weight:700; font-size:17px;}
 .ma-gate-form button{white-space:nowrap; border:none; border-radius:6px; cursor:pointer;}
-.ma-gate-link{background:none; border:0; color:var(--muted-light); font-size:12.5px; text-decoration:underline; cursor:pointer; margin-top:12px;}
+.ma-gate-link{display:block; background:none; border:0; color:var(--muted-light); font-size:12.5px; text-decoration:underline; cursor:pointer; margin:12px auto 0;}
 .ma-gate-err{color:#ff9376; font-size:13px; margin-top:12px;}
 @media (max-width:480px){ .ma-gate-form{flex-direction:column;} }
 
