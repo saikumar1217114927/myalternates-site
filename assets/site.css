@@ -459,9 +459,9 @@ nav.links a:hover::after{width:100%;}
 .p-schemes-sidebar > .ps-search + .pss-group{padding-top:0; border-top:0;}
 .pss-group label{font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted);}
 .pss-group select{
-  width:100%; height:52px; appearance:none; -webkit-appearance:none; font-family:inherit; font-size:13.5px; color:var(--ink-text);
+  width:100%; appearance:none; -webkit-appearance:none; font-family:inherit; font-size:13.5px; color:var(--ink-text);
   background:var(--paper-2) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%236C7178"><path d="M5.5 7.5l4.5 5 4.5-5z"/></svg>') no-repeat right 10px center / 14px;
-  border:1px solid #E4DDC9; border-radius:9px; padding:0 30px 0 11px; cursor:pointer;
+  border:1px solid #E4DDC9; border-radius:9px; padding:9px 30px 9px 11px; cursor:pointer;
 }
 .pss-group select:focus{outline:none; border-color:var(--gold);}
 .pss-dir{display:flex; gap:0; border:1px solid #E4DDC9; border-radius:9px; overflow:hidden;}
