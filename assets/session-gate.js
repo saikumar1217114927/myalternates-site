@@ -306,6 +306,11 @@
   // <interest>" (nav + hero CTAs on pms.html/aif.html) to the flow above,
   // instead of just following its href="#schemes" fallback. Uses .onclick
   // (a plain property, not addEventListener) so nothing can double-fire.
+  // Exposed as window.maWireTalkToExpertLinks so a page-specific widget
+  // that injects its OWN data-ma-talk element later (e.g. featured-
+  // schemes.js's schemes-header CTA, built async after its own fetch) can
+  // re-run this once that element actually exists in the DOM — the initial
+  // pass here only ever sees what's already on the page at load time.
   function wireTalkToExpertLinks() {
     var links = document.querySelectorAll('[data-ma-talk]');
     if (!links.length) return;
@@ -318,6 +323,7 @@
     refreshTalkToExpertState(links);
     document.addEventListener('ma:scheduled', function () { refreshTalkToExpertState(links); });
   }
+  window.maWireTalkToExpertLinks = wireTalkToExpertLinks;
 
   // Registered-visitor profile icon (id="maProfile") next to the Talk to an
   // Expert CTA — hidden for an anonymous visitor, shown once a session

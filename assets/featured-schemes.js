@@ -23,6 +23,14 @@
     AIF: 'Alternative Investment Fund (AIF)',
     GIFT_IFSC: 'GIFT City products'
   }[productCode] || 'Portfolio Management Services (PMS)';
+  // An extra, product-specific link next to the Talk to an Expert / Reschedule
+  // button in the schemes header — only PMS has one today.
+  var PRODUCT_EXTRA_LINK = {
+    PMS: { href: 'pms-fees', label: 'PMS fee calculator' }
+  }[productCode] || null;
+  // Only pms.html has had its hero removed in favor of this header CTA —
+  // aif.html/gift-city.html still have their own hero with this same button.
+  var SHOW_HEADER_CTA = productCode === 'PMS';
 
   var allSchemes = [];
   var state = { q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc' };
@@ -264,11 +272,14 @@
   function renderList(schemes) {
     if (!schemes.length) { host.remove(); return; } // nothing curated yet — don't show an empty section
     allSchemes = schemes;
-    // #heroMeetingInfo (PMS only) used to live in the hero; it now sits
-    // opposite this heading instead — hero-meeting.js only queries the DOM
-    // for it once we tell it this section actually exists, since it renders
-    // async (after its own schemes fetch) and would otherwise find nothing
-    // if it looked immediately on script load.
+    // The hero's old CTA row (Talk to an expert/Reschedule + a product-
+    // specific extra link) and #heroMeetingInfo (the "your call is
+    // scheduled" line) both live here now, opposite the heading, instead of
+    // in a separate hero section — session-gate.js/hero-meeting.js only
+    // wire this new data-ma-talk button and query the DOM for
+    // #heroMeetingInfo once we tell them this section actually exists,
+    // since it all renders async (after this section's own schemes fetch)
+    // and would otherwise find nothing if they looked on script load.
     host.innerHTML =
       '<div class="wrap">' +
       '<div class="p-schemes-head">' +
@@ -276,7 +287,18 @@
       '<div class="section-tag">Live on the platform</div>' +
       '<h2>Explore ' + esc(PRODUCT_LABEL) + ' Schemes</h2>' +
       '</div>' +
-      '<div id="heroMeetingInfo"></div>' +
+      // PMS-only: it's the one page with no separate hero any more (that CTA
+      // row moved here). Other products still have their own intact hero
+      // with this same button — adding it here too would just duplicate it.
+      (SHOW_HEADER_CTA ?
+        '<div class="p-schemes-cta">' +
+        '<div class="p-schemes-cta-row">' +
+        '<a href="#" class="btn-gold" data-ma-talk="' + esc(PRODUCT_INTEREST) + '">Talk to an expert →</a>' +
+        (PRODUCT_EXTRA_LINK ? '<a href="' + esc(PRODUCT_EXTRA_LINK.href) + '" class="btn-ghost btn-ghost-sm">' + esc(PRODUCT_EXTRA_LINK.label) + '</a>' : '') +
+        '</div>' +
+        '<div id="heroMeetingInfo"></div>' +
+        '</div>'
+        : '') +
       '</div>' +
       catTabsHtml() +
       '<div class="p-schemes-body">' +
@@ -290,6 +312,7 @@
       '</div>';
     wireSidebar();
     applyFilters();
+    if (window.maWireTalkToExpertLinks) window.maWireTalkToExpertLinks();
     if (window.maInitHeroMeetingInfo) window.maInitHeroMeetingInfo();
   }
 

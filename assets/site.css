@@ -363,6 +363,18 @@ nav.links a:hover::after{width:100%;}
 .p-schemes .disc{font-size:11.5px; color:var(--muted-light); margin-top:22px; line-height:1.6;}
 .p-schemes-head{display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px 24px; margin-bottom:28px;}
 .p-schemes .section-head{margin-bottom:0; max-width:560px;}
+/* The old hero's CTA row (Talk to an expert/Reschedule + a product-specific
+   extra link) sits here now, opposite the heading — sized for this corner
+   rather than a full hero, with rounded (not the hero's sharp 3px) edges. */
+.p-schemes-cta{display:flex; flex-direction:column; align-items:flex-end; gap:10px;}
+.p-schemes-cta-row{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
+.p-schemes-cta-row .btn-gold{padding:11px 24px; font-size:13px; border-radius:9px;}
+.btn-ghost-sm{
+  border:1px solid #E4DDC9; color:var(--ink-text) !important; background:#fff;
+  font-weight:600; font-size:13px; padding:11px 24px; border-radius:9px;
+  display:inline-block; transition:border-color .2s ease;
+}
+.btn-ghost-sm:hover{border-color:var(--gold);}
 /* Upcoming-meeting info (pms.html only) — sits opposite the heading, on a
    light section background rather than the dark hero it used to live in. */
 #heroMeetingInfo:not(:empty){display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
