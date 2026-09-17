@@ -1125,6 +1125,12 @@
     saveToken: saveSessionToken,
     clearToken: clearSession,
     send: send,
+    // The same [ISO, name] country list and ISO->dial-code map this form's
+    // own Country/Mobile-code selects use — exposed so another registration
+    // form on the page (the Discover-flow gate) can build identical selects
+    // without keeping a second copy of ~190 countries in sync.
+    countries: COUNTRIES,
+    dialCodes: DIAL_CODES,
     checkStatus: function (token) { return send({ action: 'getLeadSessionStatus', token: token }); },
     hasFlaggedInterest: function (interest) { return flaggedInterests().indexOf(interest) >= 0; },
     // Same "Yes, add it" action the enquiry form's own returning-visitor

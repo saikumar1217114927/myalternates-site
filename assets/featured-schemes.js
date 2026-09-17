@@ -297,16 +297,7 @@
   // A registered visitor skips straight through; an anonymous one registers
   // (full form, not just email) in this modal first, then lands on the page.
   function openDiscoverGate(planId) {
-    var overlay = document.createElement('div');
-    overlay.className = 'ma-modal-overlay';
-    overlay.innerHTML = '<div class="ma-modal-card"><button type="button" class="ma-modal-close" aria-label="Close">✕</button><div class="ma-modal-body"></div></div>';
-    document.body.appendChild(overlay);
-    document.body.style.overflow = 'hidden';
-    function close() { overlay.remove(); document.body.style.overflow = ''; }
-    overlay.querySelector('.ma-modal-close').onclick = close;
-    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
-
-    window.maRenderFullGate(overlay.querySelector('.ma-modal-body'), {
+    window.maOpenGateModal({
       message: 'Create your free account to see this scheme\'s live returns and full profile.',
       interest: PRODUCT_INTEREST,
       onVerified: function () { location.href = 'scheme?id=' + encodeURIComponent(planId); }

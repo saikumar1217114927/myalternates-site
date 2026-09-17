@@ -13,32 +13,73 @@
     });
   }
 
-  // Full registration form (name, email, mobile, pincode) — a visitor fills
-  // this once, verifies the emailed code, and is registered with the same
-  // identity the enquiry form creates. Used wherever a visitor needs to
-  // register before seeing gated content (currently: the Discover flow).
+  // Country <option>s + a matching mobile dial-code <select>, built off the
+  // same list lead-form.js exposes on window.MASession — one source of
+  // truth for ~190 countries instead of a second copy here. Defaults both
+  // to India and keeps them in sync (picking a country updates the dial
+  // code, and vice versa) the same way the enquiry form's own fields do.
+  function countryOptionsHtml(countries) {
+    return countries.map(function (c) {
+      return '<option value="' + esc(c[0]) + '"' + (c[0] === 'IN' ? ' selected' : '') + '>' + esc(c[1]) + '</option>';
+    }).join('');
+  }
+  function dialCodeOptionsHtml(countries, dialCodes) {
+    return countries.map(function (c) {
+      var code = dialCodes[c[0]] || '';
+      if (!code) return '';
+      return '<option value="' + esc(code) + '" data-iso="' + esc(c[0]) + '"' + (c[0] === 'IN' ? ' selected' : '') + '>' +
+        esc(c[0]) + ' ' + esc(code) + '</option>';
+    }).join('');
+  }
+  function wireCountryDialSync(container) {
+    var countrySel = container.querySelector('[name="country"]');
+    var ccSel = container.querySelector('[name="mobileCc"]');
+    countrySel.addEventListener('change', function () {
+      for (var i = 0; i < ccSel.options.length; i++) {
+        if (ccSel.options[i].getAttribute('data-iso') === countrySel.value) { ccSel.selectedIndex = i; break; }
+      }
+    });
+    ccSel.addEventListener('change', function () {
+      var iso = ccSel.options[ccSel.selectedIndex].getAttribute('data-iso');
+      if (iso) countrySel.value = iso;
+    });
+  }
+
+  // Full registration form (name, email, mobile, country, pincode) — a
+  // visitor fills this once, verifies the emailed code, and is registered
+  // with the same identity the enquiry form creates. Used wherever a
+  // visitor needs to register before seeing gated content — the Discover
+  // flow, and "Talk to an Expert" for an anonymous visitor.
   // opts: { message, interest, onVerified(token, result) }.
   window.maRenderFullGate = function (container, opts) {
     opts = opts || {};
+    var countries = (window.MASession && window.MASession.countries) || [];
+    var dialCodes = (window.MASession && window.MASession.dialCodes) || {};
     container.innerHTML =
       '<div class="ma-gate ma-gate-full">' +
-      '<div class="ma-gate-lock">🔒</div>' +
+      '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
       '<h3>Register to continue</h3>' +
       (opts.message ? '<p>' + esc(opts.message) + '</p>' : '') +
       '<form class="ma-full-form">' +
       '<input type="text" name="name" placeholder="Full name" required>' +
       '<input type="email" name="email" placeholder="you@email.com" required>' +
-      '<div class="mgf-mobile"><span class="mgf-cc">+91</span><input type="tel" name="mobile" placeholder="Mobile number" pattern="[0-9]{6,14}" required></div>' +
+      '<div class="mgf-mobile">' +
+      '<select class="mgf-cc" name="mobileCc" aria-label="Mobile country code">' + dialCodeOptionsHtml(countries, dialCodes) + '</select>' +
+      '<input type="tel" name="mobile" placeholder="Mobile number" pattern="[0-9]{6,14}" required>' +
+      '</div>' +
+      '<select name="country" aria-label="Country">' + countryOptionsHtml(countries) + '</select>' +
       '<input type="text" name="pincode" placeholder="Pincode / ZIP" required>' +
       '<button type="submit" class="btn-gold">Continue →</button>' +
       '</form>' +
       '</div>';
+    wireCountryDialSync(container);
     var form = container.querySelector('.ma-full-form');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var lead = {
         name: form.name.value.trim(), email: form.email.value.trim(),
-        mobileCountryCode: '+91', mobile: form.mobile.value.trim(),
+        mobileCountryCode: form.mobileCc.value, mobile: form.mobile.value.trim(),
+        country: form.country.options[form.country.selectedIndex].textContent,
         pincode: form.pincode.value.trim(), interest: opts.interest || ''
       };
       if (!lead.name || !lead.email || !lead.mobile || !lead.pincode) return;
@@ -58,7 +99,7 @@
   function showFullOtpStep(container, lead, onVerified) {
     container.innerHTML =
       '<div class="ma-gate ma-gate-full">' +
-      '<div class="ma-gate-lock">🔒</div>' +
+      '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
       '<h3>Verify your email</h3>' +
       '<p>We sent a 6-digit code to <b>' + esc(lead.email) + '</b>.</p>' +
       '<form class="ma-gate-form ma-gate-otp"><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" required>' +
@@ -84,7 +125,11 @@
           return;
         }
         window.MASession.saveToken(r.sessionToken);
-        onVerified(r.sessionToken, r);
+        // verifyLeadEmailOtp's own response doesn't echo back email/mobile —
+        // it only has the lead's id/name — so callers that need the full
+        // identity (e.g. opening the scheduler right after) get the
+        // just-submitted form values passed along too.
+        onVerified(r.sessionToken, r, lead);
       });
     });
     container.querySelector('[data-resend]').onclick = function (ev) {
@@ -152,4 +197,67 @@
       };
     }
   };
+
+  // The modal overlay + full gate together, wherever registration is needed
+  // as a popup rather than an inline section — the Discover flow and "Talk
+  // to an Expert" both build the exact same modal this way.
+  // gateOpts: { message, interest, onVerified(token, result, lead, close) }.
+  window.maOpenGateModal = function (gateOpts) {
+    var overlay = document.createElement('div');
+    overlay.className = 'ma-modal-overlay';
+    overlay.innerHTML = '<div class="ma-modal-card"><button type="button" class="ma-modal-close" aria-label="Close">✕</button><div class="ma-modal-body"></div></div>';
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+    function close() { overlay.remove(); document.body.style.overflow = ''; }
+    overlay.querySelector('.ma-modal-close').onclick = close;
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+    window.maRenderFullGate(overlay.querySelector('.ma-modal-body'), {
+      message: gateOpts.message,
+      interest: gateOpts.interest,
+      onVerified: function (token, r, lead) { gateOpts.onVerified(token, r, lead, close); }
+    });
+    return close;
+  };
+
+  // "Talk to an Expert" — an already-registered visitor goes straight to the
+  // scheduler (reschedule if they already have a call, else book one); an
+  // anonymous visitor sees the same registration popup Discover uses first,
+  // then lands in the scheduler right after verifying.
+  window.maOpenTalkToExpert = function (interest) {
+    var token = window.MASession && window.MASession.getToken();
+    if (token) {
+      window.MASession.checkStatus(token).then(function (sess) {
+        if (!sess || !sess.ok) return;
+        window.MASession.openSchedule(sess, (sess.upcomingMeeting && sess.upcomingMeeting.meetingId) || '', interest);
+      });
+      return;
+    }
+    window.maOpenGateModal({
+      message: 'Create your free account and we\'ll set up a call with a myAlternates investment expert.',
+      interest: interest,
+      onVerified: function (token, r, lead, close) {
+        close();
+        window.MASession.openSchedule(Object.assign({}, lead, r), '', interest);
+      }
+    });
+  };
+
+  // Auto-wire every "Talk to an Expert" link marked up with data-ma-talk="
+  // <interest>" (nav + hero CTAs on pms.html/aif.html) to the flow above,
+  // instead of just following its href="#schemes" fallback. Uses .onclick
+  // (a plain property), not addEventListener, so a page-specific widget
+  // that later takes the same button over for its own purpose (e.g.
+  // hero-meeting.js turning it into "Reschedule" once a call exists)
+  // cleanly replaces this default rather than both firing.
+  function wireTalkToExpertLinks() {
+    document.querySelectorAll('[data-ma-talk]').forEach(function (el) {
+      el.onclick = function (e) {
+        e.preventDefault();
+        window.maOpenTalkToExpert(el.getAttribute('data-ma-talk'));
+      };
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireTalkToExpertLinks);
+  else wireTalkToExpertLinks();
 })();

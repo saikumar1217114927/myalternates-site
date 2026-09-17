@@ -446,7 +446,7 @@ nav.links a:hover::after{width:100%;}
 
 /* ---------- REGISTRATION GATE (shared: pms.html schemes, scheme.html) ---------- */
 .ma-gate{max-width:440px; margin:0 auto; text-align:center; background:#fff; border:1px solid #E4DFD1; border-radius:14px; padding:38px 30px;}
-.ma-gate-lock{font-size:26px; margin-bottom:14px;}
+.ma-gate-logo{height:34px; width:auto; margin-bottom:16px;}
 .ma-gate h3{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:20px; color:var(--ink-text); margin-bottom:8px;}
 .ma-gate p{font-size:14px; color:var(--muted); line-height:1.6; margin-bottom:22px;}
 .ma-gate-form{display:flex; gap:10px;}
@@ -458,13 +458,22 @@ nav.links a:hover::after{width:100%;}
 .ma-gate-err{color:#a3402f; font-size:13px; margin-top:12px;}
 @media (max-width:480px){ .ma-gate-form{flex-direction:column;} }
 
-/* full registration form (name/email/mobile/pincode) — the Discover flow */
+/* full registration form (name/email/mobile+code/country/pincode) — the
+   Discover flow and "Talk to an Expert" for an anonymous visitor */
 .ma-gate-full{max-width:400px;}
 .ma-full-form{display:flex; flex-direction:column; gap:12px; text-align:left;}
-.ma-full-form input{width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #d7d0c0; border-radius:6px; font-size:14px; font-family:inherit; color:var(--ink-text);}
-.ma-full-form input:focus{outline:none; border-color:var(--gold);}
+.ma-full-form input, .ma-full-form select{
+  width:100%; box-sizing:border-box; padding:11px 13px; border:1px solid #d7d0c0; border-radius:6px;
+  font-size:14px; font-family:inherit; color:var(--ink-text); background:#fff;
+}
+.ma-full-form select{
+  appearance:none; -webkit-appearance:none; cursor:pointer;
+  background:#fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%236C7178"><path d="M5.5 7.5l4.5 5 4.5-5z"/></svg>') no-repeat right 12px center / 14px;
+  padding-right:32px;
+}
+.ma-full-form input:focus, .ma-full-form select:focus{outline:none; border-color:var(--gold);}
 .mgf-mobile{display:flex; gap:8px;}
-.mgf-cc{flex:0 0 auto; display:flex; align-items:center; padding:0 12px; border:1px solid #d7d0c0; border-radius:6px; font-size:14px; color:var(--muted); background:var(--paper-2);}
+.mgf-cc{flex:0 0 108px;}
 .mgf-mobile input{flex:1; min-width:0;}
 .ma-full-form button{margin-top:4px; border:none; border-radius:6px; cursor:pointer; padding:12px; font-size:14.5px;}
 
