@@ -28,9 +28,9 @@
   var PRODUCT_EXTRA_LINK = {
     PMS: { href: 'pms-fees', label: 'PMS fee calculator' }
   }[productCode] || null;
-  // Only pms.html has had its hero removed in favor of this header CTA —
-  // aif.html/gift-city.html still have their own hero with this same button.
-  var SHOW_HEADER_CTA = productCode === 'PMS';
+  // PMS, AIF and GIFT City have all had their hero removed in favor of this
+  // header CTA — SIF still has its own intact hero with this same button.
+  var SHOW_HEADER_CTA = productCode === 'PMS' || productCode === 'AIF' || productCode === 'GIFT_IFSC';
 
   var allSchemes = [];
   var state = { q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc' };
@@ -313,7 +313,7 @@
     wireSidebar();
     applyFilters();
     if (window.maWireTalkToExpertLinks) window.maWireTalkToExpertLinks();
-    if (window.maInitHeroMeetingInfo) window.maInitHeroMeetingInfo();
+    if (window.maInitHeroMeetingInfo) window.maInitHeroMeetingInfo(PRODUCT_INTEREST);
   }
 
   function goToScheme(planId) {

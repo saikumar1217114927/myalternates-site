@@ -1,15 +1,19 @@
 /* ==========================================================================
    myAlternates — "your call is scheduled" info line, shown opposite the
-   "Explore PMS Schemes" heading (in the schemes section built by
+   "Explore <Product> Schemes" heading (in the schemes section built by
    featured-schemes.js) once a registered visitor has an upcoming call.
    That section renders async — after its own schemes fetch — so this
    doesn't run on script load; featured-schemes.js calls
-   window.maInitHeroMeetingInfo() itself once #heroMeetingInfo actually
-   exists in the DOM. The hero CTA text swap ("Talk to an expert" ->
-   "Reschedule") is handled generically by session-gate.js for every
-   data-ma-talk element on the page — this file only owns this one line.
+   window.maInitHeroMeetingInfo(interest) itself once #heroMeetingInfo
+   actually exists in the DOM, passing the page's own interest label (PMS/
+   AIF/GIFT City products — this file is shared across all three, not
+   PMS-only). The CTA text swap ("Talk to an expert" -> "Reschedule") is
+   handled generically by session-gate.js for every data-ma-talk element on
+   the page — this file only owns this one line.
    ========================================================================== */
 (function () {
+  var lastInterest = 'Portfolio Management Services (PMS)'; // remembered for the ma:scheduled re-render below
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -21,11 +25,10 @@
     return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' });
   }
 
-  function render(info, sess) {
+  function render(info, sess, interest) {
     var mtg = sess.upcomingMeeting;
     if (!mtg || !mtg.date) { info.innerHTML = ''; return; } // no call yet
 
-    var interest = 'Portfolio Management Services (PMS)'; // this widget is PMS-only
     var already = MASession.hasFlaggedInterest(interest);
     info.innerHTML =
       '<span class="hmi-when">📅 Your call: <b>' + esc(fmtWhen(mtg.date)) + (mtg.time ? ' · ' + esc(mtg.time) : '') + '</b></span>' +
@@ -46,13 +49,14 @@
     };
   }
 
-  function load() {
+  function load(interest) {
+    if (interest) lastInterest = interest;
     var info = document.getElementById('heroMeetingInfo');
     if (!info || !window.MASession) return;
     var token = MASession.getToken();
     if (!token) return;
     MASession.checkStatus(token).then(function (r) {
-      if (r && r.ok && r.loggedIn) render(info, r);
+      if (r && r.ok && r.loggedIn) render(info, r, lastInterest);
     });
   }
 
