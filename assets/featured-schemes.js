@@ -17,10 +17,11 @@
 
   var API_URL = 'https://myalternates-backend.onrender.com/';
   var productCode = host.dataset.schemes || 'PMS';
-  var PRODUCT_LABEL = { PMS: 'PMS', AIF: 'AIF' }[productCode] || productCode;
+  var PRODUCT_LABEL = { PMS: 'PMS', AIF: 'AIF', GIFT_IFSC: 'GIFT City' }[productCode] || productCode;
   var PRODUCT_INTEREST = {
     PMS: 'Portfolio Management Services (PMS)',
-    AIF: 'Alternative Investment Fund (AIF)'
+    AIF: 'Alternative Investment Fund (AIF)',
+    GIFT_IFSC: 'GIFT City products'
   }[productCode] || 'Portfolio Management Services (PMS)';
 
   var allSchemes = [];
