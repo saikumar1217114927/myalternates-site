@@ -316,7 +316,36 @@
     applyFilters();
     if (window.maWireTalkToExpertLinks) window.maWireTalkToExpertLinks();
     if (window.maInitHeroMeetingInfo) window.maInitHeroMeetingInfo(PRODUCT_INTEREST);
+    updateStickyOffsets();
+    // The header/cat-tabs/sidebar's own heights can still change right after
+    // this — a webfont swap reflowing the heading, or hero-meeting.js filling
+    // in #heroMeetingWhen/#heroMeetingAdd async — so recheck shortly after.
+    setTimeout(updateStickyOffsets, 350);
   }
+
+  // The heading row (and, on AIF, the category tabs below it) stay pinned
+  // under the nav while only the card list scrolls — .p-schemes-sidebar and
+  // .ps-cat-tabs read their sticky `top` from these two custom properties
+  // (site.css) instead of a guessed pixel value, since the header/heading's
+  // real height varies by product and viewport width.
+  function updateStickyOffsets() {
+    var navEl = document.querySelector('header.nav');
+    var headEl = host.querySelector('.p-schemes-head');
+    var catEl = host.querySelector('.ps-cat-tabs');
+    var navH = navEl ? navEl.getBoundingClientRect().height : 0;
+    var headH = headEl ? headEl.getBoundingClientRect().height : 0;
+    var catH = catEl ? catEl.getBoundingClientRect().height : 0;
+    host.style.setProperty('--schemes-top-1', (navH + headH) + 'px');
+    host.style.setProperty('--schemes-top-2', (navH + headH + catH) + 'px');
+  }
+  var stickyResizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(stickyResizeTimer);
+    stickyResizeTimer = setTimeout(updateStickyOffsets, 150);
+  });
+  // A completed/rescheduled booking can add or remove the "Your call…" pill
+  // in the heading row, changing its height.
+  document.addEventListener('ma:scheduled', function () { setTimeout(updateStickyOffsets, 150); });
 
   function goToScheme(planId) {
     if (window.MASession && window.MASession.getToken()) {
