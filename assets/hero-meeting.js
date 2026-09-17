@@ -2,9 +2,7 @@
    myAlternates — compact "your call is scheduled" state in the hero.
    Once a registered visitor has an upcoming call, the page's own hero CTA
    ("Talk to an expert →") becomes "Reschedule →" and a small line under it
-   shows the date/time plus a one-click "add this interest" — replacing the
-   heavier bottom enquiry section for that state (it stays for anyone who
-   hasn't registered or hasn't scheduled yet).
+   shows the date/time plus a one-click "add this interest".
    ========================================================================== */
 (function () {
   var ctaBtn = document.getElementById('heroTalkBtn');
@@ -27,10 +25,9 @@
 
   function render(sess) {
     var mtg = sess.upcomingMeeting;
-    if (!mtg || !mtg.date) return; // no call yet — leave the normal CTA + bottom form as-is
+    if (!mtg || !mtg.date) return; // no call yet — leave the normal CTA as-is
 
-    var form = document.getElementById('leadForm');
-    var interest = form ? form.getAttribute('data-interest') : '';
+    var interest = 'Portfolio Management Services (PMS)'; // this widget is PMS-only
 
     ctaBtn.textContent = 'Reschedule →';
     ctaBtn.removeAttribute('href');
@@ -59,11 +56,6 @@
         }
       });
     };
-
-    // The bottom enquiry section would otherwise show the same "your call is
-    // scheduled" state again — redundant now that it's up here.
-    var enquiry = document.getElementById('enquiry');
-    if (enquiry) enquiry.style.display = 'none';
   }
 
   function load() {

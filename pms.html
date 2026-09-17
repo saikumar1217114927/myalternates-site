@@ -70,7 +70,7 @@
           <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login<small>Manage your book — backoffice.myalternates.com</small></a>
         </div>
       </div>
-      <a href="#enquiry" class="nav-cta">Talk to an Expert</a>
+      <a href="#schemes" class="nav-cta">Talk to an Expert</a>
     </nav>
     <button class="burger" aria-label="Menu">☰</button>
   </div>
@@ -93,7 +93,7 @@
       dashboard alongside everything else you hold.
     </p>
     <div class="hero-cta-row">
-      <a href="#enquiry" class="btn-gold" id="heroTalkBtn">Talk to an expert →</a>
+      <a href="#schemes" class="btn-gold" id="heroTalkBtn">Talk to an expert →</a>
       <a href="pms-fees" class="btn-ghost">PMS fee calculator</a>
       <a href="./#pillars" class="btn-ghost">See other products</a>
     </div>
@@ -102,62 +102,7 @@
 </section>
 
 <!-- ================= FEATURED SCHEMES (real, unmasked examples) ================= -->
-<section class="p-schemes" data-schemes="PMS" aria-label="Featured PMS schemes"></section>
-
-<!-- ================= ENQUIRY ================= -->
-<section class="enquiry" id="enquiry">
-  <div class="wrap enquiry-grid">
-    <div class="enquiry-copy">
-      <div class="section-tag">Talk to an expert</div>
-      <h2>Get a PMS recommendation built around your goals.</h2>
-      <p>Share a few details and a myAlternates investment expert will call you back within one business day — no obligation.</p>
-      <ul>
-        <li>A shortlist of PMS strategies matched to your profile</li>
-        <li>A clear view of costs, and how our pricing compares</li>
-        <li>Help with onboarding and paperwork, end to end</li>
-      </ul>
-    </div>
-
-    <div class="lead-card">
-      <h3>Request a callback</h3>
-      <div class="sub">Your PMS enquiry goes straight to our investment team.</div>
-      <form id="leadForm" data-interest="Portfolio Management Services (PMS)">
-        <div class="field">
-          <label for="lf-name">Full name</label>
-          <input id="lf-name" type="text" required placeholder="Your name">
-        </div>
-        <div class="field">
-          <label for="lf-email">Email</label>
-          <input id="lf-email" type="email" required placeholder="you@email.com">
-        </div>
-        <div class="field">
-          <label for="lf-mobile">Mobile</label>
-          <div class="mobile-group">
-            <select id="lf-cc" aria-label="Mobile country code"></select>
-            <input id="lf-mobile" type="tel" required pattern="[0-9]{6,14}" placeholder="Mobile number">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="lf-country">Country</label>
-            <select id="lf-country"></select>
-          </div>
-          <div class="field">
-            <label for="lf-pincode">Pincode / ZIP</label>
-            <input id="lf-pincode" type="text" required placeholder="Pincode / ZIP">
-          </div>
-        </div>
-        <button type="submit" class="submit-btn" id="lf-submit">Request a callback</button>
-        <p class="form-note">By submitting, you agree to be contacted by a myAlternates expert.</p>
-      </form>
-      <div class="form-success">
-        <div class="check">✓</div>
-        <h4 id="lf-ok-title">Request received</h4>
-        <p id="lf-ok-body">Thank you — a myAlternates investment expert will call you within one business day to discuss the right PMS strategy for you.</p>
-      </div>
-    </div>
-  </div>
-</section>
+<section class="p-schemes" data-schemes="PMS" aria-label="Featured PMS schemes" id="schemes"></section>
 
 <!-- ================= FOOTER ================= -->
 <footer>
@@ -203,7 +148,6 @@
   </div>
 </footer>
 
-<script src="assets/google-signin.js"></script>
 <script src="assets/lead-form.js"></script>
 <script src="assets/hero-meeting.js"></script>
 <script src="assets/session-gate.js"></script>

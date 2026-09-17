@@ -23,6 +23,14 @@
   function pct(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
   function money(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
 
+  // scheme.html now serves both PMS and AIF schemes — the interest label
+  // sent along with a schedule/discussion-note action needs to match
+  // whichever product this particular scheme actually is.
+  function schemeInterest(s) {
+    var code = String((s && s.productName) || '').trim().toUpperCase();
+    return code === 'AIF' ? 'Alternative Investment Fund (AIF)' : 'Portfolio Management Services (PMS)';
+  }
+
   function notFound() {
     root.innerHTML = '<div class="scm-loading wrap"><p>This scheme isn\'t available right now.</p>' +
       '<p style="margin-top:10px;"><a href="pms" class="btn-ghost" style="color:var(--ink-text) !important; border-color:#d7d0c0;">← Back to PMS</a></p></div>';
@@ -328,7 +336,7 @@
     window.MASession.checkStatus(token).then(function (r) {
       if (!r || !r.ok || !r.loggedIn) return;
       window.maRenderMeetingAction(box, token, r, {
-        interest: 'Portfolio Management Services (PMS)',
+        interest: schemeInterest(s),
         discussionNote: 'Discuss: ' + s.schemeName + (s.amcName ? ' (' + s.amcName + ')' : '')
       });
     });

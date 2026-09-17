@@ -105,7 +105,7 @@
       '</div>' +
       '</div></div>' +
       '<div class="sr-rets">' + retCol('1Y', r.r1y) + retCol('3Y', r.r3y) + retCol('5Y', r.r5y) + retCol('SI', r.si) + '</div>' +
-      '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Explore →</button></div>' +
+      '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Discover →</button></div>' +
       '</div>';
   }
 

@@ -326,11 +326,11 @@ nav.links a:hover::after{width:100%;}
 .p-schemes .wrap{max-width:1560px;}
 .sc-amc{font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--emerald);}
 .sc-discover{
-  background:var(--ink); color:var(--paper); font-weight:700; font-size:13px;
+  background:var(--gold); color:var(--ink); font-weight:700; font-size:13px;
   padding:11px 22px; border-radius:9px; border:none; cursor:pointer; font-family:inherit;
   transition:background .2s ease, transform .15s ease; display:inline-block; white-space:nowrap;
 }
-.sc-discover:hover{background:var(--ink-3); transform:translateY(-1px);}
+.sc-discover:hover{background:var(--gold-light); transform:translateY(-1px);}
 .p-schemes .disc{font-size:11.5px; color:var(--muted-light); margin-top:22px; line-height:1.6;}
 .p-schemes .section-head{margin-bottom:28px; max-width:560px;}
 
