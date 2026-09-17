@@ -175,7 +175,7 @@
 
   function buildYearlyChart(rows) {
     if (!rows || !rows.length) return '';
-    var W = 560, H = 260, padL = 6, padR = 6, padTop = 14, padBottom = 26;
+    var W = 620, H = 260, padL = 6, padR = 6, padTop = 14, padBottom = 26;
     var plotW = W - padL - padR, plotH = H - padTop - padBottom;
     var vals = rows.map(function (r) { return r.ret; }).filter(function (v) { return v != null; });
     if (!vals.length) return '';

@@ -662,6 +662,10 @@ nav.links a:hover::after{width:100%;}
 
 .scm-two-col{display:grid; grid-template-columns:1fr 1fr; gap:20px 40px; margin-bottom:44px;}
 .scm-two-col .scm-section{margin-bottom:0;}
+/* Trailing returns (9 grouped periods) needs less room than the yearly
+   chart (up to 17 single bars, plus its own toggle) — trim the left
+   column a bit and give the right one the space back. */
+.scm-two-col.scm-returns-row{grid-template-columns:0.85fr 1.15fr;}
 @media (max-width:800px){ .scm-two-col{grid-template-columns:1fr; gap:44px;} }
 
 /* legend + chart */
@@ -676,8 +680,8 @@ nav.links a:hover::after{width:100%;}
 .scm-bar.scheme{fill:var(--gold);}
 .scm-bar.bench{fill:#C7C2B4;}
 /* yearly-returns chart (single series, pos/neg rather than scheme/bench) */
-.scm-bar.pos{fill:var(--emerald);}
-.scm-bar.neg{fill:#B5502E;}
+.scm-bar.pos{fill:var(--gold);}
+.scm-bar.neg{fill:var(--ink);}
 .scm-bar.partial{opacity:.5;} /* the current, still-in-progress year (YTD/FYTD) */
 .scm-yr-toggle{display:flex; gap:8px;}
 .scm-yr-toggle button{
