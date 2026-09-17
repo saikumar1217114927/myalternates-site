@@ -145,7 +145,7 @@
     function show(e) {
       var t = e.target;
       var v = parseFloat(t.dataset.value);
-      tip.innerHTML = esc(t.dataset.series) + ' · ' + esc(t.dataset.period) + '<br><b>' + pct(v) + '</b>';
+      tip.innerHTML = (t.dataset.series ? esc(t.dataset.series) + ' · ' : '') + esc(t.dataset.period) + '<br><b>' + pct(v) + '</b>';
       var wrapRect = wrap.getBoundingClientRect();
       tip.style.left = (e.clientX - wrapRect.left) + 'px';
       tip.style.top = (e.clientY - wrapRect.top - 10) + 'px';
@@ -164,6 +164,83 @@
       '<div class="scm-legend"><span><i class="scheme"></i>' + esc(s.schemeName) + '</span>' +
       (s.benchmark.name ? '<span><i class="bench"></i>' + esc(s.benchmark.name) + '</span>' : '') + '</div>' +
       '</div>';
+  }
+
+  // ---- yearly returns bar chart (single series: Calendar Year or Financial
+  // Year, zero baseline) — sits opposite the trailing-returns chart above, in
+  // a two-column row. No per-bar value labels, same reasoning as the
+  // trailing chart: up to 17 years packed into a half-width column would
+  // collide; the hover tooltip carries the exact figure instead.
+  var yearlyMode = 'cy';
+
+  function buildYearlyChart(rows) {
+    if (!rows || !rows.length) return '';
+    var W = 560, H = 260, padL = 6, padR = 6, padTop = 14, padBottom = 26;
+    var plotW = W - padL - padR, plotH = H - padTop - padBottom;
+    var vals = rows.map(function (r) { return r.ret; }).filter(function (v) { return v != null; });
+    if (!vals.length) return '';
+    var maxV = Math.max(0, Math.max.apply(null, vals));
+    var minV = Math.min(0, Math.min.apply(null, vals));
+    var range = (maxV - minV) || 1;
+    maxV += range * 0.08; minV -= range * 0.08;
+    var scale = plotH / (maxV - minV);
+    var zeroY = Math.round(padTop + maxV * scale - 0.5) + 0.5;
+    var groupW = plotW / rows.length;
+    var barW = Math.min(20, groupW * 0.6);
+
+    var bars = '', axisLabels = '';
+    rows.forEach(function (r, i) {
+      var cx = padL + groupW * i + groupW / 2;
+      var v = r.ret;
+      if (v != null) {
+        var h = Math.abs(v) * scale;
+        var yTop = v >= 0 ? zeroY - h : zeroY;
+        var cls = 'scm-bar ' + (v >= 0 ? 'pos' : 'neg') + (r.isPartial ? ' partial' : '');
+        bars += '<path class="' + cls + '" d="' + roundedBarPath(cx - barW / 2, barW, yTop, h, 3, v >= 0) +
+          '" data-period="' + esc(r.period) + '" data-value="' + v + '"></path>';
+      }
+      // "CY 25" -> "’25"; YTD/FYTD (the current, still-in-progress period) is
+      // short enough to show as-is.
+      var shortLabel = r.isPartial ? r.period : r.period.replace(/^(CY|FY)\s*/, '’');
+      axisLabels += '<text class="scm-axis-label" x="' + cx + '" y="' + (H - 8) + '">' + esc(shortLabel) + '</text>';
+    });
+
+    return '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Yearly returns">' +
+      '<line class="scm-baseline" x1="' + padL + '" y1="' + zeroY + '" x2="' + (W - padR) + '" y2="' + zeroY + '"></line>' +
+      bars + axisLabels + '</svg>';
+  }
+
+  function yearlyChartHtml(s) {
+    var rows = (s.historicPerformance && s.historicPerformance[yearlyMode]) || [];
+    return buildYearlyChart(rows) ||
+      '<p style="color:var(--muted);font-size:12.5px;padding:20px 0;text-align:center;">No yearly data yet.</p>';
+  }
+
+  function historicReturnsSection(s) {
+    var hp = s.historicPerformance || {};
+    if (!(hp.cy && hp.cy.length) && !(hp.fy && hp.fy.length)) return '';
+    return '<div class="scm-section"><div class="scm-sec-head"><h2>Yearly returns</h2>' +
+      '<div class="scm-yr-toggle" id="scmYrToggle">' +
+      '<button type="button" class="' + (yearlyMode === 'cy' ? 'active' : '') + '" data-mode="cy">Calendar year</button>' +
+      '<button type="button" class="' + (yearlyMode === 'fy' ? 'active' : '') + '" data-mode="fy">Financial year</button>' +
+      '</div></div>' +
+      '<div class="scm-chart-wrap" id="scmYearlyChartWrap">' + yearlyChartHtml(s) + '</div>' +
+      '</div>';
+  }
+
+  function wireYearlyToggle(s) {
+    var toggle = document.getElementById('scmYrToggle');
+    if (!toggle) return;
+    toggle.querySelectorAll('button').forEach(function (btn) {
+      btn.onclick = function () {
+        if (btn.dataset.mode === yearlyMode) return;
+        yearlyMode = btn.dataset.mode;
+        toggle.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        var wrap = document.getElementById('scmYearlyChartWrap');
+        wrap.innerHTML = yearlyChartHtml(s);
+        wireTooltip(wrap);
+      };
+    });
   }
 
   function schemeReturnsSection(s) {
@@ -355,6 +432,15 @@
       ? '<img class="scm-hero-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.remove()">'
       : '';
 
+    // Side by side only when there's actually something on both sides — most
+    // schemes won't have yearly data yet (a brand-new, separately-fetched
+    // endpoint), and a lone 1fr/1fr column would leave an awkward empty gap.
+    var trailingHtml = trailingReturnsSection(s);
+    var yearlyHtml = historicReturnsSection(s);
+    var returnsRow = (trailingHtml && yearlyHtml)
+      ? '<div class="scm-two-col scm-returns-row">' + trailingHtml + yearlyHtml + '</div>'
+      : (trailingHtml + yearlyHtml);
+
     root.innerHTML =
       '<div class="scm-hero"><div class="wrap">' +
       '<div class="scm-hero-top">' +
@@ -370,7 +456,7 @@
       factsSection(p) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       schemeReturnsSection(s) +
-      trailingReturnsSection(s) +
+      returnsRow +
       '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
       feeStructureSection(p) +
       exitLoadSection(p) +
@@ -380,6 +466,9 @@
 
     var chartWrap = document.getElementById('scmChartWrap');
     if (chartWrap) wireTooltip(chartWrap);
+    var yearlyWrap = document.getElementById('scmYearlyChartWrap');
+    if (yearlyWrap) wireTooltip(yearlyWrap);
+    wireYearlyToggle(s);
     loadMeetingAction(s);
 
     // Scheduling happens through a full-screen modal that lives outside this
