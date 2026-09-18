@@ -13,6 +13,99 @@
     });
   }
 
+  // This widget's own CSS, self-injected the same way nav-search.js injects
+  // its search box's styles — because this file is loaded on pages that link
+  // assets/site.css (which normally carries these rules) AND on index.html,
+  // which doesn't link site.css at all (it has its own inline <style> block).
+  // Without this, maOpenGateModal still WORKS (the overlay element exists,
+  // document.body.style.overflow still gets set to 'hidden') but renders
+  // completely unstyled — position:static instead of a fixed full-screen
+  // overlay, no background — so it's invisible, appended off-screen at the
+  // bottom of the page, while scrolling stays silently locked: to a visitor
+  // it looks exactly like nothing happened and the page just stopped
+  // scrolling. index.html already defines the same --ink/--gold/... design
+  // tokens site.css does, so these rules render identically either way.
+  (function injectStyles() {
+    if (document.getElementById('maGateStyles')) return;
+    var style = document.createElement('style');
+    style.id = 'maGateStyles';
+    style.textContent =
+      '.btn-gold{background:var(--gold); color:var(--ink) !important; padding:13px 30px; font-weight:700; font-size:14px;' +
+        'border-radius:3px; letter-spacing:0.02em; display:inline-block; transition:background .2s ease, transform .2s ease;}' +
+      '.btn-gold:hover{background:var(--gold-light); transform:translateY(-1px);}' +
+      '.ma-gate{max-width:440px; margin:0 auto; text-align:center; background:var(--ink);' +
+        'border:1px solid var(--line); border-radius:14px; padding:38px 30px; color:var(--paper);}' +
+      '.ma-gate-logo{display:block; height:36px; width:auto; margin:0 auto 18px;}' +
+      '.ma-gate h3{font-family:\'Fraunces\', Georgia, serif; font-weight:500; font-size:20px; color:var(--paper); margin-bottom:8px;}' +
+      '.ma-gate p{font-size:14px; color:var(--muted-light); line-height:1.6; margin-bottom:22px;}' +
+      '.ma-gate-form{display:flex; gap:10px;}' +
+      '.ma-gate-form input{flex:1; min-width:0; padding:11px 13px; border:1px solid var(--line); border-radius:6px;' +
+        'font-size:14px; font-family:inherit; color:var(--paper); background:var(--ink-2);}' +
+      '.ma-gate-form input::placeholder{color:var(--muted-light);}' +
+      '.ma-gate-form input:focus{outline:none; border-color:var(--gold);}' +
+      '.ma-gate-form.ma-gate-otp input{text-align:center; letter-spacing:.3em; font-weight:700; font-size:17px;}' +
+      '.ma-gate-form button{white-space:nowrap; border:none; border-radius:6px; cursor:pointer;}' +
+      '.ma-gate-link{display:block; background:none; border:0; color:var(--muted-light); font-size:12.5px;' +
+        'text-decoration:underline; cursor:pointer; margin:12px auto 0;}' +
+      '.ma-gate-link-gold{display:inline-block; background:var(--gold); color:var(--ink) !important; border:0;' +
+        'font-size:13px; font-weight:700; text-decoration:none; cursor:pointer; padding:9px 20px; border-radius:20px;' +
+        'margin:16px auto 0; transition:background .2s ease, transform .2s ease;}' +
+      '.ma-gate-link-gold:hover{background:var(--gold-light); transform:translateY(-1px);}' +
+      '.ma-gate-err{color:#ff9376; font-size:13px; margin-top:12px;}' +
+      '@media (max-width:480px){ .ma-gate-form{flex-direction:column;} }' +
+      '.ma-gate-full{max-width:400px;}' +
+      '.ma-full-form{display:flex; flex-direction:column; gap:12px; text-align:left;}' +
+      '.ma-full-form input, .ma-full-form select{width:100%; box-sizing:border-box; padding:11px 13px;' +
+        'border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; color:var(--paper); background:var(--ink-2);}' +
+      '.ma-full-form input::placeholder{color:var(--muted-light);}' +
+      '.ma-full-form select{appearance:none; -webkit-appearance:none; cursor:pointer; background-color:var(--ink-2);' +
+        'background-image:url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="%239A9E9C"><path d="M5.5 7.5l4.5 5 4.5-5z"/></svg>\');' +
+        'background-repeat:no-repeat; background-position:right 12px center; background-size:14px; padding-right:32px;}' +
+      '.ma-full-form select option{color:var(--paper); background:var(--ink-2);}' +
+      '.ma-full-form input:focus, .ma-full-form select:focus{outline:none; border-color:var(--gold);}' +
+      '.mgf-mobile{display:flex; gap:8px;}' +
+      '.mgf-mobile[hidden]{display:none;}' +
+      '.mgf-cc{flex:0 0 108px;}' +
+      '.mgf-mobile input{flex:1; min-width:0;}' +
+      '.ma-full-form button{margin-top:4px; border:none; border-radius:6px; cursor:pointer; padding:12px; font-size:14.5px;}' +
+      '.mgf-status{font-size:12px; color:var(--muted-light); margin-top:-6px;}' +
+      '.mgf-status.ok{color:var(--emerald-light);}' +
+      '.mgf-status.warn{color:var(--gold-light);}' +
+      '@keyframes sched-in{from{opacity:0;} to{opacity:1;}}' +
+      '.ma-modal-overlay{position:fixed; inset:0; z-index:2200; background:rgba(11,14,19,0.6); display:flex;' +
+        'align-items:center; justify-content:center; padding:20px; animation:sched-in .2s ease;}' +
+      '.ma-modal-card{position:relative; width:100%; max-width:440px; max-height:90vh; overflow-y:auto; background:var(--ink);' +
+        'border-radius:18px; padding:8px; box-shadow:0 30px 70px -20px rgba(0,0,0,0.6);}' +
+      '.ma-modal-card .ma-gate{border:none; box-shadow:none; margin:0; max-width:none;}' +
+      '.ma-modal-close{position:absolute; top:14px; right:14px; width:32px; height:32px; border-radius:50%;' +
+        'border:1px solid var(--line); background:var(--ink-2); color:var(--paper); font-size:14px; cursor:pointer;' +
+        'display:flex; align-items:center; justify-content:center; z-index:1;}' +
+      '.ma-modal-close:hover{border-color:var(--gold); color:var(--gold-light);}' +
+      '.ma-meeting-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}' +
+      '.mmr-badge{font-size:12.5px; font-weight:500; color:var(--gold-light); white-space:nowrap;' +
+        'background:rgba(201,162,75,0.14); border:1px solid rgba(201,162,75,0.32); padding:8px 14px; border-radius:999px;}' +
+      '.mmr-badge b{font-weight:700; color:var(--paper); margin-left:2px;}' +
+      '.mmr-btn{background:transparent; border:1px solid rgba(255,255,255,0.25); color:var(--paper); font-size:12.5px;' +
+        'font-weight:600; padding:9px 16px; border-radius:9px; cursor:pointer; font-family:inherit; white-space:nowrap;' +
+        'transition:border-color .15s ease, background .15s ease;}' +
+      '.mmr-btn:hover{border-color:var(--gold);}' +
+      '.mmr-btn-gold{background:var(--gold); color:var(--ink); border-color:var(--gold); font-weight:700;}' +
+      '.mmr-btn-gold:hover{background:var(--gold-light);}' +
+      '.mmr-add-wrap{position:relative; display:inline-flex;}' +
+      '.mmr-add{background:var(--gold); color:var(--ink); border:none; font-weight:700; font-size:12.5px; padding:9px 16px;' +
+        'border-radius:9px; cursor:pointer; font-family:inherit; white-space:nowrap;}' +
+      '.mmr-add:hover{background:var(--gold-light);}' +
+      '.mmr-add:disabled{opacity:.7; cursor:default;}' +
+      '.mmr-tip{position:absolute; bottom:calc(100% + 9px); right:0; width:200px; background:var(--ink-2);' +
+        'border:1px solid var(--line); color:var(--paper); font-size:11.5px; font-weight:400; line-height:1.5;' +
+        'padding:10px 12px; border-radius:9px; text-align:left; box-shadow:0 12px 28px -10px rgba(0,0,0,0.55);' +
+        'opacity:0; visibility:hidden; transform:translateY(4px); transition:opacity .15s ease, transform .15s ease;' +
+        'pointer-events:none; z-index:5;}' +
+      '.mmr-add-wrap:hover .mmr-tip, .mmr-add-wrap:focus-within .mmr-tip{opacity:1; visibility:visible; transform:translateY(0);}' +
+      '.mmr-added{font-size:12.5px; font-weight:600; color:var(--emerald-light); white-space:nowrap;}';
+    document.head.appendChild(style);
+  })();
+
   // Country <option>s + a matching mobile dial-code <select>, built off the
   // same list lead-form.js exposes on window.MASession — one source of
   // truth for ~190 countries instead of a second copy here. Defaults both
