@@ -98,7 +98,7 @@
           if (r && r.notFound) {
             // Just the plain message — "New here? Register" below already
             // covers switching steps, no need for a second, redundant link.
-            err.textContent = "We couldn't find an account with that email or mobile.";
+            err.textContent = "We couldn't find an account with that email or mobile. Please register using the link below.";
             err.style.display = 'block';
             return;
           }
@@ -128,10 +128,14 @@
       '<select class="mgf-cc" name="mobileCc" aria-label="Mobile country code">' + dialCodeOptionsHtml(countries, dialCodes) + '</select>' +
       '<input type="tel" name="mobile" placeholder="Mobile number" pattern="[0-9]{6,14}" required>' +
       '</div>' +
-      '<span class="mgf-status warn" data-cc-warn hidden>OTP will be sent to your email only — we don’t support international mobile OTP yet.</span>' +
+      '<span class="mgf-status warn" data-cc-warn hidden>For international numbers, OTP will be sent to email.</span>' +
       '<select name="country" aria-label="Country">' + countryOptionsHtml(countries) + '</select>' +
       '<input type="text" name="pincode" placeholder="Pincode / ZIP" required>' +
       '<span class="mgf-status" data-status></span>' +
+      '<div class="mgf-mobile" data-manual-location hidden>' +
+      '<input type="text" name="city" placeholder="City">' +
+      '<input type="text" name="state" placeholder="State">' +
+      '</div>' +
       '<button type="submit" class="btn-gold">Continue →</button>' +
       '</form>' +
       '<button type="button" class="ma-gate-link" data-login>Already registered? Log in</button>' +
@@ -141,8 +145,7 @@
     // versa), so picking one must never silently overwrite the other.
     wireMobileCcWarning(container);
     var form = container.querySelector('.ma-full-form');
-    var detectedLocation = { city: '', state: '' };
-    wirePincodeLookup(form, detectedLocation);
+    wirePincodeLookup(form);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var lead = {
@@ -150,7 +153,7 @@
         mobileCountryCode: form.mobileCc.value, mobile: form.mobile.value.trim(),
         country: form.country.options[form.country.selectedIndex].textContent,
         pincode: form.pincode.value.trim(),
-        city: detectedLocation.city, state: detectedLocation.state,
+        city: form.city.value.trim(), state: form.state.value.trim(),
         interest: opts.interest || ''
       };
       if (!lead.name || !lead.email || !lead.mobile || !lead.pincode) return;
@@ -168,20 +171,24 @@
     container.querySelector('[data-login]').onclick = function () { renderLoginStep(container, opts); };
   }
 
-  // Pincode -> city/state, same lookup the enquiry form uses. Display-only:
-  // nothing is ever shown to type into — until it resolves, the status line
-  // stays silent (or shows "Looking up…"); once resolved it just states the
-  // city/state as text. A pincode ZipCodeBase can't place submits with
-  // city/state blank rather than asking the visitor to fill them in by hand.
-  function wirePincodeLookup(form, detected) {
+  // Pincode -> city/state, same lookup (and same fallback) the landing
+  // page's own enquiry form uses: auto-fills and hides the City/State
+  // inputs when it resolves cleanly; when it doesn't (wrong/unrecognized
+  // pincode), reveals those same inputs — pre-filled with whatever partial
+  // match came back, if any — so the visitor can fill in or correct them
+  // instead of the lookup just failing with no way forward.
+  function wirePincodeLookup(form) {
     var pinInput = form.pincode, statusEl = form.querySelector('[data-status]');
+    var manualRow = form.querySelector('[data-manual-location]');
     var pinDebounce = null, pinReqId = 0;
     function setStatus(text, kind) { statusEl.textContent = text || ''; statusEl.className = 'mgf-status' + (kind ? ' ' + kind : ''); }
+    function showManual() { manualRow.hidden = false; }
+    function hideManual() { manualRow.hidden = true; form.city.value = ''; form.state.value = ''; }
 
     pinInput.addEventListener('input', function () {
       clearTimeout(pinDebounce);
       setStatus('', '');
-      detected.city = ''; detected.state = '';
+      hideManual();
       var v = pinInput.value.trim();
       var country = form.country.value || 'IN';
       var ready = country === 'IN' ? v.length === 6 : v.length >= 3;
@@ -192,19 +199,19 @@
         window.MASession.lookupPincode(v, country).then(function (loc) {
           if (reqId !== pinReqId) return; // superseded by a newer keystroke
           if (!loc.city || !loc.state) {
-            // Was silent here before — a wrong/unrecognized pincode gave no
-            // feedback at all. Still no manual city/state inputs (that's
-            // deliberate), just tell the visitor to check what they typed.
-            setStatus('Could not find this pincode — please check it.', 'warn');
+            form.city.value = loc.city || ''; form.state.value = loc.state || '';
+            showManual();
+            setStatus('Please confirm your city and state below.', 'warn');
             return;
           }
-          detected.city = loc.city; detected.state = loc.state;
+          form.city.value = loc.city; form.state.value = loc.state;
+          hideManual();
           setStatus(loc.city + ', ' + loc.state, 'ok');
         });
       }, 400);
     });
     form.country.addEventListener('change', function () {
-      pinReqId++; detected.city = ''; detected.state = ''; setStatus('', '');
+      pinReqId++; setStatus('', ''); hideManual();
     });
   }
 
