@@ -70,13 +70,16 @@
       '<input type="text" name="contact" placeholder="Email or mobile number" required autocomplete="username">' +
       '<button type="submit" class="btn-gold">Continue →</button>' +
       '</form>' +
+      '<div class="ma-gate-err" style="display:none;"></div>' +
       '<button type="button" class="ma-gate-link" data-newuser>New here? Register</button>' +
       '</div>';
     var form = container.querySelector('.ma-gate-form');
+    var err = container.querySelector('.ma-gate-err');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
       var raw = form.contact.value.trim();
       if (!raw) return;
+      err.style.display = 'none';
       var isEmail = raw.indexOf('@') > -1;
       var lead = {
         name: '', email: isEmail ? raw : '',
@@ -85,9 +88,16 @@
       };
       var btn = form.querySelector('button');
       btn.disabled = true; btn.textContent = 'Sending…';
-      window.MASession.requestOtp(lead.email, lead.mobileCountryCode, lead.mobile).then(function (r) {
+      window.MASession.requestOtp(lead.email, lead.mobileCountryCode, lead.mobile, true).then(function (r) {
         if (!r || !r.ok) {
           btn.disabled = false; btn.textContent = 'Continue →';
+          if (r && r.notFound) {
+            err.innerHTML = "We couldn't find an account with that email or mobile. " +
+              '<button type="button" class="ma-gate-err-link" data-goregister>Register instead →</button>';
+            err.style.display = 'block';
+            err.querySelector('[data-goregister]').onclick = function () { renderRegisterStep(container, opts); };
+            return;
+          }
           alert((r && r.error) || 'Could not send a code — please try again.');
           return;
         }

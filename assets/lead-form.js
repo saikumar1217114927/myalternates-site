@@ -1159,11 +1159,16 @@
       return send({ action: 'addInterest', leadId: sess.leadId, email: sess.email, vid: getVid(), interest: interest, path: path || location.pathname });
     },
     addDiscussionNote: function (token, note) { return send({ action: 'addMeetingDiscussionNote', token: token, note: note }); },
-    // One code, sent on both email and SMS at once — the registration gate
+    // One code, sent on whichever of email/SMS applies — the Register step
     // (session-gate.js's maRenderFullGate) always has both, so it always
     // asks for both; the visitor can enter whichever arrives first.
-    requestOtp: function (email, mobileCc, mobile) {
-      return send({ action: 'requestLeadOtp', email: email, mobileCountryCode: mobileCc, mobile: mobile, vid: getVid() });
+    // requireExisting: true (the Login step) makes the backend check the
+    // email/mobile actually belongs to a lead first — no code goes out, and
+    // nothing gets created, for one that isn't on file yet.
+    requestOtp: function (email, mobileCc, mobile, requireExisting) {
+      var payload = { action: 'requestLeadOtp', email: email, mobileCountryCode: mobileCc, mobile: mobile, vid: getVid() };
+      if (requireExisting) payload.requireExisting = true;
+      return send(payload);
     },
     // `extra` carries whatever the caller's own form collected (name,
     // pincode, interest, ...) — verifyLeadOtp accepts the same fields

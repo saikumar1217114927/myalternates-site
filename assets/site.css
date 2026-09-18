@@ -562,6 +562,7 @@ nav.links a:hover::after{width:100%;}
 .ma-gate-form button{white-space:nowrap; border:none; border-radius:6px; cursor:pointer;}
 .ma-gate-link{display:block; background:none; border:0; color:var(--muted-light); font-size:12.5px; text-decoration:underline; cursor:pointer; margin:12px auto 0;}
 .ma-gate-err{color:#ff9376; font-size:13px; margin-top:12px;}
+.ma-gate-err-link{background:none; border:0; padding:0; color:inherit; text-decoration:underline; font-weight:700; font-size:inherit; font-family:inherit; cursor:pointer; display:inline;}
 @media (max-width:480px){ .ma-gate-form{flex-direction:column;} }
 
 /* full registration form (name/email/mobile+code/country/pincode) — the
