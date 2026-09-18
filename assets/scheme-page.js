@@ -287,24 +287,29 @@
       '</div></div></div>';
   }
 
-  // Portfolio characteristics (P/E, beta, turnover, market cap, risk stats,
-  // ...) — a brand-new Finalyca endpoint, so its exact field names aren't
-  // confirmed yet; recognised keys get a proper label, anything else still
-  // renders cleanly via the auto-formatted fallback instead of being dropped.
+  // Portfolio characteristics — field names confirmed against a real call
+  // (plan_code=ASK1_01): p_e, p_b, dividend_yield, avg_mkt_cap,
+  // avg_mkt_cap_in_usd, median_mkt_cap, total_stocks, scheme_asset_class_name
+  // (equity funds); avg_credit_rating, avg_maturity_yrs, macaulay_duration_yrs,
+  // modified_duration_yrs, yield_to_maturity (debt funds — null on an equity
+  // scheme like this one). scheme_code/scheme_id/auto_populate are internal
+  // bookkeeping, not portfolio metrics, and date is the as-of date — none of
+  // the three belong in the tile grid. An unrecognised key (a field Finalyca
+  // adds later) still renders via the auto-formatted fallback below rather
+  // than silently vanishing.
+  var CHAR_SKIP_KEYS = { scheme_code: 1, scheme_id: 1, auto_populate: 1, date: 1 };
   var CHAR_LABELS = {
-    pe_ratio: 'P/E Ratio', pb_ratio: 'P/B Ratio', dividend_yield: 'Dividend Yield',
-    standard_deviation: 'Standard Deviation', sharpe_ratio: 'Sharpe Ratio', beta: 'Beta',
-    alpha: 'Alpha', r_squared: 'R-Squared', portfolio_turnover_ratio: 'Portfolio Turnover',
-    portfolio_turnover: 'Portfolio Turnover', weighted_avg_market_cap: 'Weighted Avg. Market Cap',
-    avg_market_cap: 'Average Market Cap', median_market_cap: 'Median Market Cap',
-    number_of_stocks: 'Number of Stocks', no_of_holdings: 'Number of Holdings',
-    num_holdings: 'Number of Holdings', information_ratio: 'Information Ratio',
-    treynor_ratio: 'Treynor’s Ratio', sortino_ratio: 'Sortino Ratio', tracking_error: 'Tracking Error',
-    historical_pe: 'Historical P/E', concentration_top5: 'Top 5 Concentration',
-    concentration_top10: 'Top 10 Concentration', active_share: 'Active Share',
-    cash_percent: 'Cash Allocation', cash_allocation: 'Cash Allocation'
+    p_e: 'P/E Ratio', p_b: 'P/B Ratio', dividend_yield: 'Dividend Yield',
+    avg_mkt_cap: 'Average Market Cap', avg_mkt_cap_in_usd: 'Average Market Cap (USD)',
+    median_mkt_cap: 'Median Market Cap', total_stocks: 'Number of Stocks',
+    scheme_asset_class_name: 'Asset Class', avg_credit_rating: 'Average Credit Rating',
+    avg_maturity_yrs: 'Average Maturity', macaulay_duration_yrs: 'Macaulay Duration',
+    modified_duration_yrs: 'Modified Duration', yield_to_maturity: 'Yield to Maturity'
   };
-  var CHAR_PERCENT_HINTS = ['yield', 'turnover', 'concentration', 'share', 'cash'];
+  var CHAR_PERCENT_KEYS = { dividend_yield: 1, yield_to_maturity: 1 };
+  var CHAR_YEARS_KEYS = { avg_maturity_yrs: 1, macaulay_duration_yrs: 1, modified_duration_yrs: 1 };
+  var CHAR_CRORE_KEYS = { avg_mkt_cap: 1, median_mkt_cap: 1 };
+  var CHAR_USD_KEYS = { avg_mkt_cap_in_usd: 1 };
 
   function charLabel(key) {
     if (CHAR_LABELS[key]) return CHAR_LABELS[key];
@@ -313,18 +318,23 @@
   function charValue(key, v) {
     if (v == null || v === '') return '—';
     if (typeof v === 'number') {
-      var isPct = CHAR_PERCENT_HINTS.some(function (h) { return key.indexOf(h) > -1; });
-      var s = (Math.abs(v) < 10 ? v.toFixed(2) : (Math.round(v * 100) / 100)).toString();
-      return isPct ? s + '%' : s;
+      if (CHAR_PERCENT_KEYS[key]) return v.toFixed(2) + '%';
+      if (CHAR_YEARS_KEYS[key]) return v.toFixed(2) + ' yrs';
+      if (CHAR_CRORE_KEYS[key]) return money(v) + ' Cr';
+      if (CHAR_USD_KEYS[key]) return '$' + v.toLocaleString('en-IN');
+      if (key === 'total_stocks') return Math.round(v).toString();
+      return (Math.abs(v) < 10 ? v.toFixed(2) : Math.round(v * 100) / 100).toString();
     }
     return String(v);
   }
 
   function portfolioCharacteristicsSection(s) {
     var pc = s.portfolioCharacteristics || {};
-    var keys = Object.keys(pc).filter(function (k) { return pc[k] != null && pc[k] !== ''; });
+    var keys = Object.keys(pc).filter(function (k) { return !CHAR_SKIP_KEYS[k] && pc[k] != null && pc[k] !== ''; });
     if (!keys.length) return '';
-    return '<div class="scm-section"><h2>Portfolio characteristics</h2><div class="scm-chars-grid">' +
+    return '<div class="scm-section"><div class="scm-sec-head"><h2>Portfolio characteristics</h2>' +
+      (pc.date ? '<span class="scm-asof">As of ' + esc(pc.date) + '</span>' : '') + '</div>' +
+      '<div class="scm-chars-grid">' +
       keys.map(function (k) {
         return '<div class="scm-char-tile"><span class="scm-char-label">' + esc(charLabel(k)) + '</span>' +
           '<span class="scm-char-value">' + esc(charValue(k, pc[k])) + '</span></div>';
