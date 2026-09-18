@@ -250,36 +250,49 @@
       linear-gradient(100deg, var(--emerald), var(--gold) 55%, var(--gold-light)) border-box;
     border:0 solid transparent;
     border-top-width:6px;
-    padding:38px 32px 34px;
+    padding:30px 30px 26px;
     position:relative; z-index:2;
     border-radius:20px;
     box-shadow:0 40px 90px -24px rgba(8,10,14,0.55), 0 14px 34px -10px rgba(8,10,14,0.25);
     overflow:hidden;
   }
   .enquiry-card h3{
-    font-family:'Fraunces', serif; font-weight:500; font-size:24px;
-    margin-bottom:6px; color:var(--ink-text);
+    font-family:'Fraunces', serif; font-weight:500; font-size:22px;
+    margin-bottom:4px; color:var(--ink-text);
   }
   .enquiry-card p.lede{
-    color:var(--muted); font-size:13.5px; margin-bottom:18px; line-height:1.5;
+    color:var(--muted); font-size:13px; margin-bottom:14px; line-height:1.45;
   }
   .existing-login-row{
     display:flex; align-items:center; gap:8px; flex-wrap:wrap;
     font-size:12.5px; color:var(--muted); font-weight:500;
-    padding:11px 14px; background:var(--paper-2); border:1px solid #E6E0D2;
-    border-radius:12px; margin-bottom:24px;
+    padding:10px 14px; background:var(--paper-2); border:1px solid #E6E0D2;
+    border-radius:12px; margin-bottom:12px;
   }
   .existing-login-row a{color:var(--ink-text); font-weight:700; border-bottom:1px solid var(--gold);}
   .existing-login-row a:hover{color:var(--gold);}
   .existing-login-row .sep{color:var(--muted-light);}
   /* Log in with the email/mobile already on file — for a returning lead who
      doesn't want to retype the whole form. Separate from .existing-login-row
-     above, which links out to the full investor/distributor portal accounts. */
-  .ma-login-label{font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:8px;}
+     above, which links out to the full investor/distributor portal accounts.
+     Collapsed by default — a single button, not an input sitting in the open —
+     so a new visitor isn't asked to choose between two things before they've
+     even seen the form. Clicking it reveals the login row in its place. */
+  .ma-login-toggle{
+    display:block; width:100%; text-align:left; background:var(--paper-2); border:1px solid #E6E0D2;
+    border-radius:12px; padding:11px 14px; font-size:12.5px; font-weight:600; color:var(--ink-text);
+    cursor:pointer; margin-bottom:14px; transition:border-color .2s ease;
+  }
+  .ma-login-toggle:hover{border-color:var(--gold);}
+  .ma-login-toggle .arrow{color:var(--muted); font-weight:500;}
+  /* This class's own display:block would otherwise beat the browser's default
+     [hidden]{display:none} at equal specificity once the toggle is clicked. */
+  .ma-login-toggle[hidden]{display:none;}
+  .ma-login-expand{margin-bottom:14px;}
   .ma-login-row{display:flex; gap:10px;}
   .ma-login-row input{
     flex:1; min-width:0; border:1.5px solid #E3DCC9; background:#fff;
-    padding:13px 16px; font-size:14.5px; font-family:'Manrope', sans-serif;
+    padding:12px 14px; font-size:14.5px; font-family:'Manrope', sans-serif;
     color:var(--ink-text); border-radius:12px; transition:border-color .2s ease, box-shadow .2s ease;
   }
   .ma-login-row input:focus{border-color:var(--gold); outline:none; box-shadow:0 0 0 4px rgba(201,162,75,0.14);}
@@ -290,16 +303,14 @@
   .ma-login-row button:hover{background:var(--gold); color:var(--ink);}
   .ma-login-row button:disabled{opacity:.6; cursor:default;}
   .ma-login-err{color:#B5502E; font-size:13px; font-weight:600; margin-top:8px;}
-  .ma-login-or{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:18px 0 4px;}
-  .ma-login-or::before, .ma-login-or::after{content:""; flex:1; height:1px; background:var(--line,#e6e1d3);}
-  .field{margin-bottom:16px;}
+  .field{margin-bottom:12px;}
   .field label{
-    display:block; font-size:11.5px; font-weight:700; text-transform:uppercase;
-    letter-spacing:0.06em; color:var(--muted); margin-bottom:7px;
+    display:block; font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--muted); margin-bottom:5px;
   }
   .field input, .field select{
     width:100%; border:1.5px solid #E3DCC9; background:#fff;
-    padding:13px 16px; font-size:14.5px; font-family:'Manrope', sans-serif;
+    padding:11px 14px; font-size:14.5px; font-family:'Manrope', sans-serif;
     color:var(--ink-text); border-radius:12px;
     transition:border-color .2s ease, box-shadow .2s ease;
   }
@@ -315,8 +326,8 @@
   }
   .mobile-group{display:flex; gap:10px;}
   .mobile-group select{
-    flex:0 0 118px; width:118px; border:1.5px solid #E3DCC9; background:#fff;
-    padding:13px 30px 13px 14px; font-size:14.5px; font-family:'Manrope', sans-serif;
+    flex:0 0 110px; width:110px; border:1.5px solid #E3DCC9; background:#fff;
+    padding:11px 26px 11px 12px; font-size:14.5px; font-family:'Manrope', sans-serif;
     color:var(--ink-text); border-radius:12px; transition:border-color .2s ease, box-shadow .2s ease;
     appearance:none; -webkit-appearance:none; cursor:pointer;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236C7178' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -324,7 +335,7 @@
   }
   .mobile-group input{
     flex:1; min-width:0; border:1.5px solid #E3DCC9; background:#fff;
-    padding:13px 16px; font-size:14.5px; font-family:'Manrope', sans-serif;
+    padding:11px 14px; font-size:14.5px; font-family:'Manrope', sans-serif;
     color:var(--ink-text); border-radius:12px; transition:border-color .2s ease, box-shadow .2s ease;
   }
   .mobile-group select:focus, .mobile-group input:focus{
@@ -342,15 +353,15 @@
   .submit-btn{
     width:100%; background:linear-gradient(135deg, var(--ink), #1B212B);
     color:var(--paper); border:none; border-radius:12px;
-    padding:16px; font-size:14.5px; font-weight:700;
-    letter-spacing:0.03em; cursor:pointer; margin-top:8px;
+    padding:14px; font-size:14.5px; font-weight:700;
+    letter-spacing:0.03em; cursor:pointer; margin-top:4px;
     display:flex; align-items:center; justify-content:center; gap:10px;
     box-shadow:0 14px 30px -10px rgba(11,14,19,0.5);
     transition:background .25s ease, transform .2s ease, box-shadow .2s ease;
   }
   .submit-btn:hover{background:var(--gold); color:var(--ink); transform:translateY(-2px); box-shadow:0 16px 34px -8px rgba(201,162,75,0.45);}
   .submit-btn:disabled{opacity:0.6; cursor:default; transform:none; box-shadow:none;}
-  .form-note{font-size:11px; color:var(--muted-light); margin-top:12px; text-align:center; line-height:1.5;}
+  .form-note{font-size:11px; color:var(--muted-light); margin-top:8px; text-align:center; line-height:1.5;}
   .success-msg{
     display:none; text-align:center; padding:30px 10px;
   }
@@ -369,7 +380,7 @@
   .lf-google .lf-gbtn{display:flex; justify-content:center; min-height:40px;}
   .lf-google .lf-gnote{background:rgba(30,111,92,0.10); border:1px solid rgba(30,111,92,0.3); border-radius:10px; padding:10px 14px; font-size:12.5px; color:var(--emerald,#1e6f5c); line-height:1.5;}
   .lf-google .lf-glink{background:none; border:0; color:inherit; font-size:12px; cursor:pointer; text-decoration:underline; padding:0;}
-  .lf-google .lf-gor{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:14px 0 4px;}
+  .lf-google .lf-gor{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:10px 0 4px;}
   .lf-google .lf-gor::before, .lf-google .lf-gor::after{content:""; flex:1; height:1px; background:var(--line,#e6e1d3);}
   .field input[readonly]{background:#f3f1ea; color:#5b6270; cursor:not-allowed;}
 
@@ -963,13 +974,14 @@
           <span class="sep">/</span>
           <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login</a>
         </div>
-        <div class="ma-login-label">Already sent us an enquiry? Skip the form — enter your email or mobile:</div>
-        <div class="ma-login-row">
-          <input type="text" id="maLoginContact" placeholder="Email or mobile number" autocomplete="username">
-          <button type="button" id="maLoginBtn">Continue →</button>
+        <button type="button" class="ma-login-toggle" id="maLoginToggle">Already sent us an enquiry? <span class="arrow">Log in with your email or mobile →</span></button>
+        <div class="ma-login-expand" id="maLoginExpand" hidden>
+          <div class="ma-login-row">
+            <input type="text" id="maLoginContact" placeholder="Email or mobile number" autocomplete="username">
+            <button type="button" id="maLoginBtn">Continue →</button>
+          </div>
+          <div class="ma-login-err" id="maLoginErr" style="display:none;"></div>
         </div>
-        <div class="ma-login-err" id="maLoginErr" style="display:none;"></div>
-        <div class="ma-login-or"><span>or fill in your details below to register</span></div>
         <form id="enquiryForm">
           <div class="field">
             <label for="role">I am a</label>
@@ -1861,10 +1873,15 @@
   // uses (requestLeadOtp only sends a code — and never creates a lead — if
   // a match is found first).
   (function wireExistingLogin(){
+    const toggleBtn = document.getElementById('maLoginToggle');
+    const expand = document.getElementById('maLoginExpand');
     const contactInput = document.getElementById('maLoginContact');
     const loginBtn = document.getElementById('maLoginBtn');
     const errEl = document.getElementById('maLoginErr');
     if(!contactInput || !loginBtn || !errEl) return;
+    if(toggleBtn && expand){
+      toggleBtn.onclick = () => { toggleBtn.hidden = true; expand.hidden = false; contactInput.focus(); };
+    }
     const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
 
     const doLogin = () => {
