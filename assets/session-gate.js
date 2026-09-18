@@ -339,6 +339,15 @@
   // to an Expert" both build the exact same modal this way.
   // gateOpts: { message, interest, onVerified(token, result, lead, close) }.
   window.maOpenGateModal = function (gateOpts) {
+    // A double-click (or any caller invoking this twice before the first
+    // overlay is on screen — e.g. a fast double-tap on a nav-search result)
+    // would otherwise stack a second full-screen overlay on top of the
+    // first. Closing the one you can see then reveals the other one still
+    // covering the whole page — looks exactly like the screen is stuck.
+    // One gate at a time: reuse whatever's already open instead of piling on.
+    var already = document.querySelector('.ma-modal-overlay');
+    if (already) return function () { already.remove(); document.body.style.overflow = ''; };
+
     var overlay = document.createElement('div');
     overlay.className = 'ma-modal-overlay';
     overlay.innerHTML = '<div class="ma-modal-card"><button type="button" class="ma-modal-close" aria-label="Close">✕</button><div class="ma-modal-body"></div></div>';
