@@ -272,6 +272,26 @@
   .existing-login-row a{color:var(--ink-text); font-weight:700; border-bottom:1px solid var(--gold);}
   .existing-login-row a:hover{color:var(--gold);}
   .existing-login-row .sep{color:var(--muted-light);}
+  /* Log in with the email/mobile already on file — for a returning lead who
+     doesn't want to retype the whole form. Separate from .existing-login-row
+     above, which links out to the full investor/distributor portal accounts. */
+  .ma-login-label{font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:8px;}
+  .ma-login-row{display:flex; gap:10px;}
+  .ma-login-row input{
+    flex:1; min-width:0; border:1.5px solid #E3DCC9; background:#fff;
+    padding:13px 16px; font-size:14.5px; font-family:'Manrope', sans-serif;
+    color:var(--ink-text); border-radius:12px; transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .ma-login-row input:focus{border-color:var(--gold); outline:none; box-shadow:0 0 0 4px rgba(201,162,75,0.14);}
+  .ma-login-row button{
+    white-space:nowrap; background:var(--ink-text); color:var(--paper); border:none; border-radius:12px;
+    padding:0 22px; font-size:13.5px; font-weight:700; cursor:pointer; transition:background .2s ease;
+  }
+  .ma-login-row button:hover{background:var(--gold); color:var(--ink);}
+  .ma-login-row button:disabled{opacity:.6; cursor:default;}
+  .ma-login-err{color:#B5502E; font-size:13px; font-weight:600; margin-top:8px;}
+  .ma-login-or{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:18px 0 4px;}
+  .ma-login-or::before, .ma-login-or::after{content:""; flex:1; height:1px; background:var(--line,#e6e1d3);}
   .field{margin-bottom:16px;}
   .field label{
     display:block; font-size:11.5px; font-weight:700; text-transform:uppercase;
@@ -943,6 +963,13 @@
           <span class="sep">/</span>
           <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login</a>
         </div>
+        <div class="ma-login-label">Already sent us an enquiry? Skip the form — enter your email or mobile:</div>
+        <div class="ma-login-row">
+          <input type="text" id="maLoginContact" placeholder="Email or mobile number" autocomplete="username">
+          <button type="button" id="maLoginBtn">Continue →</button>
+        </div>
+        <div class="ma-login-err" id="maLoginErr" style="display:none;"></div>
+        <div class="ma-login-or"><span>or fill in your details below to register</span></div>
         <form id="enquiryForm">
           <div class="field">
             <label for="role">I am a</label>
@@ -1826,6 +1853,57 @@
     });
   })();
 
+  // ---------- Existing-user login (skip the form, verify by OTP) ----------
+  // Separate from maRenderKnown below — that one only fires automatically
+  // (a recognised device/session); this is a visitor deliberately typing
+  // their own email or mobile to prove they already sent an enquiry, the
+  // same requireExisting check "Talk to an Expert" elsewhere on the site
+  // uses (requestLeadOtp only sends a code — and never creates a lead — if
+  // a match is found first).
+  (function wireExistingLogin(){
+    const contactInput = document.getElementById('maLoginContact');
+    const loginBtn = document.getElementById('maLoginBtn');
+    const errEl = document.getElementById('maLoginErr');
+    if(!contactInput || !loginBtn || !errEl) return;
+    const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+
+    const doLogin = () => {
+      const raw = contactInput.value.trim();
+      if(!raw) return;
+      errEl.style.display = 'none';
+      const isEmail = raw.indexOf('@') > -1;
+      const rec = {
+        role: 'Investor', name: '',
+        email: isEmail ? raw : '',
+        mobileCountryCode: isEmail ? '' : '+91',
+        mobile: isEmail ? '' : raw.replace(/\D+/g, ''),
+        country: '', pincode: '', city: '', state: '',
+        interest: document.getElementById('interest') ? document.getElementById('interest').value : '',
+        visitorId: MA_VID, path: location.pathname, rowNumber: null
+      };
+      const originalLabel = loginBtn.textContent;
+      loginBtn.disabled = true; loginBtn.textContent = 'Sending…';
+      sendToLeadsSheet({
+        action:'requestLeadOtp', email: rec.email,
+        mobileCountryCode: rec.mobileCountryCode, mobile: rec.mobile, vid: MA_VID, requireExisting: true
+      }).then((res) => {
+        loginBtn.disabled = false; loginBtn.textContent = originalLabel;
+        if(!res || !res.ok){
+          if(res && res.notFound){
+            showErr("We couldn't find an account with that email or mobile. Please fill in your details below to register.");
+            return;
+          }
+          showErr((res && res.error) || 'Could not send a code — please try again.');
+          return;
+        }
+        leadRecord = rec;
+        maShowOtpPanel(leadRecord, btn.textContent);
+      });
+    };
+    loginBtn.onclick = doLogin;
+    contactInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); doLogin(); } });
+  })();
+
   // ---------- Recognise a returning visitor / new device ----------
   function maRenderKnown(r, opts){
     if(r && r.expert) window.__maExpert = r.expert;
@@ -1965,6 +2043,19 @@
   // ---------- Email OTP step (skipped when signed in with Google — see submit handler) ----------
   function maEscHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+  // The full form always has both email and mobile, so this always said "to
+  // X and by SMS to Y" — the existing-user login row only ever collects one
+  // of the two, so this only mentions whichever channel(s) a code actually
+  // went to.
+  function maOtpDestText(rec){
+    const mobileLabel = ((rec.mobileCountryCode || '') + ' ' + (rec.mobile || '')).trim();
+    const both = rec.email && rec.mobile;
+    const dest = both
+      ? 'to <b>' + maEscHtml(rec.email) + '</b> and by SMS to <b>' + maEscHtml(mobileLabel) + '</b>'
+      : rec.email ? 'to <b>' + maEscHtml(rec.email) + '</b>' : 'by SMS to <b>' + maEscHtml(mobileLabel) + '</b>';
+    return 'We sent a 6-digit code ' + dest + (both ? ' — enter whichever arrives first.' : '.');
+  }
+
   function maShowOtpPanel(rec, originalBtnLabel){
     // Kept inside `card` (hide-form class hides the fields, same mechanism the
     // rest of this page already uses for the post-submit success message) —
@@ -1975,7 +2066,7 @@
     box.style.cssText = 'padding:4px 2px;';
     box.innerHTML =
       '<div style="font:700 20px/1.3 Fraunces,serif;margin:0 0 8px">Verify your details</div>' +
-      '<p style="font-size:13.5px;color:var(--muted,#6C7178);margin:0 0 16px;line-height:1.55">We sent a 6-digit code to <b>' + maEscHtml(rec.email) + '</b> and by SMS to <b>' + maEscHtml((rec.mobileCountryCode || '') + ' ' + (rec.mobile || '')) + '</b> — enter whichever arrives first.</p>' +
+      '<p style="font-size:13.5px;color:var(--muted,#6C7178);margin:0 0 16px;line-height:1.55">' + maOtpDestText(rec) + '</p>' +
       '<input type="text" id="maOtpCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code" style="font-size:22px;letter-spacing:.35em;text-align:center;font-weight:700;padding:12px 14px;width:100%;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box;">' +
       '<div id="maOtpErr" style="display:none;color:#a3402f;font-size:13px;margin-top:8px;"></div>' +
       '<div style="margin-top:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;">' +
@@ -2002,10 +2093,17 @@
         verifyBtn.disabled = false; verifyBtn.textContent = 'Verify & continue';
         if(!res || !res.ok){ showErr((res && res.error) || 'Could not verify — please try again.'); return; }
         if(res.row) leadRecord.rowNumber = res.row;
+        // The existing-user login row only collects whichever one of
+        // email/mobile the visitor typed — the account's full stored contact
+        // info comes back here, so the schedule modal's confirmation screen
+        // isn't left blank for the channel they didn't type.
+        if(res.name) leadRecord.name = res.name;
+        if(res.email) leadRecord.email = res.email;
+        if(res.mobile){ leadRecord.mobile = res.mobile; leadRecord.mobileCountryCode = res.mobileCountryCode || leadRecord.mobileCountryCode; }
         if(res.leadId){
           leadRecord.leadId = res.leadId;
           try{ localStorage.setItem('maLead', JSON.stringify({
-            leadId: res.leadId, name: rec.name, email: rec.email, mobile: rec.mobile, mobileCountryCode: rec.mobileCountryCode
+            leadId: res.leadId, name: leadRecord.name, email: leadRecord.email, mobile: leadRecord.mobile, mobileCountryCode: leadRecord.mobileCountryCode
           })); } catch(e){}
         }
         if(res.sessionToken) maSaveSessionToken(res.sessionToken);
