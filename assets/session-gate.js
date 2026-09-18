@@ -183,12 +183,18 @@
     var pinDebounce = null, pinReqId = 0;
     function setStatus(text, kind) { statusEl.textContent = text || ''; statusEl.className = 'mgf-status' + (kind ? ' ' + kind : ''); }
     function showManual() { manualRow.hidden = false; }
-    function hideManual() { manualRow.hidden = true; form.city.value = ''; form.state.value = ''; }
+    // Just hides the row — used after a SUCCESSFUL lookup, where city/state
+    // were just filled in and must survive to the submitted payload.
+    function hideManual() { manualRow.hidden = true; }
+    // Hides the row AND clears stale values — used when the pincode itself is
+    // changing (new keystroke, different country), so a resolved city/state
+    // from a previous pincode doesn't linger and get submitted for this one.
+    function resetManual() { hideManual(); form.city.value = ''; form.state.value = ''; }
 
     pinInput.addEventListener('input', function () {
       clearTimeout(pinDebounce);
       setStatus('', '');
-      hideManual();
+      resetManual();
       var v = pinInput.value.trim();
       var country = form.country.value || 'IN';
       var ready = country === 'IN' ? v.length === 6 : v.length >= 3;
@@ -211,7 +217,7 @@
       }, 400);
     });
     form.country.addEventListener('change', function () {
-      pinReqId++; setStatus('', ''); hideManual();
+      pinReqId++; setStatus('', ''); resetManual();
     });
   }
 

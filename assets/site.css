@@ -592,6 +592,10 @@ nav.links a:hover::after{width:100%;}
 .ma-full-form select option{color:var(--paper); background:var(--ink-2);}
 .ma-full-form input:focus, .ma-full-form select:focus{outline:none; border-color:var(--gold);}
 .mgf-mobile{display:flex; gap:8px;}
+/* .mgf-mobile's own display:flex otherwise beats the browser's default
+   [hidden]{display:none} at equal specificity — the manual city/state row
+   reuses this class, so without this it never actually hides. */
+.mgf-mobile[hidden]{display:none;}
 .mgf-cc{flex:0 0 108px;}
 .mgf-mobile input{flex:1; min-width:0;}
 .ma-full-form button{margin-top:4px; border:none; border-radius:6px; cursor:pointer; padding:12px; font-size:14.5px;}
