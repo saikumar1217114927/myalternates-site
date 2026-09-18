@@ -31,18 +31,21 @@
         esc(c[0]) + ' ' + esc(code) + '</option>';
     }).join('');
   }
-  function wireCountryDialSync(container) {
-    var countrySel = container.querySelector('[name="country"]');
+  // Country and mobile country-code stay fully independent (a visitor
+  // abroad may still carry an Indian SIM, or the reverse) — this only warns
+  // when the mobile code itself isn't India's, since that's genuinely the
+  // one thing that changes what happens: DLT-templated SMS only reaches
+  // Indian numbers, so anything else falls back to email-only verification.
+  function wireMobileCcWarning(container) {
     var ccSel = container.querySelector('[name="mobileCc"]');
-    countrySel.addEventListener('change', function () {
-      for (var i = 0; i < ccSel.options.length; i++) {
-        if (ccSel.options[i].getAttribute('data-iso') === countrySel.value) { ccSel.selectedIndex = i; break; }
-      }
-    });
-    ccSel.addEventListener('change', function () {
-      var iso = ccSel.options[ccSel.selectedIndex].getAttribute('data-iso');
-      if (iso) countrySel.value = iso;
-    });
+    var warn = container.querySelector('[data-cc-warn]');
+    if (!ccSel || !warn) return;
+    function update() {
+      var iso = ccSel.options[ccSel.selectedIndex] && ccSel.options[ccSel.selectedIndex].getAttribute('data-iso');
+      warn.hidden = (iso === 'IN');
+    }
+    ccSel.addEventListener('change', update);
+    update();
   }
 
   // Entry point wherever a visitor needs to register/log in before seeing
@@ -61,11 +64,12 @@
   // both tolerate email OR mobile being blank, so whichever the visitor
   // typed here is all that's ever sent.
   function renderLoginStep(container, opts) {
+    // No opts.message here — "Create your free account..." only makes sense
+    // on the Register step; an existing user logging in doesn't need it.
     container.innerHTML =
       '<div class="ma-gate ma-gate-full">' +
       '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
       '<h3>Log in to continue</h3>' +
-      (opts.message ? '<p>' + esc(opts.message) + '</p>' : '') +
       '<form class="ma-gate-form">' +
       '<input type="text" name="contact" placeholder="Email or mobile number" required autocomplete="username">' +
       '<button type="submit" class="btn-gold">Continue →</button>' +
@@ -92,10 +96,10 @@
         if (!r || !r.ok) {
           btn.disabled = false; btn.textContent = 'Continue →';
           if (r && r.notFound) {
-            err.innerHTML = "We couldn't find an account with that email or mobile. " +
-              '<button type="button" class="ma-gate-err-link" data-goregister>Register instead →</button>';
+            // Just the plain message — "New here? Register" below already
+            // covers switching steps, no need for a second, redundant link.
+            err.textContent = "We couldn't find an account with that email or mobile.";
             err.style.display = 'block';
-            err.querySelector('[data-goregister]').onclick = function () { renderRegisterStep(container, opts); };
             return;
           }
           alert((r && r.error) || 'Could not send a code — please try again.');
@@ -124,6 +128,7 @@
       '<select class="mgf-cc" name="mobileCc" aria-label="Mobile country code">' + dialCodeOptionsHtml(countries, dialCodes) + '</select>' +
       '<input type="tel" name="mobile" placeholder="Mobile number" pattern="[0-9]{6,14}" required>' +
       '</div>' +
+      '<span class="mgf-status warn" data-cc-warn hidden>OTP will be sent to your email only — we don’t support international mobile OTP yet.</span>' +
       '<select name="country" aria-label="Country">' + countryOptionsHtml(countries) + '</select>' +
       '<input type="text" name="pincode" placeholder="Pincode / ZIP" required>' +
       '<span class="mgf-status" data-status></span>' +
@@ -131,7 +136,10 @@
       '</form>' +
       '<button type="button" class="ma-gate-link" data-login>Already registered? Log in</button>' +
       '</div>';
-    wireCountryDialSync(container);
+    // Country and mobile country-code are deliberately independent — a
+    // visitor might live abroad but still carry an Indian SIM (or vice
+    // versa), so picking one must never silently overwrite the other.
+    wireMobileCcWarning(container);
     var form = container.querySelector('.ma-full-form');
     var detectedLocation = { city: '', state: '' };
     wirePincodeLookup(form, detectedLocation);
@@ -183,7 +191,13 @@
         setStatus('Looking up pincode…', 'loading');
         window.MASession.lookupPincode(v, country).then(function (loc) {
           if (reqId !== pinReqId) return; // superseded by a newer keystroke
-          if (!loc.city || !loc.state) { setStatus('', ''); return; } // stays silent — nothing to show yet
+          if (!loc.city || !loc.state) {
+            // Was silent here before — a wrong/unrecognized pincode gave no
+            // feedback at all. Still no manual city/state inputs (that's
+            // deliberate), just tell the visitor to check what they typed.
+            setStatus('Could not find this pincode — please check it.', 'warn');
+            return;
+          }
           detected.city = loc.city; detected.state = loc.state;
           setStatus(loc.city + ', ' + loc.state, 'ok');
         });
