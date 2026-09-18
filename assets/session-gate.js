@@ -75,7 +75,7 @@
       '<button type="submit" class="btn-gold">Continue →</button>' +
       '</form>' +
       '<div class="ma-gate-err" style="display:none;"></div>' +
-      '<button type="button" class="ma-gate-link" data-newuser>New here? Register</button>' +
+      '<button type="button" class="ma-gate-link-gold" data-newuser>New User? Register</button>' +
       '</div>';
     var form = container.querySelector('.ma-gate-form');
     var err = container.querySelector('.ma-gate-err');

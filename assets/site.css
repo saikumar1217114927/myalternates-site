@@ -561,6 +561,15 @@ nav.links a:hover::after{width:100%;}
 .ma-gate-form.ma-gate-otp input{text-align:center; letter-spacing:.3em; font-weight:700; font-size:17px;}
 .ma-gate-form button{white-space:nowrap; border:none; border-radius:6px; cursor:pointer;}
 .ma-gate-link{display:block; background:none; border:0; color:var(--muted-light); font-size:12.5px; text-decoration:underline; cursor:pointer; margin:12px auto 0;}
+/* "New User? Register" on the Login step — a real invitation to a new
+   visitor, not a low-emphasis link like "Resend code" or "Log in" below it. */
+.ma-gate-link-gold{
+  display:inline-block; background:var(--gold); color:var(--ink) !important; border:0;
+  font-size:13px; font-weight:700; text-decoration:none; cursor:pointer;
+  padding:9px 20px; border-radius:20px; margin:16px auto 0;
+  transition:background .2s ease, transform .2s ease;
+}
+.ma-gate-link-gold:hover{background:var(--gold-light); transform:translateY(-1px);}
 .ma-gate-err{color:#ff9376; font-size:13px; margin-top:12px;}
 @media (max-width:480px){ .ma-gate-form{flex-direction:column;} }
 
