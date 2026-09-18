@@ -334,12 +334,12 @@
     if (!keys.length) return '';
     return '<div class="scm-section"><div class="scm-sec-head"><h2>Portfolio characteristics</h2>' +
       (pc.date ? '<span class="scm-asof">As of ' + esc(pc.date) + '</span>' : '') + '</div>' +
-      '<div class="scm-chars-grid">' +
+      '<div class="scm-chars-panel"><div class="scm-chars-grid">' +
       keys.map(function (k) {
         return '<div class="scm-char-tile"><span class="scm-char-label">' + esc(charLabel(k)) + '</span>' +
           '<span class="scm-char-value">' + esc(charValue(k, pc[k])) + '</span></div>';
       }).join('') +
-      '</div></div>';
+      '</div></div></div>';
   }
 
   function factsSection(p) {
