@@ -263,18 +263,8 @@
   .enquiry-card p.lede{
     color:var(--muted); font-size:13px; margin-bottom:14px; line-height:1.45;
   }
-  .existing-login-row{
-    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-    font-size:12.5px; color:var(--muted); font-weight:500;
-    padding:10px 14px; background:var(--paper-2); border:1px solid #E6E0D2;
-    border-radius:12px; margin-bottom:12px;
-  }
-  .existing-login-row a{color:var(--ink-text); font-weight:700; border-bottom:1px solid var(--gold);}
-  .existing-login-row a:hover{color:var(--gold);}
-  .existing-login-row .sep{color:var(--muted-light);}
   /* Log in with the email/mobile already on file — for a returning lead who
-     doesn't want to retype the whole form. Separate from .existing-login-row
-     above, which links out to the full investor/distributor portal accounts.
+     doesn't want to retype the whole form.
      Collapsed by default — a single button, not an input sitting in the open —
      so a new visitor isn't asked to choose between two things before they've
      even seen the form. Clicking it reveals the login row in its place. */
@@ -968,12 +958,6 @@
       <div class="form-body">
         <h3>Talk to your investment expert</h3>
         <p class="lede">Investor or distributor — tell us which, and our expert will call you back within one business day.</p>
-        <div class="existing-login-row">
-          Already with us?
-          <a href="https://login.myalternates.com/" target="_blank" rel="noopener">Investor Login</a>
-          <span class="sep">/</span>
-          <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login</a>
-        </div>
         <button type="button" class="ma-login-toggle" id="maLoginToggle">Already sent us an enquiry? <span class="arrow">Log in with your email or mobile →</span></button>
         <div class="ma-login-expand" id="maLoginExpand" hidden>
           <div class="ma-login-row">
