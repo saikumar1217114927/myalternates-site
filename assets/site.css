@@ -807,6 +807,14 @@ nav.links a:hover::after{width:100%;}
 .scm-fee-card{background:#fff; border:1px solid #E4DFD1; border-radius:12px; padding:20px 22px;}
 .scm-fee-card span{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--gold); margin-bottom:8px;}
 .scm-fee-card b{display:block; font-size:15px; color:var(--ink-text); font-weight:600; line-height:1.45;}
+.scm-fee-card i{display:block; font-style:normal; font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.45;}
+/* Fund terms (Cat I/II AIF) reuses this same card grid — .hero (fund target
+   size, the headline number) gets a gold-accented card and a larger value;
+   .wide (Taxation, a full sentence) spans the row. */
+.scm-fee-card.hero{border-color:var(--gold); background:linear-gradient(180deg,#fff,rgba(201,162,75,0.06)); box-shadow:0 14px 30px -20px rgba(201,162,75,0.45);}
+.scm-fee-card.hero b{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:28px;}
+.scm-fee-card.wide{grid-column:1/-1;}
+.scm-fee-card.wide b{font-family:inherit; font-size:13.5px; font-weight:400; line-height:1.6;}
 
 /* Portfolio characteristics — a dark stat panel (the hero/enquiry-card's own
    black-and-gold treatment, not another white card on the page's off-white
@@ -825,32 +833,6 @@ nav.links a:hover::after{width:100%;}
 .scm-char-tile:hover{background:rgba(255,255,255,0.08);}
 .scm-char-label{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted-light); margin-bottom:9px;}
 .scm-char-value{display:block; font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:25px; color:var(--gold-light); line-height:1.15;}
-
-/* Fund terms (Cat I/II AIF) — same dark, gold-on-black premium panel as
-   Portfolio characteristics above (the two never show together — see each
-   section's own aifCategory guard), but led by one hero stat (fund target
-   size) before the supporting tile grid, since a still-fundraising fund's
-   headline number is its corpus, not a spread of equal-weight facts. */
-.scm-fund-panel{
-  background: radial-gradient(140% 260px at 18% -15%, rgba(201,162,75,0.22), transparent 65%), var(--ink);
-  border-radius:20px; padding:28px 10px 10px;
-  box-shadow:0 30px 70px -30px rgba(11,14,19,0.5);
-}
-.scm-fund-hero{display:flex; flex-direction:column; gap:6px; padding:0 22px 26px;}
-.scm-fund-hero-label{font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted-light);}
-.scm-fund-hero-value{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:44px; color:var(--gold-light); line-height:1;}
-.scm-fund-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:2px; border-top:1px solid rgba(255,255,255,0.08);}
-.scm-fund-tile{background:rgba(255,255,255,0.03); border-radius:14px; padding:20px 22px; transition:background .2s ease;}
-.scm-fund-tile:hover{background:rgba(255,255,255,0.08);}
-.scm-fund-tile-label{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted-light); margin-bottom:9px;}
-.scm-fund-tile-value{display:block; font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:22px; color:var(--paper); line-height:1.15;}
-.scm-fund-tile-note{display:block; font-size:11.5px; color:var(--muted-light); margin-top:6px; line-height:1.4;}
-.scm-fund-note{padding:18px 22px 22px; border-top:1px solid rgba(255,255,255,0.08);}
-.scm-fund-note .scm-fund-tile-label{margin-bottom:8px;}
-.scm-fund-note p{font-size:13.5px; color:var(--paper); line-height:1.6; margin:0;}
-@media (max-width:600px){
-  .scm-fund-hero-value{font-size:34px;}
-}
 
 .scm-flags{display:flex; flex-wrap:wrap; gap:8px;}
 .scm-flag{font-size:11.5px; font-weight:600; padding:6px 12px; border-radius:999px; border:1px solid #E4DFD1;}

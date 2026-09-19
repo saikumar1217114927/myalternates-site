@@ -379,46 +379,46 @@
   // close-ended, drawdown-structured fund that's still raising, so its
   // fundraising terms matter more than trailing returns it may not have yet
   // (and Portfolio characteristics, above, doesn't apply — see its own
-  // aifCategory guard). Same dark, gold-on-black "headline stat" treatment
-  // as that section: fund target size leads as the one hero number, the
-  // rest sit as a tile grid underneath, each with its own remark line where
-  // Finalyca actually gives one (e.g. "Extendable by 1+1 Years") instead of
-  // a flat label/value list. Field set confirmed field-by-field against a
-  // real Category I fund (Morphosis Venture Capital Fund I).
+  // aifCategory guard). One light card per field, same pattern as this
+  // page's own Fee structure/Exit load cards below — fund target size
+  // leads as its own accented card since it's the headline number, the rest
+  // follow as plain cards, each with its own remark line where Finalyca
+  // actually gives one (e.g. "Extendable by 1+1 Years"). Field set
+  // confirmed field-by-field against a real Category I fund (Morphosis
+  // Venture Capital Fund I).
   function fundTermsSection(p) {
     if (!p.aifCategory) return '';
-    var tiles = [];
-    if (p.fundStructure) tiles.push(['Fund structure', p.fundStructure, '']);
-    tiles.push(['Subscription status', p.closedForSubscription ? 'Closed' : 'Open', '']);
-    if (p.assetStructure) tiles.push(['Asset structure', p.assetStructure, '']);
-    if (p.targetedGrossIrr != null) tiles.push(['Targeted gross IRR', p.targetedGrossIrr + '%', p.targetedGrossIrrRemarks]);
-    if (p.inceptionDate) tiles.push(['Fund open date', p.inceptionDate, '']);
-    if (p.tenureYears != null) tiles.push(['Fund tenure', p.tenureYears + ' yr' + (p.tenureYears > 1 ? 's' : ''), p.tenureRemarks]);
-    if (p.drawdownPercent != null) tiles.push(['Initial drawdown', p.drawdownPercent + '%', p.drawdownRemarks]);
-    tiles.push(['Tentative balance commitment call', tbd(p.balanceCommitmentCall), '']);
-    if (p.minCommitment != null) tiles.push(['Min. commitment', fmtCr(p.minCommitment), p.minCommitmentRemarks]);
+    var cards = [];
+    if (p.targetAmount != null) cards.push({ label: 'Fund target size', value: fmtCr(p.targetAmount), hero: true });
+    if (p.fundStructure) cards.push({ label: 'Fund structure', value: p.fundStructure });
+    cards.push({ label: 'Subscription status', value: p.closedForSubscription ? 'Closed' : 'Open' });
+    if (p.assetStructure) cards.push({ label: 'Asset structure', value: p.assetStructure });
+    if (p.targetedGrossIrr != null) cards.push({ label: 'Targeted gross IRR', value: p.targetedGrossIrr + '%', note: p.targetedGrossIrrRemarks });
+    if (p.inceptionDate) cards.push({ label: 'Fund open date', value: p.inceptionDate });
+    if (p.tenureYears != null) cards.push({ label: 'Fund tenure', value: p.tenureYears + ' yr' + (p.tenureYears > 1 ? 's' : ''), note: p.tenureRemarks });
+    if (p.drawdownPercent != null) cards.push({ label: 'Initial drawdown', value: p.drawdownPercent + '%', note: p.drawdownRemarks });
+    cards.push({ label: 'Tentative balance commitment call', value: tbd(p.balanceCommitmentCall) });
+    if (p.minCommitment != null) cards.push({ label: 'Min. commitment', value: fmtCr(p.minCommitment), note: p.minCommitmentRemarks });
     if (p.sponsorCommitmentAmount != null || p.sponsorCommitmentRemarks) {
-      tiles.push(['Sponsor commitment', p.sponsorCommitmentAmount != null ? fmtCr(p.sponsorCommitmentAmount) : p.sponsorCommitmentRemarks, p.sponsorCommitmentAmount != null ? p.sponsorCommitmentRemarks : '']);
+      cards.push({
+        label: 'Sponsor commitment',
+        value: p.sponsorCommitmentAmount != null ? fmtCr(p.sponsorCommitmentAmount) : p.sponsorCommitmentRemarks,
+        note: p.sponsorCommitmentAmount != null ? p.sponsorCommitmentRemarks : ''
+      });
     }
-    tiles.push(['Tentative final closing', tbd(p.finalClosingDate), p.finalClosingDate ? p.finalClosingRemarks : '']);
+    cards.push({ label: 'Tentative final closing', value: tbd(p.finalClosingDate), note: p.finalClosingDate ? p.finalClosingRemarks : '' });
+    if (p.taxationRemarks) cards.push({ label: 'Taxation', value: p.taxationRemarks, wide: true });
     var badge = 'Category ' + p.aifCategory + (p.subCategory ? ' · ' + p.subCategory : '');
     return '<div class="scm-section"><div class="scm-sec-head"><h2>Fund terms</h2><span class="scm-asof">' + esc(badge) + '</span></div>' +
-      '<div class="scm-fund-panel">' +
-      (p.targetAmount != null ?
-        '<div class="scm-fund-hero"><span class="scm-fund-hero-label">Fund target size</span>' +
-        '<span class="scm-fund-hero-value">' + esc(fmtCr(p.targetAmount)) + '</span></div>' : '') +
-      '<div class="scm-fund-grid">' +
-      tiles.map(function (t) {
+      '<div class="scm-fee-cards">' +
+      cards.map(function (c) {
         // Finalyca's own remark fields occasionally just restate the value
         // (e.g. a min_commitment_remarks of "1 Cr" next to a value that
         // already formats to "1 Cr") — skip a note that adds nothing new.
-        var note = t[2] && String(t[2]).trim().toLowerCase() !== String(t[1]).trim().toLowerCase() ? t[2] : '';
-        return '<div class="scm-fund-tile"><span class="scm-fund-tile-label">' + esc(t[0]) + '</span>' +
-          '<span class="scm-fund-tile-value">' + esc(t[1]) + '</span>' +
-          (note ? '<span class="scm-fund-tile-note">' + esc(note) + '</span>' : '') + '</div>';
+        var note = c.note && String(c.note).trim().toLowerCase() !== String(c.value).trim().toLowerCase() ? c.note : '';
+        return '<div class="scm-fee-card' + (c.hero ? ' hero' : '') + (c.wide ? ' wide' : '') + '"><span>' + esc(c.label) + '</span>' +
+          '<b>' + esc(c.value) + '</b>' + (note ? '<i>' + esc(note) + '</i>' : '') + '</div>';
       }).join('') +
-      '</div>' +
-      (p.taxationRemarks ? '<div class="scm-fund-note"><span class="scm-fund-tile-label">Taxation</span><p>' + esc(p.taxationRemarks) + '</p></div>' : '') +
       '</div></div>';
   }
 
