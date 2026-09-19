@@ -457,7 +457,8 @@ nav.links a:hover::after{width:100%;}
 .ps-search input::placeholder{color:var(--muted-light);}
 .pss-group{display:flex; flex-direction:column; gap:9px; padding-top:18px; border-top:1px solid #F0EBDE;}
 .pss-group[hidden]{display:none;}
-.p-schemes-sidebar > .ps-search + .pss-group{padding-top:0; border-top:0;}
+#pssFilterPanel{display:flex; flex-direction:column; gap:0;}
+#pssFilterPanel > .pss-group:first-child{padding-top:0; border-top:0;}
 .pss-group label{font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted);}
 .pss-group select{
   width:100%; appearance:none; -webkit-appearance:none; font-family:inherit; font-size:13.5px; color:var(--ink-text);
@@ -482,6 +483,38 @@ nav.links a:hover::after{width:100%;}
   align-self:flex-start; background:none; border:none; color:var(--emerald); font-family:inherit;
   font-size:12.5px; font-weight:700; cursor:pointer; padding:0; text-decoration:underline; text-underline-offset:3px;
 }
+
+/* Cat I/II fund-terms filter panel — Asset dropdown + two range sliders,
+   swapped in for the standard sort/strategy/category/AUM panel above (see
+   renderFilterPanel/fundTermsFilterPanelHtml). */
+.pss-ft-head{display:flex; align-items:center; justify-content:space-between; font-size:13.5px; font-weight:700; color:var(--ink-text);}
+.pss-ft-clear{background:none; border:none; color:#B5502E; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; padding:0;}
+.pss-range-group{border-top:none; padding-top:14px;}
+.pss-range-track{position:relative; height:4px; background:#DCD5C2; border-radius:2px; margin:10px 3px 14px;}
+.pss-range-fill{position:absolute; top:0; bottom:0; background:var(--gold); border-radius:2px;}
+.pss-range-track input[type="range"]{
+  position:absolute; top:50%; left:0; width:100%; height:18px; margin:0; padding:0;
+  background:transparent; -webkit-appearance:none; appearance:none; pointer-events:none; transform:translateY(-50%);
+}
+.pss-range-track input[type="range"]::-webkit-slider-runnable-track{background:transparent; -webkit-appearance:none;}
+.pss-range-track input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none; pointer-events:auto; width:16px; height:16px; border-radius:50%;
+  background:var(--ink); border:3px solid #fff; box-shadow:0 1px 4px rgba(11,14,19,0.35); cursor:pointer;
+}
+.pss-range-track input[type="range"]::-moz-range-track{background:transparent;}
+.pss-range-track input[type="range"]::-moz-range-thumb{
+  pointer-events:auto; width:16px; height:16px; border-radius:50%; background:var(--ink);
+  border:3px solid #fff; box-shadow:0 1px 4px rgba(11,14,19,0.35); cursor:pointer;
+}
+.pss-range-inputs{display:flex; align-items:center; gap:10px;}
+.pss-range-inputs input{
+  width:0; flex:1 1 0; font-family:inherit; font-size:13px; color:var(--ink-text);
+  background:var(--paper-2); border:1px solid #E4DDC9; border-radius:9px; padding:8px 10px;
+  font-variant-numeric:tabular-nums;
+}
+.pss-range-inputs input:focus{outline:none; border-color:var(--gold);}
+.pss-range-inputs input::-webkit-outer-spin-button, .pss-range-inputs input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+.pss-range-inputs input{-moz-appearance:textfield;}
 
 /* ---- list: card rows with tag + meta + 4-up returns + Explore ---- */
 .p-schemes-list{min-width:0;}

@@ -33,7 +33,11 @@
   var SHOW_HEADER_CTA = productCode === 'PMS' || productCode === 'AIF' || productCode === 'GIFT_IFSC';
 
   var allSchemes = [];
-  var state = { q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc' };
+  var state = {
+    q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc',
+    // Cat I/II fund-terms filter panel only:
+    asset: 'All', targetMin: 0, targetMax: null, tenureMin: 0, tenureMax: null
+  };
 
   var AUM_BANDS = [
     { value: 'All', label: 'All' },
@@ -48,6 +52,10 @@
     { value: 'r5y', label: '5 Year Return' },
     { value: 'si', label: 'Since Inception' }
   ];
+  // Slider ceilings for the Cat I/II fund-terms filter panel — fixed, not
+  // data-derived, so the scale stays stable as new funds sync in.
+  var TARGET_SIZE_MAX = { I: 5000, II: 10000 };
+  var TENURE_MAX = 15;
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -91,6 +99,12 @@
   function isFundTermsScheme(s) {
     var cat = aifCategoryOf(s);
     return cat === 'I' || cat === 'II';
+  }
+  // Whether the *page* is currently scoped to a single fund-terms category
+  // (the Cat I or Cat II tab) — as opposed to "All AIF"/"Cat III", which can
+  // mix in returns-tracked schemes and keep the standard filter panel.
+  function isFundTermsMode() {
+    return productCode === 'AIF' && (state.aifCat === 'I' || state.aifCat === 'II');
   }
   // Fund-terms amounts come back as absolute rupees (Finalyca's own
   // scheme_currency_scale for these is "absolute"), not Cr.
@@ -176,15 +190,25 @@
   }
 
   function applyFilters() {
+    var ftMode = isFundTermsMode();
     var q = state.q.trim().toLowerCase();
     var list = allSchemes.filter(function (s) {
       if (q) {
         var hay = ((s.amcName || '') + ' ' + (s.schemeName || '')).toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
+      if (productCode === 'AIF' && state.aifCat !== 'All' && aifCategoryOf(s) !== state.aifCat) return false;
+      if (ftMode) {
+        var p = s.profile || {};
+        if (state.asset !== 'All' && (p.subCategory || '') !== state.asset) return false;
+        var target = crValue(p.targetAmount);
+        if (target == null || target < state.targetMin || target > state.targetMax) return false;
+        var tenure = p.tenureYears;
+        if (tenure == null || tenure < state.tenureMin || tenure > state.tenureMax) return false;
+        return true;
+      }
       if (state.strategy !== 'All' && strategyOf(s) !== state.strategy) return false;
       if (state.category !== 'All' && categoryLabel(s) !== state.category) return false;
-      if (productCode === 'AIF' && state.aifCat !== 'All' && aifCategoryOf(s) !== state.aifCat) return false;
       if (state.aum !== 'All') {
         var band = state.aum.split('-');
         var lo = Number(band[0]), hi = Number(band[1]);
@@ -202,6 +226,9 @@
         if (af > 0 && bf > 0) return af - bf;
         return af > 0 ? -1 : 1;
       }
+      // Fund-terms mode has no return-based sort control — keep the
+      // backend's own order (most-recently-synced first).
+      if (ftMode) return 0;
       var av = (a.returns && a.returns[state.sortKey]), bv = (b.returns && b.returns[state.sortKey]);
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
@@ -229,20 +256,31 @@
     return out;
   }
 
+  // The aside is a fixed shell (search box + a filter-panel slot); which
+  // panel goes in that slot — the standard sort/strategy/category/AUM one,
+  // or the Cat I/II range-slider one — is decided by renderFilterPanel,
+  // called on load and again whenever the AIF category tab changes, so
+  // switching to Cat I/II swaps the whole panel rather than just hiding a
+  // couple of fields in it.
   function sidebarHtml() {
-    var strategies = uniqueSorted(allSchemes.map(strategyOf));
-    var categories = uniqueSorted(allSchemes.map(categoryLabel));
     return '<aside class="p-schemes-sidebar">' +
       '<div class="ps-search">' +
       '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="18" y1="18" x2="13.6" y2="13.6"/></svg>' +
       '<input type="search" id="pssSearch" placeholder="Search by scheme or AMC name" aria-label="Search schemes">' +
       '</div>' +
-      '<div class="pss-group" id="pssSortGroup">' +
+      '<div id="pssFilterPanel"></div>' +
+      '</aside>';
+  }
+
+  function standardFilterPanelHtml() {
+    var strategies = uniqueSorted(allSchemes.map(strategyOf));
+    var categories = uniqueSorted(allSchemes.map(categoryLabel));
+    return '<div class="pss-group">' +
       '<label>Sort by</label>' +
-      '<select id="pssSort">' + SORT_OPTIONS.map(function (o) { return '<option value="' + o.value + '">' + esc(o.label) + '</option>'; }).join('') + '</select>' +
+      '<select id="pssSort">' + SORT_OPTIONS.map(function (o) { return '<option value="' + o.value + '"' + (o.value === state.sortKey ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select>' +
       '<div class="pss-dir">' +
-      '<button type="button" class="pss-dir-btn active" data-dir="desc">High to Low</button>' +
-      '<button type="button" class="pss-dir-btn" data-dir="asc">Low to High</button>' +
+      '<button type="button" class="pss-dir-btn' + (state.sortDir === 'desc' ? ' active' : '') + '" data-dir="desc">High to Low</button>' +
+      '<button type="button" class="pss-dir-btn' + (state.sortDir === 'asc' ? ' active' : '') + '" data-dir="asc">Low to High</button>' +
       '</div></div>' +
       '<div class="pss-group">' +
       '<label>Strategy</label>' +
@@ -255,12 +293,84 @@
       '<select id="pssCategory"><option value="All">All Category</option>' +
       categories.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('') +
       '</select></div>' +
-      '<div class="pss-group" id="pssAumGroup">' +
+      '<div class="pss-group">' +
       '<label>AUM (in Cr)</label>' +
       '<select id="pssAum">' + AUM_BANDS.map(function (b) { return '<option value="' + esc(b.value) + '">' + esc(b.label) + '</option>'; }).join('') + '</select>' +
       '</div>' +
-      '<button type="button" class="pss-clear" id="pssClear">Clear filters</button>' +
-      '</aside>';
+      '<button type="button" class="pss-clear" id="pssClear">Clear filters</button>';
+  }
+
+  function rangeGroupHtml(id, label, unit, min, max, lo, hi) {
+    return '<div class="pss-group pss-range-group" id="' + id + '">' +
+      '<label>' + esc(label) + (unit ? ' (' + esc(unit) + ')' : '') + '</label>' +
+      '<div class="pss-range-track"><div class="pss-range-fill"></div>' +
+      '<input type="range" class="pss-range-min" min="' + min + '" max="' + max + '" value="' + lo + '">' +
+      '<input type="range" class="pss-range-max" min="' + min + '" max="' + max + '" value="' + hi + '">' +
+      '</div>' +
+      '<div class="pss-range-inputs">' +
+      '<input type="number" class="pss-range-num-min" min="' + min + '" max="' + max + '" value="' + lo + '">' +
+      '<input type="number" class="pss-range-num-max" min="' + min + '" max="' + max + '" value="' + hi + '">' +
+      '</div></div>';
+  }
+
+  // Cat I/II AIF only — every scheme in this view is a fund-terms card (see
+  // isFundTermsScheme), so "Sort by return"/"AUM" have nothing to act on;
+  // this replaces them with the fields that actually apply to a
+  // still-fundraising, drawdown-structured fund.
+  function fundTermsFilterPanelHtml(schemes) {
+    var cat = state.aifCat;
+    var targetMax = TARGET_SIZE_MAX[cat] || 5000;
+    var tenureMax = TENURE_MAX;
+    if (state.targetMax == null || state.tenureMax == null) {
+      state.targetMax = targetMax; state.tenureMax = tenureMax;
+    }
+    var assets = uniqueSorted(schemes.filter(function (s) { return aifCategoryOf(s) === cat; }).map(function (s) { return (s.profile && s.profile.subCategory) || ''; }));
+    return '<div class="pss-ft-head"><span>Filter</span><button type="button" class="pss-ft-clear" id="pssFtClear">Clear</button></div>' +
+      '<div class="pss-group">' +
+      '<label>Asset</label>' +
+      '<select id="pssAsset"><option value="All">All</option>' +
+      assets.map(function (a) { return '<option value="' + esc(a) + '"' + (a === state.asset ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') +
+      '</select></div>' +
+      rangeGroupHtml('pssTargetGroup', 'Fund Target Size', 'in Cr', 0, targetMax, state.targetMin, state.targetMax) +
+      rangeGroupHtml('pssTenureGroup', 'Fund Tenure', 'in Years', 0, tenureMax, state.tenureMin, state.tenureMax);
+  }
+
+  function wireRangeSlider(groupEl, onChange) {
+    var minR = groupEl.querySelector('.pss-range-min');
+    var maxR = groupEl.querySelector('.pss-range-max');
+    var minN = groupEl.querySelector('.pss-range-num-min');
+    var maxN = groupEl.querySelector('.pss-range-num-max');
+    var fill = groupEl.querySelector('.pss-range-fill');
+    var bound = Number(minR.max);
+    function paint() {
+      var lo = Number(minR.value), hi = Number(maxR.value);
+      fill.style.left = (bound ? lo / bound * 100 : 0) + '%';
+      fill.style.right = (bound ? 100 - hi / bound * 100 : 0) + '%';
+    }
+    function commit(lo, hi) {
+      minR.value = lo; maxR.value = hi; minN.value = lo; maxN.value = hi;
+      paint();
+      onChange(lo, hi);
+    }
+    minR.addEventListener('input', function () {
+      var lo = Number(minR.value), hi = Number(maxR.value);
+      if (lo > hi) hi = lo;
+      commit(lo, hi);
+    });
+    maxR.addEventListener('input', function () {
+      var lo = Number(minR.value), hi = Number(maxR.value);
+      if (hi < lo) lo = hi;
+      commit(lo, hi);
+    });
+    minN.addEventListener('change', function () {
+      var lo = Math.min(Math.max(Number(minN.value) || 0, 0), Number(maxR.value));
+      commit(lo, Number(maxR.value));
+    });
+    maxN.addEventListener('change', function () {
+      var hi = Math.max(Math.min(Number(maxN.value) || bound, bound), Number(minR.value));
+      commit(Number(minR.value), hi);
+    });
+    paint();
   }
 
   // Backend search for this product, beyond whatever's already loaded — the
@@ -286,29 +396,99 @@
     }).catch(function () {});
   }
 
-  // Return/AUM sorting has nothing to act on for a Cat I/II tab — every
-  // scheme there renders as a fund-terms card (see isFundTermsScheme) with
-  // no returns or AUM at all — so hide those two controls rather than leave
-  // them visibly doing nothing.
-  function updateSidebarVisibility() {
-    var fundTermsOnly = productCode === 'AIF' && (state.aifCat === 'I' || state.aifCat === 'II');
-    var sortGroup = host.querySelector('#pssSortGroup');
-    var aumGroup = host.querySelector('#pssAumGroup');
-    if (sortGroup) sortGroup.hidden = fundTermsOnly;
-    if (aumGroup) aumGroup.hidden = fundTermsOnly;
+  // Swaps in the right filter panel for the current tab (standard vs.
+  // fund-terms) and wires whichever one just went in. Called on load and
+  // again on every AIF category tab click.
+  function renderFilterPanel() {
+    var panel = host.querySelector('#pssFilterPanel');
+    if (!panel) return;
+    if (isFundTermsMode()) {
+      panel.innerHTML = fundTermsFilterPanelHtml(allSchemes);
+      wireFundTermsFilterPanel(panel);
+    } else {
+      panel.innerHTML = standardFilterPanelHtml();
+      wireStandardFilterPanel(panel);
+    }
+  }
+
+  function wireStandardFilterPanel(panel) {
+    var sortSel = panel.querySelector('#pssSort');
+    sortSel.addEventListener('change', function () { state.sortKey = sortSel.value; applyFilters(); });
+
+    panel.querySelectorAll('.pss-dir-btn').forEach(function (btn) {
+      btn.onclick = function () {
+        panel.querySelectorAll('.pss-dir-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        state.sortDir = btn.dataset.dir;
+        applyFilters();
+      };
+    });
+
+    panel.querySelectorAll('.pss-pill').forEach(function (btn) {
+      btn.onclick = function () {
+        panel.querySelectorAll('.pss-pill').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        state.strategy = btn.dataset.val;
+        applyFilters();
+      };
+    });
+
+    var catSel = panel.querySelector('#pssCategory');
+    catSel.addEventListener('change', function () { state.category = catSel.value; applyFilters(); });
+
+    var aumSel = panel.querySelector('#pssAum');
+    aumSel.addEventListener('change', function () { state.aum = aumSel.value; applyFilters(); });
+
+    panel.querySelector('#pssClear').onclick = function () {
+      state.strategy = 'All'; state.category = 'All'; state.aum = 'All';
+      state.sortKey = 'r1y'; state.sortDir = 'desc';
+      var searchInput = host.querySelector('#pssSearch');
+      state.q = ''; searchInput.value = '';
+      renderFilterPanel();
+      applyFilters();
+    };
+  }
+
+  function wireFundTermsFilterPanel(panel) {
+    var assetSel = panel.querySelector('#pssAsset');
+    assetSel.addEventListener('change', function () { state.asset = assetSel.value; applyFilters(); });
+
+    wireRangeSlider(panel.querySelector('#pssTargetGroup'), function (lo, hi) {
+      state.targetMin = lo; state.targetMax = hi; applyFilters();
+    });
+    wireRangeSlider(panel.querySelector('#pssTenureGroup'), function (lo, hi) {
+      state.tenureMin = lo; state.tenureMax = hi; applyFilters();
+    });
+
+    panel.querySelector('#pssFtClear').onclick = function () {
+      state.asset = 'All';
+      state.targetMin = 0; state.targetMax = TARGET_SIZE_MAX[state.aifCat] || 5000;
+      state.tenureMin = 0; state.tenureMax = TENURE_MAX;
+      var searchInput = host.querySelector('#pssSearch');
+      state.q = ''; searchInput.value = '';
+      renderFilterPanel();
+      applyFilters();
+    };
   }
 
   function wireSidebar() {
     host.querySelectorAll('.ps-cat-tab').forEach(function (btn) {
       btn.onclick = function () {
+        if (btn.dataset.cat === state.aifCat) return; // already on this tab
         host.querySelectorAll('.ps-cat-tab').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         state.aifCat = btn.dataset.cat;
-        updateSidebarVisibility();
+        // Cat I and Cat II have different target-size ceilings — reset the
+        // fund-terms range filters (if leaving them set, a Cat II value like
+        // 8000 would silently clip out of Cat I's 0–5000 scale).
+        state.asset = 'All';
+        state.targetMin = 0; state.targetMax = TARGET_SIZE_MAX[state.aifCat] || 5000;
+        state.tenureMin = 0; state.tenureMax = TENURE_MAX;
+        renderFilterPanel();
         applyFilters();
       };
     });
-    updateSidebarVisibility();
+    renderFilterPanel();
 
     var searchInput = host.querySelector('#pssSearch');
     var searchTimer = null;
@@ -321,42 +501,6 @@
       clearTimeout(searchTimer);
       if (term.length >= 2) searchTimer = setTimeout(function () { expandSearch(term); }, 300);
     });
-
-    var sortSel = host.querySelector('#pssSort');
-    sortSel.addEventListener('change', function () { state.sortKey = sortSel.value; applyFilters(); });
-
-    host.querySelectorAll('.pss-dir-btn').forEach(function (btn) {
-      btn.onclick = function () {
-        host.querySelectorAll('.pss-dir-btn').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        state.sortDir = btn.dataset.dir;
-        applyFilters();
-      };
-    });
-
-    host.querySelectorAll('.pss-pill').forEach(function (btn) {
-      btn.onclick = function () {
-        host.querySelectorAll('.pss-pill').forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        state.strategy = btn.dataset.val;
-        applyFilters();
-      };
-    });
-
-    var catSel = host.querySelector('#pssCategory');
-    catSel.addEventListener('change', function () { state.category = catSel.value; applyFilters(); });
-
-    var aumSel = host.querySelector('#pssAum');
-    aumSel.addEventListener('change', function () { state.aum = aumSel.value; applyFilters(); });
-
-    host.querySelector('#pssClear').onclick = function () {
-      state = { q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc' };
-      searchInput.value = ''; sortSel.value = 'r1y'; catSel.value = 'All'; aumSel.value = 'All';
-      host.querySelectorAll('.pss-dir-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.dir === 'desc'); });
-      host.querySelectorAll('.pss-pill').forEach(function (b) { b.classList.toggle('active', b.dataset.val === 'All'); });
-      host.querySelectorAll('.ps-cat-tab').forEach(function (b) { b.classList.toggle('active', b.dataset.cat === 'All'); });
-      applyFilters();
-    };
   }
 
   // AIF-only tab row (All / Category I / II / III) sitting above the
