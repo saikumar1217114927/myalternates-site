@@ -367,6 +367,14 @@
       '</div></div>';
   }
 
+  // A handful of Finalyca's own fundraising-status fields come back as
+  // placeholder shorthand ("ND") or blank when a term genuinely hasn't been
+  // fixed yet — read as "To be determined" rather than shown raw or omitted.
+  function tbd(v) {
+    var s = String(v == null ? '' : v).trim();
+    return (!s || /^(nd|na|n\/a|tbd)$/i.test(s)) ? 'To be determined' : s;
+  }
+
   // Category I/II AIF only (see publicSchemeView's aifCategory) — a
   // close-ended, drawdown-structured fund that's still raising, so its
   // fundraising terms matter more than trailing returns it may not have yet
@@ -375,15 +383,24 @@
   // as that section: fund target size leads as the one hero number, the
   // rest sit as a tile grid underneath, each with its own remark line where
   // Finalyca actually gives one (e.g. "Extendable by 1+1 Years") instead of
-  // a flat label/value list.
+  // a flat label/value list. Field set confirmed field-by-field against a
+  // real Category I fund (Morphosis Venture Capital Fund I).
   function fundTermsSection(p) {
     if (!p.aifCategory) return '';
     var tiles = [];
-    if (p.tenureYears != null) tiles.push(['Fund tenure', p.tenureYears + ' yr' + (p.tenureYears > 1 ? 's' : ''), p.tenureRemarks]);
-    if (p.minCommitment != null) tiles.push(['Min. commitment', fmtCr(p.minCommitment), p.minCommitmentRemarks]);
-    if (p.drawdownPercent != null) tiles.push(['Initial drawdown', p.drawdownPercent + '%', p.drawdownRemarks]);
-    tiles.push(['Tentative final closing', p.finalClosingDate || 'To be determined', p.finalClosingDate ? p.finalClosingRemarks : '']);
+    if (p.fundStructure) tiles.push(['Fund structure', p.fundStructure, '']);
+    tiles.push(['Subscription status', p.closedForSubscription ? 'Closed' : 'Open', '']);
+    if (p.assetStructure) tiles.push(['Asset structure', p.assetStructure, '']);
     if (p.targetedGrossIrr != null) tiles.push(['Targeted gross IRR', p.targetedGrossIrr + '%', p.targetedGrossIrrRemarks]);
+    if (p.inceptionDate) tiles.push(['Fund open date', p.inceptionDate, '']);
+    if (p.tenureYears != null) tiles.push(['Fund tenure', p.tenureYears + ' yr' + (p.tenureYears > 1 ? 's' : ''), p.tenureRemarks]);
+    if (p.drawdownPercent != null) tiles.push(['Initial drawdown', p.drawdownPercent + '%', p.drawdownRemarks]);
+    tiles.push(['Tentative balance commitment call', tbd(p.balanceCommitmentCall), '']);
+    if (p.minCommitment != null) tiles.push(['Min. commitment', fmtCr(p.minCommitment), p.minCommitmentRemarks]);
+    if (p.sponsorCommitmentAmount != null || p.sponsorCommitmentRemarks) {
+      tiles.push(['Sponsor commitment', p.sponsorCommitmentAmount != null ? fmtCr(p.sponsorCommitmentAmount) : p.sponsorCommitmentRemarks, p.sponsorCommitmentAmount != null ? p.sponsorCommitmentRemarks : '']);
+    }
+    tiles.push(['Tentative final closing', tbd(p.finalClosingDate), p.finalClosingDate ? p.finalClosingRemarks : '']);
     var badge = 'Category ' + p.aifCategory + (p.subCategory ? ' · ' + p.subCategory : '');
     return '<div class="scm-section"><div class="scm-sec-head"><h2>Fund terms</h2><span class="scm-asof">' + esc(badge) + '</span></div>' +
       '<div class="scm-fund-panel">' +
@@ -400,7 +417,9 @@
           '<span class="scm-fund-tile-value">' + esc(t[1]) + '</span>' +
           (note ? '<span class="scm-fund-tile-note">' + esc(note) + '</span>' : '') + '</div>';
       }).join('') +
-      '</div></div></div>';
+      '</div>' +
+      (p.taxationRemarks ? '<div class="scm-fund-note"><span class="scm-fund-tile-label">Taxation</span><p>' + esc(p.taxationRemarks) + '</p></div>' : '') +
+      '</div></div>';
   }
 
   // Fee structure comes back as one free-text string (e.g. "Fixed fee: 2.50%,

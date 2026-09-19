@@ -845,6 +845,9 @@ nav.links a:hover::after{width:100%;}
 .scm-fund-tile-label{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted-light); margin-bottom:9px;}
 .scm-fund-tile-value{display:block; font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:22px; color:var(--paper); line-height:1.15;}
 .scm-fund-tile-note{display:block; font-size:11.5px; color:var(--muted-light); margin-top:6px; line-height:1.4;}
+.scm-fund-note{padding:18px 22px 22px; border-top:1px solid rgba(255,255,255,0.08);}
+.scm-fund-note .scm-fund-tile-label{margin-bottom:8px;}
+.scm-fund-note p{font-size:13.5px; color:var(--paper); line-height:1.6; margin:0;}
 @media (max-width:600px){
   .scm-fund-hero-value{font-size:34px;}
 }
