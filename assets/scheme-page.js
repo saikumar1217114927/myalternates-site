@@ -335,6 +335,11 @@
   }
 
   function portfolioCharacteristicsSection(s) {
+    // Not applicable to a Cat I/II AIF — P/E, P/B, average maturity etc. are
+    // listed-securities portfolio stats; a close-ended, drawdown-structured
+    // fund has fundTermsSection instead (target size, tenure, commitment,
+    // drawdown, closing).
+    if (s.profile && s.profile.aifCategory) return '';
     var pc = s.portfolioCharacteristics || {};
     var keys = Object.keys(pc).filter(function (k) { return !CHAR_SKIP_KEYS[k] && pc[k] != null && pc[k] !== ''; });
     if (!keys.length) return '';
@@ -364,20 +369,38 @@
 
   // Category I/II AIF only (see publicSchemeView's aifCategory) — a
   // close-ended, drawdown-structured fund that's still raising, so its
-  // fundraising terms matter more than trailing returns it may not have yet.
+  // fundraising terms matter more than trailing returns it may not have yet
+  // (and Portfolio characteristics, above, doesn't apply — see its own
+  // aifCategory guard). Same dark, gold-on-black "headline stat" treatment
+  // as that section: fund target size leads as the one hero number, the
+  // rest sit as a tile grid underneath, each with its own remark line where
+  // Finalyca actually gives one (e.g. "Extendable by 1+1 Years") instead of
+  // a flat label/value list.
   function fundTermsSection(p) {
     if (!p.aifCategory) return '';
-    var facts = [];
-    facts.push(['Category', 'Category ' + p.aifCategory + (p.subCategory ? ' – ' + p.subCategory : '')]);
-    if (p.targetAmount != null) facts.push(['Fund target size', fmtCr(p.targetAmount)]);
-    if (p.tenureYears != null) facts.push(['Fund tenure', p.tenureYears + ' year' + (p.tenureYears > 1 ? 's' : '') + (p.tenureRemarks ? ' (' + p.tenureRemarks + ')' : '')]);
-    if (p.minCommitment != null) facts.push(['Min. commitment', fmtCr(p.minCommitment)]);
-    if (p.drawdownPercent != null) facts.push(['Initial drawdown', p.drawdownPercent + '%' + (p.drawdownRemarks ? ' — ' + p.drawdownRemarks : '')]);
-    facts.push(['Tentative final closing', p.finalClosingDate || p.finalClosingRemarks || 'To be determined']);
-    if (p.targetedGrossIrr != null) facts.push(['Targeted gross IRR', p.targetedGrossIrr + '%']);
-    return '<div class="scm-section"><h2>Fund terms</h2><div class="scm-facts">' +
-      facts.map(function (f) { return '<div class="scm-fact"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; }).join('') +
-      '</div></div>';
+    var tiles = [];
+    if (p.tenureYears != null) tiles.push(['Fund tenure', p.tenureYears + ' yr' + (p.tenureYears > 1 ? 's' : ''), p.tenureRemarks]);
+    if (p.minCommitment != null) tiles.push(['Min. commitment', fmtCr(p.minCommitment), p.minCommitmentRemarks]);
+    if (p.drawdownPercent != null) tiles.push(['Initial drawdown', p.drawdownPercent + '%', p.drawdownRemarks]);
+    tiles.push(['Tentative final closing', p.finalClosingDate || 'To be determined', p.finalClosingDate ? p.finalClosingRemarks : '']);
+    if (p.targetedGrossIrr != null) tiles.push(['Targeted gross IRR', p.targetedGrossIrr + '%', p.targetedGrossIrrRemarks]);
+    var badge = 'Category ' + p.aifCategory + (p.subCategory ? ' · ' + p.subCategory : '');
+    return '<div class="scm-section"><div class="scm-sec-head"><h2>Fund terms</h2><span class="scm-asof">' + esc(badge) + '</span></div>' +
+      '<div class="scm-fund-panel">' +
+      (p.targetAmount != null ?
+        '<div class="scm-fund-hero"><span class="scm-fund-hero-label">Fund target size</span>' +
+        '<span class="scm-fund-hero-value">' + esc(fmtCr(p.targetAmount)) + '</span></div>' : '') +
+      '<div class="scm-fund-grid">' +
+      tiles.map(function (t) {
+        // Finalyca's own remark fields occasionally just restate the value
+        // (e.g. a min_commitment_remarks of "1 Cr" next to a value that
+        // already formats to "1 Cr") — skip a note that adds nothing new.
+        var note = t[2] && String(t[2]).trim().toLowerCase() !== String(t[1]).trim().toLowerCase() ? t[2] : '';
+        return '<div class="scm-fund-tile"><span class="scm-fund-tile-label">' + esc(t[0]) + '</span>' +
+          '<span class="scm-fund-tile-value">' + esc(t[1]) + '</span>' +
+          (note ? '<span class="scm-fund-tile-note">' + esc(note) + '</span>' : '') + '</div>';
+      }).join('') +
+      '</div></div></div>';
   }
 
   // Fee structure comes back as one free-text string (e.g. "Fixed fee: 2.50%,
