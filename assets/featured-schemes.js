@@ -454,6 +454,32 @@
     }).catch(function () {});
   }
 
+  // A specific Cat I/II/III tab needs every scheme in that category, not
+  // just whichever ones happen to already be sitting in allSchemes (the
+  // product's overall top ~50 by recency) — a category can be a small
+  // minority of the full scheme count (e.g. AIF had 13 real Cat I schemes,
+  // only 1 of which ever made that top-50 window), so client-side filtering
+  // alone was silently hiding almost all of them. Fetched once per category
+  // per page load (expandedCategories), then merged into allSchemes exactly
+  // like expandSearch above.
+  var expandedCategories = {};
+  function expandCategory(cat) {
+    if (expandedCategories[cat]) return;
+    expandedCategories[cat] = true;
+    var url = API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) +
+      '&aifCategory=' + encodeURIComponent(cat) + '&limit=200';
+    fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ok) return;
+      var known = {};
+      allSchemes.forEach(function (s) { known[s.planId] = true; });
+      var added = false;
+      (d.schemes || []).forEach(function (s) {
+        if (!known[s.planId]) { allSchemes.push(s); known[s.planId] = true; added = true; }
+      });
+      if (added && state.aifCat === cat) { renderFilterPanel(); applyFilters(); }
+    }).catch(function () { expandedCategories[cat] = false; }); // allow a retry on next tab click
+  }
+
   // Swaps in the right filter panel for the current tab (standard vs.
   // fund-terms) and wires whichever one just went in. Called on load and
   // again on every AIF category tab click.
@@ -548,6 +574,7 @@
         state.tenureMin = 0; state.tenureMax = TENURE_MAX;
         renderFilterPanel();
         applyFilters();
+        if (btn.dataset.cat !== 'All') expandCategory(btn.dataset.cat);
       };
     });
     renderFilterPanel();
