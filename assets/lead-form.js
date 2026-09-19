@@ -200,7 +200,11 @@
     var s = storedLead();
     var body = JSON.stringify({
       action: 'track', vid: getVid(), leadId: (s && s.leadId) || '',
-      path: location.pathname, title: document.title, ref: document.referrer,
+      // pathname alone drops ?id=<planId> on scheme.html — with it gone,
+      // the backoffice/AI can only ever say "visited /scheme", never which
+      // fund. The query string is kept (not just the id param) so any
+      // future page needing its own params gets this for free too.
+      path: location.pathname + location.search, title: document.title, ref: document.referrer,
       utm: firstUtm(), ua: navigator.userAgent
     });
     try { if (navigator.sendBeacon && navigator.sendBeacon(LEADS_WEBHOOK_URL, new Blob([body], { type: 'text/plain;charset=UTF-8' }))) return; } catch (e) {}

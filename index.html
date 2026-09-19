@@ -1803,7 +1803,7 @@
     const stored = maStoredLead();
     const body = JSON.stringify({
       action: 'track', vid: MA_VID, leadId: (stored && stored.leadId) || '',
-      path: location.pathname, title: document.title, ref: document.referrer,
+      path: location.pathname + location.search, title: document.title, ref: document.referrer,
       utm: maFirstUtm(), ua: navigator.userAgent
     });
     try{ if(navigator.sendBeacon && navigator.sendBeacon(LEADS_WEBHOOK_URL, new Blob([body], { type:'text/plain;charset=UTF-8' }))) return; } catch(e){}
