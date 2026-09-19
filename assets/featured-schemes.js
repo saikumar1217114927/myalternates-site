@@ -273,8 +273,14 @@
   }
 
   function standardFilterPanelHtml() {
-    var strategies = uniqueSorted(allSchemes.map(strategyOf));
-    var categories = uniqueSorted(allSchemes.map(categoryLabel));
+    // Scope the dropdown options to whichever AIF category tab is active —
+    // otherwise "Cat III" still offers every Cat I/II sub-category too, most
+    // with zero matching schemes once that tab's own filter is applied.
+    var scoped = (productCode === 'AIF' && state.aifCat !== 'All')
+      ? allSchemes.filter(function (s) { return aifCategoryOf(s) === state.aifCat; })
+      : allSchemes;
+    var strategies = uniqueSorted(scoped.map(strategyOf));
+    var categories = uniqueSorted(scoped.map(categoryLabel));
     return '<div class="pss-group">' +
       '<label>Sort by</label>' +
       '<select id="pssSort">' + SORT_OPTIONS.map(function (o) { return '<option value="' + o.value + '"' + (o.value === state.sortKey ? ' selected' : '') + '>' + esc(o.label) + '</option>'; }).join('') + '</select>' +
