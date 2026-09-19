@@ -101,14 +101,35 @@
     return cat === 'I' || cat === 'II';
   }
   // Whether the *page* is currently scoped to a single fund-terms category
-  // (the Cat I or Cat II tab) — as opposed to "All AIF"/"Cat III", which can
-  // mix in returns-tracked schemes and keep the standard filter panel.
+  // (the Cat I or Cat II tab) — as opposed to "All <product>"/"Cat III",
+  // which can mix in returns-tracked schemes and keep the standard filter
+  // panel. GIFT_IFSC carries the exact same scheme_category shape as AIF —
+  // Finalyca isn't AIF-specific about this taxonomy, so the site shouldn't
+  // be either.
+  var FUND_TERMS_PRODUCTS = { AIF: 1, GIFT_IFSC: 1 };
   function isFundTermsMode() {
-    return productCode === 'AIF' && (state.aifCat === 'I' || state.aifCat === 'II');
+    return !!FUND_TERMS_PRODUCTS[productCode] && (state.aifCat === 'I' || state.aifCat === 'II');
   }
-  // Fund-terms amounts come back as absolute rupees (Finalyca's own
-  // scheme_currency_scale for these is "absolute"), not Cr.
-  function crValue(v) { return v == null ? null : Math.round(v / 1e7); }
+  // Fund-terms amounts come back as an absolute figure in the fund's own
+  // currency (Finalyca's own scheme_currency_scale for these is "absolute",
+  // never "Cr"/"lakh") — an onshore AIF is INR, but a GIFT City Cat I/II
+  // fund is commonly USD (a real target_amount of 270000000 there means
+  // $270M, not "27 Cr").
+  function amountUnit(currency) { return (!currency || currency === 'INR') ? 'Cr' : ((currency === 'USD' ? '$' : currency) + 'M'); }
+  function amountValue(v, currency) {
+    if (v == null) return null;
+    return Math.round(v / ((!currency || currency === 'INR') ? 1e7 : 1e6));
+  }
+  function fmtAmount(v, currency) {
+    if (v == null) return null;
+    if (currency && currency !== 'INR') {
+      var sym = currency === 'USD' ? '$' : currency + ' ';
+      if (v >= 1e6) return sym + (Math.round(v / 1e5) / 10).toLocaleString('en-IN') + 'M';
+      if (v >= 1e3) return sym + Math.round(v / 1e3).toLocaleString('en-IN') + 'K';
+      return sym + Math.round(v).toLocaleString('en-IN');
+    }
+    return Math.round(v / 1e7).toLocaleString('en-IN') + ' Cr';
+  }
   function aumOf(s) { return (s.profile && s.profile.aum != null) ? Number(s.profile.aum) : null; }
   function fmtAum(s) {
     var v = aumOf(s);
@@ -165,8 +186,10 @@
       tags.push('<span class="ft-tag ft-tag-tenure">Fund Tenure: ' + p.tenureYears + ' Year' + (p.tenureYears > 1 ? 's' : '') +
         ' <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.6V8l2.3 1.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>');
     }
-    var target = crValue(p.targetAmount);
-    var commitment = crValue(p.minCommitment);
+    var currency = p.currency || 'INR';
+    var target = p.targetAmount != null ? fmtAmount(p.targetAmount, currency) : null;
+    var commitment = p.minCommitment != null ? fmtAmount(p.minCommitment, currency) : null;
+    var targetLabel = 'Fund target size' + (currency === 'INR' ? ' (in Cr)' : '');
     var closing = p.finalClosingDate || p.finalClosingRemarks || 'To be determined';
     return '<div class="scheme-row fund-terms' + (s.featured ? ' featured' : '') + '">' +
       '<div class="sr-id">' + logo +
@@ -177,11 +200,11 @@
       '</div></div>' +
       '<div class="ft-meta">' +
       '<div class="ft-meta-col">' +
-      (target != null ? '<div class="ft-line"><span>Fund target size (in Cr)</span><b>' + target.toLocaleString('en-IN') + '</b></div>' : '') +
+      (target != null ? '<div class="ft-line"><span>' + esc(targetLabel) + '</span><b>' + esc(target) + '</b></div>' : '') +
       (p.drawdownPercent != null ? '<div class="ft-line"><span>Initial drawdown</span><b>' + p.drawdownPercent + '%</b></div>' : '') +
       '</div>' +
       '<div class="ft-meta-col">' +
-      (commitment != null ? '<div class="ft-line"><span>Min. commitment</span><b>' + commitment.toLocaleString('en-IN') + ' Cr</b></div>' : '') +
+      (commitment != null ? '<div class="ft-line"><span>Min. commitment</span><b>' + esc(commitment) + '</b></div>' : '') +
       '<div class="ft-line"><span>Tentative final closing</span><b>' + esc(closing) + '</b></div>' +
       '</div>' +
       '</div>' +
@@ -197,11 +220,11 @@
         var hay = ((s.amcName || '') + ' ' + (s.schemeName || '')).toLowerCase();
         if (hay.indexOf(q) === -1) return false;
       }
-      if (productCode === 'AIF' && state.aifCat !== 'All' && aifCategoryOf(s) !== state.aifCat) return false;
+      if (FUND_TERMS_PRODUCTS[productCode] && state.aifCat !== 'All' && aifCategoryOf(s) !== state.aifCat) return false;
       if (ftMode) {
         var p = s.profile || {};
         if (state.asset !== 'All' && (p.subCategory || '') !== state.asset) return false;
-        var target = crValue(p.targetAmount);
+        var target = amountValue(p.targetAmount, p.currency);
         if (target == null || target < state.targetMin || target > state.targetMax) return false;
         var tenure = p.tenureYears;
         if (tenure == null || tenure < state.tenureMin || tenure > state.tenureMax) return false;
@@ -273,10 +296,10 @@
   }
 
   function standardFilterPanelHtml() {
-    // Scope the dropdown options to whichever AIF category tab is active —
+    // Scope the dropdown options to whichever category tab is active —
     // otherwise "Cat III" still offers every Cat I/II sub-category too, most
     // with zero matching schemes once that tab's own filter is applied.
-    var scoped = (productCode === 'AIF' && state.aifCat !== 'All')
+    var scoped = (FUND_TERMS_PRODUCTS[productCode] && state.aifCat !== 'All')
       ? allSchemes.filter(function (s) { return aifCategoryOf(s) === state.aifCat; })
       : allSchemes;
     var strategies = uniqueSorted(scoped.map(strategyOf));
@@ -319,13 +342,33 @@
       '</div></div>';
   }
 
-  // Cat I/II AIF only — every scheme in this view is a fund-terms card (see
+  // The Cat I/II AIF reference design's target-size ceilings (5000/10000
+  // Cr) are pixel-matched to that pmsbazaar layout and stay fixed for AIF.
+  // Any other fund-terms product (GIFT_IFSC) has no such reference and its
+  // own currency scale (commonly USD, not INR) — its ceiling is derived
+  // from the actual data instead, rounded up to a clean step.
+  function targetSizeMaxFor(cat, currency, schemes) {
+    if (productCode === 'AIF') return TARGET_SIZE_MAX[cat] || 5000;
+    var vals = schemes.filter(function (s) { return aifCategoryOf(s) === cat; })
+      .map(function (s) { return amountValue((s.profile || {}).targetAmount, (s.profile || {}).currency); })
+      .filter(function (v) { return v != null; });
+    var max = vals.length ? Math.max.apply(null, vals) : 0;
+    var step = max > 1000 ? 100 : max > 100 ? 50 : 10;
+    return Math.max(step, Math.ceil((max * 1.1) / step) * step);
+  }
+  function currencyForCat(cat, schemes) {
+    var match = schemes.filter(function (s) { return aifCategoryOf(s) === cat; })[0];
+    return (match && match.profile && match.profile.currency) || 'INR';
+  }
+
+  // Cat I/II only — every scheme in this view is a fund-terms card (see
   // isFundTermsScheme), so "Sort by return"/"AUM" have nothing to act on;
   // this replaces them with the fields that actually apply to a
   // still-fundraising, drawdown-structured fund.
   function fundTermsFilterPanelHtml(schemes) {
     var cat = state.aifCat;
-    var targetMax = TARGET_SIZE_MAX[cat] || 5000;
+    var currency = currencyForCat(cat, schemes);
+    var targetMax = targetSizeMaxFor(cat, currency, schemes);
     var tenureMax = TENURE_MAX;
     if (state.targetMax == null || state.tenureMax == null) {
       state.targetMax = targetMax; state.tenureMax = tenureMax;
@@ -337,7 +380,7 @@
       '<select id="pssAsset"><option value="All">All</option>' +
       assets.map(function (a) { return '<option value="' + esc(a) + '"' + (a === state.asset ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') +
       '</select></div>' +
-      rangeGroupHtml('pssTargetGroup', 'Fund Target Size', 'in Cr', 0, targetMax, state.targetMin, state.targetMax) +
+      rangeGroupHtml('pssTargetGroup', 'Fund Target Size', 'in ' + amountUnit(currency), 0, targetMax, state.targetMin, state.targetMax) +
       rangeGroupHtml('pssTenureGroup', 'Fund Tenure', 'in Years', 0, tenureMax, state.tenureMin, state.tenureMax);
   }
 
@@ -468,7 +511,10 @@
 
     panel.querySelector('#pssFtClear').onclick = function () {
       state.asset = 'All';
-      state.targetMin = 0; state.targetMax = TARGET_SIZE_MAX[state.aifCat] || 5000;
+      // Left null — fundTermsFilterPanelHtml (called right after via
+      // renderFilterPanel) recomputes the right ceiling for whichever
+      // category/currency is now active (targetSizeMaxFor).
+      state.targetMin = 0; state.targetMax = null;
       state.tenureMin = 0; state.tenureMax = TENURE_MAX;
       var searchInput = host.querySelector('#pssSearch');
       state.q = ''; searchInput.value = '';
@@ -486,9 +532,10 @@
         state.aifCat = btn.dataset.cat;
         // Cat I and Cat II have different target-size ceilings — reset the
         // fund-terms range filters (if leaving them set, a Cat II value like
-        // 8000 would silently clip out of Cat I's 0–5000 scale).
+        // 8000 would silently clip out of Cat I's 0–5000 scale). Left null —
+        // fundTermsFilterPanelHtml recomputes the right ceiling below.
         state.asset = 'All';
-        state.targetMin = 0; state.targetMax = TARGET_SIZE_MAX[state.aifCat] || 5000;
+        state.targetMin = 0; state.targetMax = null;
         state.tenureMin = 0; state.tenureMax = TENURE_MAX;
         renderFilterPanel();
         applyFilters();
@@ -509,12 +556,14 @@
     });
   }
 
-  // AIF-only tab row (All / Category I / II / III) sitting above the
-  // sidebar+list — a fixed, regulatory taxonomy, so all three tabs always
-  // show regardless of how many synced schemes currently fall into each.
+  // Tab row (All / Category I / II / III) sitting above the sidebar+list —
+  // a fixed, regulatory taxonomy Finalyca applies identically to AIF and
+  // GIFT_IFSC's own Cat I/II/III schemes (PMS has no such taxonomy), so all
+  // three tabs always show regardless of how many synced schemes currently
+  // fall into each.
   function catTabsHtml() {
-    if (productCode !== 'AIF') return '';
-    var tabs = [['All', 'All AIF'], ['I', 'Category I'], ['II', 'Category II'], ['III', 'Category III']];
+    if (!FUND_TERMS_PRODUCTS[productCode]) return '';
+    var tabs = [['All', 'All ' + PRODUCT_LABEL], ['I', 'Category I'], ['II', 'Category II'], ['III', 'Category III']];
     return '<div class="ps-cat-tabs" id="psCatTabs">' +
       tabs.map(function (t) {
         return '<button type="button" class="ps-cat-tab' + (t[0] === 'All' ? ' active' : '') + '" data-cat="' + esc(t[0]) + '">' + esc(t[1]) + '</button>';

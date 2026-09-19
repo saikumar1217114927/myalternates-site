@@ -22,10 +22,23 @@
   }
   function pct(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
   function money(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
-  // Fund-terms amounts (target size, min commitment) come back as absolute
-  // rupees (e.g. 5000000000), not Cr — Finalyca's own scheme_currency_scale
-  // for these is "absolute".
-  function fmtCr(n) { return (Math.round(n / 1e7)).toLocaleString('en-IN') + ' Cr'; }
+  // Fund-terms amounts (target size, min/sponsor commitment) come back as
+  // an absolute figure in the fund's own currency (Finalyca's own
+  // scheme_currency_scale for these is "absolute", never "Cr"/"lakh") — an
+  // onshore AIF is INR, but a GIFT City Cat I/II fund is commonly USD (e.g.
+  // a real target_amount of 250000000 there means $250M, not "25 Cr").
+  function fmtAmount(n, currency) {
+    if (currency && currency !== 'INR') {
+      var sym = currency === 'USD' ? '$' : currency + ' ';
+      // A GIFT City fund's min/sponsor commitment is often well under $1M
+      // (e.g. a real min commitment of $250,000) — rounding straight to
+      // whole millions would show that as "$0M".
+      if (n >= 1e6) return sym + (Math.round(n / 1e5) / 10).toLocaleString('en-IN') + 'M';
+      if (n >= 1e3) return sym + Math.round(n / 1e3).toLocaleString('en-IN') + 'K';
+      return sym + Math.round(n).toLocaleString('en-IN');
+    }
+    return Math.round(n / 1e7).toLocaleString('en-IN') + ' Cr';
+  }
 
   // scheme.html now serves both PMS and AIF schemes — the interest label
   // sent along with a schedule/discussion-note action needs to match
@@ -389,7 +402,7 @@
   function fundTermsSection(p) {
     if (!p.aifCategory) return '';
     var cards = [];
-    if (p.targetAmount != null) cards.push({ label: 'Fund target size', value: fmtCr(p.targetAmount), hero: true });
+    if (p.targetAmount != null) cards.push({ label: 'Fund target size', value: fmtAmount(p.targetAmount, p.currency), hero: true });
     if (p.fundStructure) cards.push({ label: 'Fund structure', value: p.fundStructure });
     cards.push({ label: 'Subscription status', value: p.closedForSubscription ? 'Closed' : 'Open' });
     if (p.assetStructure) cards.push({ label: 'Asset structure', value: p.assetStructure });
@@ -398,11 +411,11 @@
     if (p.tenureYears != null) cards.push({ label: 'Fund tenure', value: p.tenureYears + ' yr' + (p.tenureYears > 1 ? 's' : ''), note: p.tenureRemarks });
     if (p.drawdownPercent != null) cards.push({ label: 'Initial drawdown', value: p.drawdownPercent + '%', note: p.drawdownRemarks });
     cards.push({ label: 'Tentative balance commitment call', value: tbd(p.balanceCommitmentCall) });
-    if (p.minCommitment != null) cards.push({ label: 'Min. commitment', value: fmtCr(p.minCommitment), note: p.minCommitmentRemarks });
+    if (p.minCommitment != null) cards.push({ label: 'Min. commitment', value: fmtAmount(p.minCommitment, p.currency), note: p.minCommitmentRemarks });
     if (p.sponsorCommitmentAmount != null || p.sponsorCommitmentRemarks) {
       cards.push({
         label: 'Sponsor commitment',
-        value: p.sponsorCommitmentAmount != null ? fmtCr(p.sponsorCommitmentAmount) : p.sponsorCommitmentRemarks,
+        value: p.sponsorCommitmentAmount != null ? fmtAmount(p.sponsorCommitmentAmount, p.currency) : p.sponsorCommitmentRemarks,
         note: p.sponsorCommitmentAmount != null ? p.sponsorCommitmentRemarks : ''
       });
     }
