@@ -419,9 +419,27 @@
         });
       };
     } else {
-      container.innerHTML =
-        '<div class="ma-meeting-row"><button type="button" class="mmr-btn mmr-btn-gold" data-book>Schedule a call →</button></div>';
-      container.querySelector('[data-book]').onclick = function () {
+      // No meeting booked yet — "+ Add topic" both opens the scheduler (so a
+      // visitor who wants to pick a time right away still can) AND records
+      // the request immediately and independently of it, so even someone
+      // who opens the scheduler and then just closes it without picking a
+      // time still shows up in the admin's Recent Requests — scheduling
+      // itself stays optional, the request itself isn't.
+      var requested = !!(opts.discussionNote && (sess.pendingInterests || []).indexOf(opts.discussionNote) > -1);
+      container.innerHTML = '<div class="ma-meeting-row">' +
+        (requested
+          ? '<span class="mmr-added">✓ Requested — we\'ll be in touch to schedule</span>'
+          : '<button type="button" class="mmr-btn mmr-btn-gold" data-book>+ Add topic</button>') +
+        '</div>';
+      var bookBtn = container.querySelector('[data-book]');
+      if (bookBtn) bookBtn.onclick = function () {
+        if (opts.discussionNote) {
+          window.MASession.addInterest(sess, opts.discussionNote).then(function (r) {
+            if (r && r.ok) {
+              container.innerHTML = '<div class="ma-meeting-row"><span class="mmr-added">✓ Requested — we\'ll be in touch to schedule</span></div>';
+            }
+          });
+        }
         window.MASession.openSchedule(sess, '', opts.interest);
       };
     }

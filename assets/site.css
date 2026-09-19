@@ -713,14 +713,23 @@ nav.links a:hover::after{width:100%;}
 .scm-hero{background:var(--ink); color:var(--paper); padding:52px 0 34px;
   background-image:radial-gradient(ellipse 800px 420px at 85% -20%, rgba(201,162,75,0.14), transparent 60%);}
 .scm-hero .sc-amc{color:var(--gold-light);}
-.scm-hero-top{display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; margin-bottom:22px;}
-.scm-hero-id{display:flex; align-items:center; gap:12px;}
+/* Meeting status/actions sit at the top-right, level with the scheme name —
+   .scm-hero-id needs flex:1 1 auto + min-width:0 so a long name wraps onto
+   its own line(s) instead of refusing to shrink and pushing the whole row
+   (name + meeting block) to wrap, which used to drop the meeting block
+   below the name entirely on ordinary laptop-width screens. */
+.scm-hero-top{display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:nowrap; margin-bottom:22px;}
+.scm-hero-id{display:flex; align-items:center; gap:12px; min-width:0; flex:1 1 auto;}
 .scm-hero-logo{width:60px; height:60px; border-radius:12px; object-fit:contain; background:#fff; border:1px solid var(--line); flex:none; padding:4px; box-sizing:border-box;}
 .scm-hero h1{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(26px,3.4vw,40px); margin:10px 0 0; line-height:1.18;}
 .scm-hero h1 .plan-opt{color:var(--muted-light); font-weight:400; font-size:0.62em;}
-.scm-hero-meeting{flex:0 0 auto;}
+.scm-hero-meeting{flex:0 0 auto; max-width:420px; padding-top:2px;}
 .scm-hero-meeting:empty{display:none;}
-@media (max-width:760px){ .scm-hero-top{align-items:flex-start;} .ma-meeting-row{justify-content:flex-start;} }
+@media (max-width:760px){
+  .scm-hero-top{flex-wrap:wrap; align-items:flex-start;}
+  .scm-hero-meeting{max-width:none;}
+  .ma-meeting-row{justify-content:flex-start;}
+}
 
 .scm-chips{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px;
   background:var(--line); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
