@@ -398,7 +398,7 @@
         (opts.discussionNote ?
           (alreadyAdded ?
             '<span class="mmr-added">✓ Added</span>' :
-            '<span class="mmr-add-wrap"><button type="button" class="mmr-add" data-disc>+ Add topic</button>' +
+            '<span class="mmr-add-wrap"><button type="button" class="mmr-add" data-disc>+ Add Interest</button>' +
             '<span class="mmr-tip">If you add this, it\'ll be discussed with your expert in the upcoming meeting.</span></span>')
           : '') +
         '</div>';
@@ -411,7 +411,7 @@
         btn.disabled = true; btn.textContent = 'Adding…';
         window.MASession.addDiscussionNote(token, opts.discussionNote).then(function (r) {
           if (!r || !r.ok) {
-            btn.disabled = false; btn.textContent = '+ Add topic';
+            btn.disabled = false; btn.textContent = '+ Add Interest';
             alert((r && r.error) || 'Could not add — please try again.');
             return;
           }
@@ -419,27 +419,36 @@
         });
       };
     } else {
-      // No meeting booked yet — the scheduler itself is offered once,
-      // right after registration (see openDiscoverGate/maOpenTalkToExpert),
-      // not re-popped from inside the scheme page. "+ Add topic" here just
-      // logs the request (addInterest) so it shows up in the admin's
-      // Recent Requests even for a visitor who skipped scheduling earlier.
+      // No meeting booked yet — a visitor who skipped the optional
+      // scheduler at registration (openDiscoverGate/maOpenTalkToExpert)
+      // still needs a way back to it here, so "Schedule a call" stays
+      // alongside "+ Add Interest" (which just logs the request via
+      // addInterest, independent of whether they ever book a time — shows
+      // up in the admin's Recent Requests either way).
       var requested = !!(opts.discussionNote && (sess.pendingInterests || []).indexOf(opts.discussionNote) > -1);
-      container.innerHTML = '<div class="ma-meeting-row">' +
-        (requested
-          ? '<span class="mmr-added">✓ Requested — we\'ll be in touch to schedule</span>'
-          : '<button type="button" class="mmr-btn mmr-btn-gold" data-book>+ Add topic</button>') +
+      container.innerHTML =
+        '<div class="ma-meeting-row">' +
+        '<button type="button" class="mmr-btn mmr-btn-gold" data-book>Schedule a call →</button>' +
+        (opts.discussionNote ?
+          (requested ?
+            '<span class="mmr-added">✓ Added</span>' :
+            '<span class="mmr-add-wrap"><button type="button" class="mmr-add" data-interest>+ Add Interest</button>' +
+            '<span class="mmr-tip">If you add this, our team will connect with you and walk you through it briefly.</span></span>')
+          : '') +
         '</div>';
-      var bookBtn = container.querySelector('[data-book]');
-      if (bookBtn) bookBtn.onclick = function () {
-        if (!opts.discussionNote) return;
-        bookBtn.disabled = true; bookBtn.textContent = 'Adding…';
+      container.querySelector('[data-book]').onclick = function () {
+        window.MASession.openSchedule(sess, '', opts.interest);
+      };
+      var interestBtn = container.querySelector('[data-interest]');
+      if (interestBtn) interestBtn.onclick = function (e) {
+        var btn = e.currentTarget;
+        btn.disabled = true; btn.textContent = 'Adding…';
         window.MASession.addInterest(sess, opts.discussionNote).then(function (r) {
-          if (r && r.ok) {
-            container.innerHTML = '<div class="ma-meeting-row"><span class="mmr-added">✓ Requested — we\'ll be in touch to schedule</span></div>';
-          } else {
-            bookBtn.disabled = false; bookBtn.textContent = '+ Add topic';
+          if (!r || !r.ok) {
+            btn.disabled = false; btn.textContent = '+ Add Interest';
+            return;
           }
+          container.querySelector('.mmr-add-wrap').outerHTML = '<span class="mmr-added">✓ Added</span>';
         });
       };
     }
