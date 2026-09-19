@@ -22,6 +22,10 @@
   }
   function pct(v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
   function money(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+  // Fund-terms amounts (target size, min commitment) come back as absolute
+  // rupees (e.g. 5000000000), not Cr — Finalyca's own scheme_currency_scale
+  // for these is "absolute".
+  function fmtCr(n) { return (Math.round(n / 1e7)).toLocaleString('en-IN') + ' Cr'; }
 
   // scheme.html now serves both PMS and AIF schemes — the interest label
   // sent along with a schedule/discussion-note action needs to match
@@ -244,6 +248,8 @@
   }
 
   function schemeReturnsSection(s) {
+    var hasAny = RET_COLS.some(function (c) { return s.returns[c[1]] != null || s.benchmark[c[1]] != null; });
+    if (!hasAny) return ''; // a brand-new, still-fundraising scheme (see fundTermsSection) has nothing here yet
     function row(label, obj, cls) {
       return '<tr class="' + cls + '"><td>' + esc(label) + '</td>' +
         RET_COLS.map(function (c) {
@@ -352,6 +358,24 @@
     if (p.expenseRatio != null) facts.push(['Expense ratio', p.expenseRatio + '%']);
     if (!facts.length) return '';
     return '<div class="scm-section"><h2>Scheme profile</h2><div class="scm-facts">' +
+      facts.map(function (f) { return '<div class="scm-fact"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; }).join('') +
+      '</div></div>';
+  }
+
+  // Category I/II AIF only (see publicSchemeView's aifCategory) — a
+  // close-ended, drawdown-structured fund that's still raising, so its
+  // fundraising terms matter more than trailing returns it may not have yet.
+  function fundTermsSection(p) {
+    if (!p.aifCategory) return '';
+    var facts = [];
+    facts.push(['Category', 'Category ' + p.aifCategory + (p.subCategory ? ' – ' + p.subCategory : '')]);
+    if (p.targetAmount != null) facts.push(['Fund target size', fmtCr(p.targetAmount)]);
+    if (p.tenureYears != null) facts.push(['Fund tenure', p.tenureYears + ' year' + (p.tenureYears > 1 ? 's' : '') + (p.tenureRemarks ? ' (' + p.tenureRemarks + ')' : '')]);
+    if (p.minCommitment != null) facts.push(['Min. commitment', fmtCr(p.minCommitment)]);
+    if (p.drawdownPercent != null) facts.push(['Initial drawdown', p.drawdownPercent + '%' + (p.drawdownRemarks ? ' — ' + p.drawdownRemarks : '')]);
+    facts.push(['Tentative final closing', p.finalClosingDate || p.finalClosingRemarks || 'To be determined']);
+    if (p.targetedGrossIrr != null) facts.push(['Targeted gross IRR', p.targetedGrossIrr + '%']);
+    return '<div class="scm-section"><h2>Fund terms</h2><div class="scm-facts">' +
       facts.map(function (f) { return '<div class="scm-fact"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; }).join('') +
       '</div></div>';
   }
@@ -505,6 +529,7 @@
       '</div></div>' +
       '<div class="scm-body wrap">' +
       factsSection(p) +
+      fundTermsSection(p) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       schemeReturnsSection(s) +
       returnsRow +

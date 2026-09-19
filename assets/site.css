@@ -456,6 +456,7 @@ nav.links a:hover::after{width:100%;}
 .ps-search input{border:none; outline:none; background:transparent; font-family:inherit; font-size:14.5px; color:var(--ink-text); width:100%; height:100%;}
 .ps-search input::placeholder{color:var(--muted-light);}
 .pss-group{display:flex; flex-direction:column; gap:9px; padding-top:18px; border-top:1px solid #F0EBDE;}
+.pss-group[hidden]{display:none;}
 .p-schemes-sidebar > .ps-search + .pss-group{padding-top:0; border-top:0;}
 .pss-group label{font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted);}
 .pss-group select{
@@ -520,6 +521,22 @@ nav.links a:hover::after{width:100%;}
 .sr-ret b.neg{color:#B5502E;}
 .sr-ret b.na{color:var(--muted-light); font-weight:400;}
 .sr-actions{flex:none; margin-left:auto; padding-left:30px;}
+
+/* Category I/II AIF — fund-terms card (target size/tenure/commitment/
+   drawdown/closing) in place of the returns row, since these close-ended,
+   still-fundraising funds often have no performance history yet. */
+.ft-tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+.ft-tag{display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:700; letter-spacing:0.02em; padding:3px 10px; border-radius:999px; white-space:nowrap;}
+.ft-tag-cat{color:#8A4A12; background:#FBE6CC;}
+.ft-tag-tenure{color:var(--emerald); background:#DEEEE8;}
+.ft-tag-tenure svg{width:11px; height:11px; flex:none;}
+.ft-meta{display:flex; gap:32px; flex:1 1 320px; min-width:220px;}
+.ft-meta-col{display:flex; flex-direction:column; gap:9px; min-width:140px;}
+.ft-line{font-size:12px; color:var(--muted); display:flex; flex-direction:column; gap:2px;}
+.ft-line b{font-size:14px; font-weight:600; color:var(--ink-text); font-variant-numeric:tabular-nums;}
+@media (max-width:900px){
+  .ft-meta{gap:20px; width:100%; padding-top:14px; border-top:1px dashed #F0EBDE;}
+}
 @media (max-width:900px){
   /* Sticky heading/filters cost too much of a small viewport's height —
      back to the normal scrolling page below the (still-sticky) nav. */

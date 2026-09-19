@@ -60,21 +60,41 @@
   // the product name, so a card always has something to tag itself with.
   function categoryLabel(s) {
     var p = s.profile || {};
+    // A Cat I/II AIF's own sub-category ("Private Credit", "Venture Capital")
+    // is far more useful in the sidebar dropdown than its raw classification
+    // string ("CAT II - PRIVATE CREDIT").
+    if (p.subCategory) return p.subCategory;
     var c = String(p.classification || '').trim();
     if (c.indexOf(':') > -1) c = c.split(':').slice(1).join(':').trim();
     return c || p.assetClass || s.productName || '';
   }
   function strategyOf(s) { return (s.profile && s.profile.assetClass) || ''; }
-  // AIF-only: Finalyca's classification for an AIF scheme leads with its
-  // SEBI category, e.g. "CAT III - LONG SHORT" or "CAT II - VENTURE DEBT" —
-  // pull just "I" / "II" / "III" out of that prefix. Checked longest-first
-  // (III/II) since "CAT II" and "CAT III" both start with the same letters
-  // as "CAT I".
+  // AIF-only: prefer the structured category Finalyca nests under
+  // alternate_scheme_details (only present for Cat I/II — see
+  // publicSchemeView) since the free-text classification field is
+  // occasionally mislabeled (a real scheme_category:"II" has been seen next
+  // to classification "CAT III - Private Equity"). Fall back to parsing the
+  // classification text's "CAT I/II/III" prefix for anything that field
+  // doesn't cover (checked longest-first since "CAT II"/"CAT III" both start
+  // like "CAT I").
   function aifCategoryOf(s) {
+    var direct = String((s.profile && s.profile.aifCategory) || '').trim().toUpperCase();
+    if (direct) return direct;
     var c = String((s.profile && s.profile.classification) || '').trim();
     var m = /^CAT\s+(III|II|I)\b/i.exec(c);
     return m ? m[1].toUpperCase() : '';
   }
+  // Category I/II AIFs are close-ended, drawdown-structured funds that can
+  // still be raising with no performance history at all — they get a
+  // fund-terms card (target size, tenure, commitment, drawdown, closing)
+  // instead of the usual returns row.
+  function isFundTermsScheme(s) {
+    var cat = aifCategoryOf(s);
+    return cat === 'I' || cat === 'II';
+  }
+  // Fund-terms amounts come back as absolute rupees (Finalyca's own
+  // scheme_currency_scale for these is "absolute"), not Cr.
+  function crValue(v) { return v == null ? null : Math.round(v / 1e7); }
   function aumOf(s) { return (s.profile && s.profile.aum != null) ? Number(s.profile.aum) : null; }
   function fmtAum(s) {
     var v = aumOf(s);
@@ -118,6 +138,43 @@
       '</div>';
   }
 
+  // Category I/II AIF — fundraising terms instead of trailing returns (see
+  // isFundTermsScheme above).
+  function fundCardHtml(s) {
+    var p = s.profile || {};
+    var logo = s.amcLogo
+      ? '<img class="sr-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;sr-logo-fallback&quot;>' + esc((s.amcName || '?').charAt(0)) + '</div>\'">'
+      : '<div class="sr-logo-fallback">' + esc((s.amcName || s.productName || '?').charAt(0)) + '</div>';
+    var tags = [];
+    if (p.subCategory) tags.push('<span class="ft-tag ft-tag-cat">' + esc(p.subCategory) + '</span>');
+    if (p.tenureYears != null) {
+      tags.push('<span class="ft-tag ft-tag-tenure">Fund Tenure: ' + p.tenureYears + ' Year' + (p.tenureYears > 1 ? 's' : '') +
+        ' <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 4.6V8l2.3 1.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>');
+    }
+    var target = crValue(p.targetAmount);
+    var commitment = crValue(p.minCommitment);
+    var closing = p.finalClosingDate || p.finalClosingRemarks || 'To be determined';
+    return '<div class="scheme-row fund-terms' + (s.featured ? ' featured' : '') + '">' +
+      '<div class="sr-id">' + logo +
+      '<div class="sr-id-text">' +
+      '<div class="sr-toprow"><span class="sc-amc">' + esc(s.amcName || s.productName) + '</span></div>' +
+      '<div class="sr-scheme-name">' + esc(s.schemeName) + '</div>' +
+      (tags.length ? '<div class="sr-tags ft-tags">' + tags.join('') + '</div>' : '') +
+      '</div></div>' +
+      '<div class="ft-meta">' +
+      '<div class="ft-meta-col">' +
+      (target != null ? '<div class="ft-line"><span>Fund target size (in Cr)</span><b>' + target.toLocaleString('en-IN') + '</b></div>' : '') +
+      (p.drawdownPercent != null ? '<div class="ft-line"><span>Initial drawdown</span><b>' + p.drawdownPercent + '%</b></div>' : '') +
+      '</div>' +
+      '<div class="ft-meta-col">' +
+      (commitment != null ? '<div class="ft-line"><span>Min. commitment</span><b>' + commitment.toLocaleString('en-IN') + ' Cr</b></div>' : '') +
+      '<div class="ft-line"><span>Tentative final closing</span><b>' + esc(closing) + '</b></div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Explore →</button></div>' +
+      '</div>';
+  }
+
   function applyFilters() {
     var q = state.q.trim().toLowerCase();
     var list = allSchemes.filter(function (s) {
@@ -158,7 +215,7 @@
     var listEl = host.querySelector('.scheme-list');
     var emptyEl = host.querySelector('.ps-empty');
     if (!listEl) return;
-    listEl.innerHTML = list.map(rowHtml).join('');
+    listEl.innerHTML = list.map(function (s) { return isFundTermsScheme(s) ? fundCardHtml(s) : rowHtml(s); }).join('');
     emptyEl.hidden = list.length > 0;
     listEl.querySelectorAll('[data-discover]').forEach(function (btn) {
       btn.onclick = function () { goToScheme(btn.dataset.discover); };
@@ -180,7 +237,7 @@
       '<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="18" y1="18" x2="13.6" y2="13.6"/></svg>' +
       '<input type="search" id="pssSearch" placeholder="Search by scheme or AMC name" aria-label="Search schemes">' +
       '</div>' +
-      '<div class="pss-group">' +
+      '<div class="pss-group" id="pssSortGroup">' +
       '<label>Sort by</label>' +
       '<select id="pssSort">' + SORT_OPTIONS.map(function (o) { return '<option value="' + o.value + '">' + esc(o.label) + '</option>'; }).join('') + '</select>' +
       '<div class="pss-dir">' +
@@ -198,7 +255,7 @@
       '<select id="pssCategory"><option value="All">All Category</option>' +
       categories.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('') +
       '</select></div>' +
-      '<div class="pss-group">' +
+      '<div class="pss-group" id="pssAumGroup">' +
       '<label>AUM (in Cr)</label>' +
       '<select id="pssAum">' + AUM_BANDS.map(function (b) { return '<option value="' + esc(b.value) + '">' + esc(b.label) + '</option>'; }).join('') + '</select>' +
       '</div>' +
@@ -229,15 +286,29 @@
     }).catch(function () {});
   }
 
+  // Return/AUM sorting has nothing to act on for a Cat I/II tab — every
+  // scheme there renders as a fund-terms card (see isFundTermsScheme) with
+  // no returns or AUM at all — so hide those two controls rather than leave
+  // them visibly doing nothing.
+  function updateSidebarVisibility() {
+    var fundTermsOnly = productCode === 'AIF' && (state.aifCat === 'I' || state.aifCat === 'II');
+    var sortGroup = host.querySelector('#pssSortGroup');
+    var aumGroup = host.querySelector('#pssAumGroup');
+    if (sortGroup) sortGroup.hidden = fundTermsOnly;
+    if (aumGroup) aumGroup.hidden = fundTermsOnly;
+  }
+
   function wireSidebar() {
     host.querySelectorAll('.ps-cat-tab').forEach(function (btn) {
       btn.onclick = function () {
         host.querySelectorAll('.ps-cat-tab').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         state.aifCat = btn.dataset.cat;
+        updateSidebarVisibility();
         applyFilters();
       };
     });
+    updateSidebarVisibility();
 
     var searchInput = host.querySelector('#pssSearch');
     var searchTimer = null;
