@@ -419,12 +419,11 @@
         });
       };
     } else {
-      // No meeting booked yet — "+ Add topic" both opens the scheduler (so a
-      // visitor who wants to pick a time right away still can) AND records
-      // the request immediately and independently of it, so even someone
-      // who opens the scheduler and then just closes it without picking a
-      // time still shows up in the admin's Recent Requests — scheduling
-      // itself stays optional, the request itself isn't.
+      // No meeting booked yet — the scheduler itself is offered once,
+      // right after registration (see openDiscoverGate/maOpenTalkToExpert),
+      // not re-popped from inside the scheme page. "+ Add topic" here just
+      // logs the request (addInterest) so it shows up in the admin's
+      // Recent Requests even for a visitor who skipped scheduling earlier.
       var requested = !!(opts.discussionNote && (sess.pendingInterests || []).indexOf(opts.discussionNote) > -1);
       container.innerHTML = '<div class="ma-meeting-row">' +
         (requested
@@ -433,14 +432,15 @@
         '</div>';
       var bookBtn = container.querySelector('[data-book]');
       if (bookBtn) bookBtn.onclick = function () {
-        if (opts.discussionNote) {
-          window.MASession.addInterest(sess, opts.discussionNote).then(function (r) {
-            if (r && r.ok) {
-              container.innerHTML = '<div class="ma-meeting-row"><span class="mmr-added">✓ Requested — we\'ll be in touch to schedule</span></div>';
-            }
-          });
-        }
-        window.MASession.openSchedule(sess, '', opts.interest);
+        if (!opts.discussionNote) return;
+        bookBtn.disabled = true; bookBtn.textContent = 'Adding…';
+        window.MASession.addInterest(sess, opts.discussionNote).then(function (r) {
+          if (r && r.ok) {
+            container.innerHTML = '<div class="ma-meeting-row"><span class="mmr-added">✓ Requested — we\'ll be in touch to schedule</span></div>';
+          } else {
+            bookBtn.disabled = false; bookBtn.textContent = '+ Add topic';
+          }
+        });
       };
     }
   };

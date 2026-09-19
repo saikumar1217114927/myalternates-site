@@ -715,12 +715,27 @@
   }
 
   // A registered visitor skips straight through; an anonymous one registers
-  // (full form, not just email) in this modal first, then lands on the page.
+  // (full form, not just email) in this modal first. Right after verifying —
+  // same moment the dedicated "Talk to an Expert" CTA offers it
+  // (maOpenTalkToExpert) — this offers the same optional scheduler before
+  // landing on the scheme page, rather than only surfacing that chance
+  // later via the page's own "+ Add topic" (which just logs interest, no
+  // popup — see maRenderMeetingAction). ma:scheduled always fires on close
+  // whether they actually booked a time or just skipped it, so the
+  // navigation waits for that instead of firing immediately.
   function openDiscoverGate(planId) {
+    var url = 'scheme?id=' + encodeURIComponent(planId);
     window.maOpenGateModal({
       message: 'Create your free account to see this scheme\'s live returns and full profile.',
       interest: PRODUCT_INTEREST,
-      onVerified: function () { location.href = 'scheme?id=' + encodeURIComponent(planId); }
+      onVerified: function (token, r, lead, close) {
+        close();
+        document.addEventListener('ma:scheduled', function goNext() {
+          document.removeEventListener('ma:scheduled', goNext);
+          location.href = url;
+        }, { once: true });
+        window.MASession.openSchedule(Object.assign({}, lead, r), '', PRODUCT_INTEREST);
+      }
     });
   }
 

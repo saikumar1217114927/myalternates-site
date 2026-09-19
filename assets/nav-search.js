@@ -111,10 +111,23 @@
       var url = 'scheme?id=' + encodeURIComponent(planId);
       var token = window.MASession && window.MASession.getToken && window.MASession.getToken();
       if (token || !window.maOpenGateModal) { location.href = url; return; }
+      var interest = PRODUCT_INTEREST[productCode] || 'Investing with myAlternates';
       window.maOpenGateModal({
         message: 'Create your free account to see this scheme’s live returns and full profile.',
-        interest: PRODUCT_INTEREST[productCode] || 'Investing with myAlternates',
-        onVerified: function () { location.href = url; }
+        interest: interest,
+        // Same optional-scheduler moment as the schemes list's own Discover
+        // flow (featured-schemes.js) and the dedicated "Talk to an Expert"
+        // CTA — offered once, right after registering, not buried in the
+        // scheme page itself. ma:scheduled fires on close either way
+        // (booked or skipped), so navigation waits for that.
+        onVerified: function (token, r, lead, close) {
+          close();
+          document.addEventListener('ma:scheduled', function goNext() {
+            document.removeEventListener('ma:scheduled', goNext);
+            location.href = url;
+          }, { once: true });
+          window.MASession.openSchedule(Object.assign({}, lead, r), '', interest);
+        }
       });
     }
 
