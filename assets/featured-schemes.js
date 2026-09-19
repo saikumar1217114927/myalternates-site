@@ -83,6 +83,9 @@
     if (p.subCategory) return p.subCategory;
     var c = String(p.classification || '').trim();
     if (c.indexOf(':') > -1) c = c.split(':').slice(1).join(':').trim();
+    // The SEBI category prefix ("CAT III - ") gets its own badge now (see
+    // aifCategoryOf/.sr-tag-cat) — strip it here so this tag doesn't repeat it.
+    c = c.replace(/^CAT\s+(?:III|II|I)\s*-\s*/i, '').trim();
     return c || p.assetClass || s.productName || '';
   }
   function strategyOf(s) { return (s.profile && s.profile.assetClass) || ''; }
@@ -164,13 +167,20 @@
       ? '<img class="sr-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;sr-logo-fallback&quot;>' + esc((s.amcName || '?').charAt(0)) + '</div>\'">'
       : '<div class="sr-logo-fallback">' + esc((s.amcName || s.productName || '?').charAt(0)) + '</div>';
     var cat = categoryLabel(s);
+    // On the "All <product>" tab (mixing every category together), the
+    // classification tag alone ("LONG ONLY") doesn't say which SEBI
+    // category the scheme actually falls under — pair it with that.
+    var aifCat = aifCategoryOf(s);
     var strategy = strategyOf(s);
     return '<div class="scheme-row' + (s.featured ? ' featured' : '') + '">' +
       '<div class="sr-id">' + logo +
       '<div class="sr-id-text">' +
       '<div class="sr-toprow"><span class="sc-amc">' + esc(s.amcName || s.productName) + '</span></div>' +
       '<div class="sr-scheme-name">' + esc(s.schemeName) + '</div>' +
-      (cat ? '<div class="sr-tags"><span class="sr-tag">' + esc(cat) + '</span></div>' : '') +
+      (cat || aifCat ? '<div class="sr-tags">' +
+        (cat ? '<span class="sr-tag">' + esc(cat) + '</span>' : '') +
+        (aifCat ? '<span class="sr-tag-cat">Cat ' + esc(aifCat) + '</span>' : '') +
+        '</div>' : '') +
       '<div class="sr-meta">' +
       '<span>Inception <b>' + esc(fmtInception(s)) + '</b></span>' +
       (strategy ? '<span>Strategy <b>' + esc(strategy) + '</b></span>' : '') +
