@@ -9,7 +9,7 @@
  *
  * Bump CACHE_VERSION whenever precached files change so old caches are purged.
  */
-const CACHE_VERSION = 'v121';
+const CACHE_VERSION = 'v122';
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 const FONTS = `fonts-${CACHE_VERSION}`;
@@ -42,6 +42,7 @@ const PRECACHE_URLS = [
   './assets/featured-schemes.js',
   './assets/hero-meeting.js',
   './assets/scheme-page.js',
+  './assets/ai-assistant.js',
   './assets/logo-myalternates.png',
   './assets/logo-pmsbazaar.png',
   './assets/logo-foot.png',
