@@ -31,6 +31,15 @@
   // PMS, AIF and GIFT City have all had their hero removed in favor of this
   // header CTA — SIF still has its own intact hero with this same button.
   var SHOW_HEADER_CTA = productCode === 'PMS' || productCode === 'AIF' || productCode === 'GIFT_IFSC';
+  // Cross-product switcher — replaces the old static "Live on the platform"
+  // eyebrow tag with links to the other two product pages, so a visitor
+  // browsing PMS schemes can jump straight to AIF/GIFT City without going
+  // back through the nav.
+  var OTHER_PRODUCTS = {
+    PMS: [['aif', 'AIF'], ['gift-city', 'GIFT City']],
+    AIF: [['pms', 'PMS'], ['gift-city', 'GIFT City']],
+    GIFT_IFSC: [['pms', 'PMS'], ['aif', 'AIF']]
+  }[productCode] || null;
 
   var allSchemes = [];
   var state = {
@@ -571,6 +580,17 @@
       '</div>';
   }
 
+  function crossProductHtml() {
+    if (!OTHER_PRODUCTS) return '';
+    return '<div class="p-cross-switch">' +
+      '<span class="p-cross-label">Also on myAlternates</span>' +
+      OTHER_PRODUCTS.map(function (o) {
+        return '<a href="' + esc(o[0]) + '" class="p-cross-btn">' + esc(o[1]) +
+          ' <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8h8M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>';
+      }).join('') +
+      '</div>';
+  }
+
   function renderList(schemes) {
     if (!schemes.length) { host.remove(); return; } // nothing curated yet — don't show an empty section
     allSchemes = schemes;
@@ -587,7 +607,7 @@
       '<div class="wrap">' +
       '<div class="p-schemes-head">' +
       '<div class="section-head">' +
-      '<div class="section-tag">Live on the platform</div>' +
+      crossProductHtml() +
       '<h2>Explore ' + esc(PRODUCT_LABEL) + ' Schemes</h2>' +
       '</div>' +
       // PMS-only: it's the one page with no separate hero any more (that CTA

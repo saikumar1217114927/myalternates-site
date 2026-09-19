@@ -389,6 +389,18 @@ nav.links a:hover::after{width:100%;}
   position:sticky; top:74px; z-index:90; background:var(--paper-2); /* 74px = header.nav's fixed height */
 }
 .p-schemes .section-head{margin-bottom:0; max-width:560px;}
+/* Cross-product switcher — replaces the old static "Live on the platform"
+   eyebrow tag; links to the other two product pages instead. */
+.p-cross-switch{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:12px;}
+.p-cross-label{font-size:10.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);}
+.p-cross-btn{
+  display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:700;
+  color:var(--ink-text) !important; background:#fff; border:1px solid #E4DDC9; border-radius:999px;
+  padding:6px 15px; text-decoration:none; transition:all .15s ease;
+}
+.p-cross-btn:hover{background:var(--ink); border-color:var(--ink); color:var(--paper) !important;}
+.p-cross-btn svg{width:10px; height:10px; flex:none; transition:transform .15s ease;}
+.p-cross-btn:hover svg{transform:translateX(2px);}
 /* The old hero's CTA row (Talk to an expert/Reschedule + a product-specific
    extra link) sits here now, opposite the heading — sized for this corner
    rather than a full hero, with rounded (not the hero's sharp 3px) edges.
