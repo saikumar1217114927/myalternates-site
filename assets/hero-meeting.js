@@ -40,7 +40,7 @@
     var already = (sess.pendingInterests || []).indexOf(interest) >= 0;
     addEl.innerHTML = already
       ? '<span class="hmi-added">✓ ' + esc(interest) + ' added</span>'
-      : '<button type="button" class="hmi-add" id="hmiAdd" title="If you select this, it will be discussed in your next meeting.">+ Add Topic</button>';
+      : '<button type="button" class="hmi-add" id="hmiAdd" title="If you add this, it\'ll be discussed with your expert in the upcoming meeting.">+ Add Interest</button>';
 
     var addBtn = addEl.querySelector('#hmiAdd');
     if (addBtn) addBtn.onclick = function () {

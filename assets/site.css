@@ -430,11 +430,11 @@ nav.links a:hover::after{width:100%;}
 }
 .hmi-when b{color:var(--ink-text); font-weight:700; margin-left:2px;}
 .hmi-add{
-  background:none; border:1px solid #E4DDC9; color:var(--ink-text); font-family:inherit;
-  font-size:12.5px; font-weight:600; padding:7px 14px; border-radius:999px; cursor:pointer;
-  transition:border-color .15s ease;
+  background:var(--gold); border:none; color:var(--ink); font-family:inherit;
+  font-size:12.5px; font-weight:700; padding:8px 16px; border-radius:999px; cursor:pointer;
+  transition:background .15s ease;
 }
-.hmi-add:hover:not(:disabled){border-color:var(--gold);}
+.hmi-add:hover:not(:disabled){background:var(--gold-light);}
 .hmi-add:disabled{opacity:.6; cursor:default;}
 .hmi-added{font-size:12.5px; font-weight:600; color:var(--emerald); white-space:nowrap;}
 
