@@ -82,7 +82,29 @@
         'border:none; font-size:17px; font-weight:700; cursor:pointer; transition:background .15s ease;}' +
       '.ma-ai-send:hover{background:var(--gold-light);}' +
       '@media (max-width:600px){.ma-ai-bubble, .ma-ai-panel{right:14px; bottom:14px;}}' +
-      '@media (prefers-reduced-motion: reduce){.ma-ai-bubble::before{animation:none; display:none;}}';
+      // One-time attention-grabber: a small preview bubble flies in from off-
+      // screen left, hovers by the launcher a moment, then shrinks and fades
+      // into it — the icon gives a little "catch" pulse right as it lands.
+      // Purely decorative (also clickable, as a shortcut) — the launcher
+      // itself works identically whether this ever plays or not.
+      '.ma-ai-teaser{position:fixed; right:96px; bottom:40px; z-index:69; display:flex; align-items:center; gap:8px;' +
+        'background:var(--ink); background-image:linear-gradient(135deg,#171B24,var(--ink)); color:var(--paper);' +
+        'border:1px solid rgba(201,162,75,0.4); border-radius:999px; padding:10px 16px 10px 12px; font-size:13px;' +
+        'font-weight:600; white-space:nowrap; box-shadow:0 16px 36px -10px rgba(11,14,19,0.5); cursor:pointer;' +
+        'animation:maAiTeaserFly 3.4s cubic-bezier(.22,.68,0,1.2) forwards;}' +
+      '.ma-ai-teaser-spark{font-size:15px; line-height:1;}' +
+      '@keyframes maAiTeaserFly{' +
+        '0%{transform:translateX(-130vw) scale(1); opacity:0;}' +
+        '10%{opacity:1;}' +
+        '48%{transform:translateX(0) scale(1); opacity:1;}' +
+        '78%{transform:translateX(0) scale(1); opacity:1;}' +
+        '100%{transform:translate(76px,16px) scale(.1); opacity:0;}' +
+      '}' +
+      '.ma-ai-bubble.catch{animation:maAiCatch .5s ease;}' +
+      '@keyframes maAiCatch{0%{transform:scale(1);} 35%{transform:scale(1.18);} 100%{transform:scale(1);}}' +
+      '@media (max-width:600px){.ma-ai-teaser{right:14px; bottom:86px;}}' +
+      '@media (prefers-reduced-motion: reduce){.ma-ai-bubble::before{animation:none; display:none;}' +
+        '.ma-ai-teaser{display:none;} .ma-ai-bubble.catch{animation:none;}}';
     document.head.appendChild(style);
   })();
 
@@ -139,6 +161,33 @@
 
     bubble.onclick = openPanel;
     panel.querySelector('.ma-ai-close').onclick = closePanel;
+
+    // One-time attention-grabber (see .ma-ai-teaser/@keyframes maAiTeaserFly
+    // in injectStyles) — a small preview bubble flies in from off-screen and
+    // shrinks into the launcher, so a first-time visitor actually notices
+    // this exists instead of scanning past a plain static icon. Once per
+    // browser session (sessionStorage), and never if they've already opened
+    // the panel by the time it would fire.
+    function maybeShowTeaser() {
+      try {
+        if (sessionStorage.getItem('maAiTeaserShown')) return;
+        sessionStorage.setItem('maAiTeaserShown', '1');
+      } catch (e) {}
+      if (panel.classList.contains('open')) return;
+      var teaser = document.createElement('div');
+      teaser.className = 'ma-ai-teaser';
+      teaser.innerHTML = '<span class="ma-ai-teaser-spark">✨</span><span>Got a question? Ask our AI →</span>';
+      teaser.onclick = function () { teaser.remove(); openPanel(); };
+      document.body.appendChild(teaser);
+      // Timed to the flight animation's "landing" moment (see the 78-100%
+      // keyframe window) — the launcher visibly "catches" it.
+      setTimeout(function () {
+        bubble.classList.add('catch');
+        setTimeout(function () { bubble.classList.remove('catch'); }, 500);
+      }, 3100);
+      setTimeout(function () { if (teaser.parentNode) teaser.remove(); }, 3500);
+    }
+    setTimeout(maybeShowTeaser, 1800);
 
     function actuallyAsk(question) {
       var token = window.MASession && window.MASession.getToken && window.MASession.getToken();
