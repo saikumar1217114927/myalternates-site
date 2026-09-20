@@ -465,7 +465,7 @@ nav.links a:hover::after{width:100%;}
 .ps-search{
   display:flex; align-items:center; gap:10px; background:var(--paper-2);
   border:1px solid #E4DDC9; border-radius:12px; padding:0 16px;
-  height:52px; transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+  height:52px; flex-shrink:0; transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
 .ps-search:focus-within{border-color:var(--gold); background:#fff; box-shadow:0 0 0 3px rgba(201,162,75,0.14);}
 .ps-search svg{width:18px; height:18px; flex:none; fill:none; stroke:var(--muted-light); stroke-width:1.8; stroke-linecap:round;}
@@ -473,7 +473,7 @@ nav.links a:hover::after{width:100%;}
 .ps-search input::placeholder{color:var(--muted-light);}
 .pss-group{display:flex; flex-direction:column; gap:9px; padding-top:18px; border-top:1px solid #F0EBDE;}
 .pss-group[hidden]{display:none;}
-#pssFilterPanel{display:flex; flex-direction:column; gap:0;}
+#pssFilterPanel{display:flex; flex-direction:column; gap:0; flex-shrink:0;}
 #pssFilterPanel > .pss-group:first-child{padding-top:0; border-top:0;}
 .pss-group label{font-size:10.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--muted);}
 .pss-group select{
