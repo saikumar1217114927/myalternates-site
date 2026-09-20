@@ -129,6 +129,7 @@ nav.links a:hover::after{width:100%;}
   padding:11px 32px; font-weight:700; font-size:13.5px;
   border-radius:999px; letter-spacing:0.02em;
   transition:background .2s ease, transform .2s ease;
+  display:inline-block; min-width:168px; text-align:center; box-sizing:border-box;
 }
 .nav-cta:hover{background:var(--gold-light); transform:translateY(-1px);}
 
@@ -178,6 +179,9 @@ nav.links a:hover::after{width:100%;}
   .nav-inner{padding:0 18px;}
   .brand-divider,.powered-by{display:none;}
   .logo-img{height:30px;}
+}
+@media (max-width:480px){
+  .nav-cta{min-width:0; padding:11px 20px;}
 }
 
 /* ---------- BREADCRUMB / BACK ---------- */
