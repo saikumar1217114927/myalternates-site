@@ -45,7 +45,7 @@
   var state = {
     q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc',
     // Cat I/II fund-terms filter panel only:
-    asset: 'All', targetMin: 0, targetMax: null, tenureMin: 0, tenureMax: null
+    asset: 'All', minCommitment: 'All', targetMin: 0, targetMax: null, tenureMin: 0, tenureMax: null
   };
 
   var AUM_BANDS = [
@@ -249,6 +249,10 @@
       if (ftMode) {
         var p = s.profile || {};
         if (state.asset !== 'All' && (p.subCategory || '') !== state.asset) return false;
+        if (state.minCommitment !== 'All') {
+          var mcLabel = p.minCommitment != null ? fmtAmount(Number(p.minCommitment), p.currency) : null;
+          if (mcLabel !== state.minCommitment) return false;
+        }
         var target = amountValue(p.targetAmount, p.currency);
         if (target == null || target < state.targetMin || target > state.targetMax) return false;
         var tenure = p.tenureYears;
@@ -398,12 +402,35 @@
     if (state.targetMax == null || state.tenureMax == null) {
       state.targetMax = targetMax; state.tenureMax = tenureMax;
     }
-    var assets = uniqueSorted(schemes.filter(function (s) { return aifCategoryOf(s) === cat; }).map(function (s) { return (s.profile && s.profile.subCategory) || ''; }));
+    var catSchemes = schemes.filter(function (s) { return aifCategoryOf(s) === cat; });
+    var assets = uniqueSorted(catSchemes.map(function (s) { return (s.profile && s.profile.subCategory) || ''; }));
+    // Every distinct minimum-commitment figure actually on file for this
+    // category — a fixed set of amounts (not a range), same as Asset above,
+    // since a fund's min. commitment is one of a handful of set figures
+    // rather than a continuum worth sliding through. Grouped by the same
+    // rounded label the cards themselves show (minCommitmentLabel), not the
+    // raw figure — two funds at, say, ₹1.0Cr and ₹1.05Cr both display as
+    // "1 Cr" on their cards, and a dropdown offering two identical-looking,
+    // indistinguishable "1 Cr" options would be a real bug (found while
+    // testing this), not two meaningfully different choices.
+    var mcMap = {};
+    catSchemes.forEach(function (s) {
+      var p = s.profile || {};
+      if (p.minCommitment == null) return;
+      var label = fmtAmount(Number(p.minCommitment), p.currency);
+      if (label && !(label in mcMap)) mcMap[label] = Number(p.minCommitment);
+    });
+    var minCommitments = Object.keys(mcMap).sort(function (a, b) { return mcMap[a] - mcMap[b]; });
     return '<div class="pss-ft-head"><span>Filter</span><button type="button" class="pss-ft-clear" id="pssFtClear">Clear</button></div>' +
       '<div class="pss-group">' +
       '<label>Asset</label>' +
       '<select id="pssAsset"><option value="All">All</option>' +
       assets.map(function (a) { return '<option value="' + esc(a) + '"' + (a === state.asset ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') +
+      '</select></div>' +
+      '<div class="pss-group">' +
+      '<label>Min. Commitment</label>' +
+      '<select id="pssMinCommitment"><option value="All">All</option>' +
+      minCommitments.map(function (label) { return '<option value="' + esc(label) + '"' + (label === state.minCommitment ? ' selected' : '') + '>' + esc(label) + '</option>'; }).join('') +
       '</select></div>' +
       rangeGroupHtml('pssTargetGroup', 'Fund Target Size', 'in ' + amountUnit(currency), 0, targetMax, state.targetMin, state.targetMax) +
       rangeGroupHtml('pssTenureGroup', 'Fund Tenure', 'in Years', 0, tenureMax, state.tenureMin, state.tenureMax);
@@ -553,6 +580,9 @@
     var assetSel = panel.querySelector('#pssAsset');
     assetSel.addEventListener('change', function () { state.asset = assetSel.value; applyFilters(); });
 
+    var mcSel = panel.querySelector('#pssMinCommitment');
+    mcSel.addEventListener('change', function () { state.minCommitment = mcSel.value; applyFilters(); });
+
     wireRangeSlider(panel.querySelector('#pssTargetGroup'), function (lo, hi) {
       state.targetMin = lo; state.targetMax = hi; applyFilters();
     });
@@ -561,7 +591,7 @@
     });
 
     panel.querySelector('#pssFtClear').onclick = function () {
-      state.asset = 'All';
+      state.asset = 'All'; state.minCommitment = 'All';
       // Left null — fundTermsFilterPanelHtml (called right after via
       // renderFilterPanel) recomputes the right ceiling for whichever
       // category/currency is now active (targetSizeMaxFor).
@@ -585,7 +615,7 @@
         // fund-terms range filters (if leaving them set, a Cat II value like
         // 8000 would silently clip out of Cat I's 0–5000 scale). Left null —
         // fundTermsFilterPanelHtml recomputes the right ceiling below.
-        state.asset = 'All';
+        state.asset = 'All'; state.minCommitment = 'All';
         state.targetMin = 0; state.targetMax = null;
         state.tenureMin = 0; state.tenureMax = TENURE_MAX;
         renderFilterPanel();
