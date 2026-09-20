@@ -650,8 +650,8 @@
       '<div class="wrap">' +
       '<div class="p-schemes-head">' +
       '<div class="section-head">' +
-      crossProductHtml() +
       '<h2>Explore ' + esc(PRODUCT_LABEL) + ' Schemes</h2>' +
+      crossProductHtml() +
       '</div>' +
       // PMS-only: it's the one page with no separate hero any more (that CTA
       // row moved here). Other products still have their own intact hero
