@@ -233,7 +233,7 @@
       '<div class="ft-line"><span>Tentative final closing</span><b>' + esc(closing) + '</b></div>' +
       '</div>' +
       '</div>' +
-      '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Explore →</button></div>' +
+      '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Discover →</button></div>' +
       '</div>';
   }
 
