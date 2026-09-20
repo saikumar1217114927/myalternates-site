@@ -18,6 +18,9 @@
   var API_URL = 'https://myalternates-backend.onrender.com/';
   var productCode = host.dataset.schemes || 'PMS';
   var PRODUCT_LABEL = { PMS: 'PMS', AIF: 'AIF', GIFT_IFSC: 'GIFT City' }[productCode] || productCode;
+  // "Explore ... Schemes" heading only — GIFT_IFSC's cat-tabs ("All GIFT
+  // City") and the cross-product switcher elsewhere keep the shorter name.
+  var HEADING_LABEL = productCode === 'GIFT_IFSC' ? 'GIFT IFSC' : PRODUCT_LABEL;
   var PRODUCT_INTEREST = {
     PMS: 'Portfolio Management Services (PMS)',
     AIF: 'Alternative Investment Fund (AIF)',
@@ -681,7 +684,7 @@
       '<div class="p-schemes-head">' +
       '<div class="section-head">' +
       crossProductHtml() +
-      '<h2>Explore ' + esc(PRODUCT_LABEL) + ' Schemes</h2>' +
+      '<h2>Explore ' + esc(HEADING_LABEL) + ' Schemes</h2>' +
       '</div>' +
       // PMS-only: it's the one page with no separate hero any more (that CTA
       // row moved here). Other products still have their own intact hero
