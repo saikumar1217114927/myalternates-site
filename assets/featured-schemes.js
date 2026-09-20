@@ -145,7 +145,7 @@
   function aumOf(s) { return (s.profile && s.profile.aum != null) ? Number(s.profile.aum) : null; }
   function fmtAum(s) {
     var v = aumOf(s);
-    if (v == null) return '–';
+    if (v == null) return 'UNDISC.';
     return '₹' + v.toLocaleString('en-IN', { maximumFractionDigits: v < 100 ? 2 : 0 }) + ' Cr';
   }
   function fmtInception(s) {
