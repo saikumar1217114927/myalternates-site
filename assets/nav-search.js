@@ -120,13 +120,24 @@
         // CTA — offered once, right after registering, not buried in the
         // scheme page itself. ma:scheduled fires on close either way
         // (booked or skipped), so navigation waits for that.
+        //
+        // A returning lead logging in here (rather than a brand-new one
+        // registering) may already have a call booked — verifyLeadOtp's
+        // response doesn't say either way, so check status first and skip
+        // the scheduler entirely when one's already on the calendar.
         onVerified: function (token, r, lead, close) {
           close();
-          document.addEventListener('ma:scheduled', function goNext() {
-            document.removeEventListener('ma:scheduled', goNext);
-            location.href = url;
-          }, { once: true });
-          window.MASession.openSchedule(Object.assign({}, lead, r), '', interest);
+          window.MASession.checkStatus(token).then(function (sess) {
+            if (sess && sess.ok && sess.upcomingMeeting && sess.upcomingMeeting.date) {
+              location.href = url;
+              return;
+            }
+            document.addEventListener('ma:scheduled', function goNext() {
+              document.removeEventListener('ma:scheduled', goNext);
+              location.href = url;
+            }, { once: true });
+            window.MASession.openSchedule(Object.assign({}, lead, r), '', interest);
+          });
         }
       });
     }

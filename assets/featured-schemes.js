@@ -729,6 +729,14 @@
   // popup — see maRenderMeetingAction). ma:scheduled always fires on close
   // whether they actually booked a time or just skipped it, so the
   // navigation waits for that instead of firing immediately.
+  //
+  // verifyLeadOtp's own response doesn't say whether this lead already has
+  // an upcoming meeting (that wasn't the Login step's concern — see
+  // showFullOtpStep's comment in session-gate.js) — so this was offering
+  // the scheduler to EVERY newly-verified visitor, including a returning
+  // one who already has a call booked. One extra checkStatus call gets the
+  // real answer before deciding: already booked -> nothing to offer, go
+  // straight to the scheme; otherwise the optional scheduler as before.
   function openDiscoverGate(planId) {
     var url = 'scheme?id=' + encodeURIComponent(planId);
     window.maOpenGateModal({
@@ -736,11 +744,17 @@
       interest: PRODUCT_INTEREST,
       onVerified: function (token, r, lead, close) {
         close();
-        document.addEventListener('ma:scheduled', function goNext() {
-          document.removeEventListener('ma:scheduled', goNext);
-          location.href = url;
-        }, { once: true });
-        window.MASession.openSchedule(Object.assign({}, lead, r), '', PRODUCT_INTEREST);
+        window.MASession.checkStatus(token).then(function (sess) {
+          if (sess && sess.ok && sess.upcomingMeeting && sess.upcomingMeeting.date) {
+            location.href = url;
+            return;
+          }
+          document.addEventListener('ma:scheduled', function goNext() {
+            document.removeEventListener('ma:scheduled', goNext);
+            location.href = url;
+          }, { once: true });
+          window.MASession.openSchedule(Object.assign({}, lead, r), '', PRODUCT_INTEREST);
+        });
       }
     });
   }

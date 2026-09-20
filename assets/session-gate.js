@@ -503,7 +503,15 @@
       interest: interest,
       onVerified: function (token, r, lead, close) {
         close();
-        window.MASession.openSchedule(Object.assign({}, lead, r), '', interest);
+        // Mirror the already-logged-in branch above: a returning lead
+        // logging in here may already have a call booked, and
+        // verifyLeadOtp's response doesn't carry that — checkStatus gets
+        // the real upcomingMeeting so this opens as "Reschedule" instead
+        // of silently offering to book a second call.
+        window.MASession.checkStatus(token).then(function (sess) {
+          var mtg = sess && sess.ok && sess.upcomingMeeting;
+          window.MASession.openSchedule(Object.assign({}, lead, r, sess && sess.ok ? sess : {}), (mtg && mtg.meetingId) || '', interest);
+        });
       }
     });
   };
