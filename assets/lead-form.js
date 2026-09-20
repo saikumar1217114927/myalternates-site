@@ -61,22 +61,7 @@
       '.lf-otp .lr-sub{color:#5b6270;font-size:14px;line-height:1.55;margin-bottom:16px}' +
       '.lf-otp input.lf-otp-code{font-size:22px;letter-spacing:.35em;text-align:center;font-weight:700;padding:12px 14px;width:100%;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box}' +
       '.lf-otp .lf-otp-err{color:#a3402f;font-size:13px;margin-top:8px;display:none}' +
-      '.lf-otp .lr-actions{margin-top:14px}' +
-      '.lr-contact{margin-top:18px;padding-top:14px;border-top:1px solid #eee}' +
-      '.lr-contact-title{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7c58;font-weight:700;margin-bottom:10px}' +
-      '.lr-crow{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13.5px}' +
-      '.lr-crow + .lr-crow{border-top:1px solid #f1eee5}' +
-      '.lr-clabel{color:#8a8f99;width:56px;flex:none}' +
-      '.lr-cval{flex:1;font-weight:600;color:#1a1a1a;overflow-wrap:anywhere}' +
-      '.lr-cedit{display:flex;flex-direction:column;gap:8px;width:100%;padding:6px 0}' +
-      '.lr-cedit-row{display:flex;gap:8px}' +
-      '.lr-cedit input, .lr-cedit select{font-size:14px;padding:9px 10px;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box}' +
-      '.lr-cedit input{flex:1;min-width:0}' +
-      '.lr-cedit select{flex:none;width:92px}' +
-      '.lr-cc-warn{color:#8a6d1f;font-size:12px;background:#fbf3e0;border:1px solid #ecdca8;border-radius:6px;padding:6px 9px;line-height:1.4}' +
-      '.lr-cedit-err{color:#a3402f;font-size:12.5px;display:none}' +
-      '.lr-cedit-sent{color:#1f6f43;font-size:12.5px}' +
-      '.lr-cedit .btn-gold{padding:8px 14px;font-size:13px}';
+      '.lf-otp .lr-actions{margin-top:14px}';
     document.head.appendChild(s);
   })();
 
@@ -1022,11 +1007,8 @@
           '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
           '<button type="button" class="lr-link" data-no>Not now</button></div></div>';
     }
-    html += '<div class="lr-contact" data-contact-host></div>';
     html += '<div class="lr-notyou"><button type="button" class="lr-link" data-notyou>Not you? Sign out</button></div>';
     bodyEl.innerHTML = html;
-
-    renderContactEditor(bodyEl.querySelector('[data-contact-host]'), sess, token);
 
     var nu = bodyEl.querySelector('[data-notyou]');
     if (nu) nu.onclick = signOut;
@@ -1058,130 +1040,6 @@
     if (resch) resch.onclick = function () { openBooking(mtg.meetingId); };
     var bookBtn = bodyEl.querySelector('[data-book]');
     if (bookBtn) bookBtn.onclick = function () { openBooking(''); };
-  }
-
-  /* -------- Self-service email/mobile edit, inside the "Welcome back"
-     panel. Changing either one requires proving you still control what's
-     CURRENTLY on file — the OTP always goes to the existing email/mobile,
-     never the new value being typed — so a bare edit form can't be used to
-     hijack someone else's contact. If the existing mobile carries a
-     non-Indian code, only email can carry that code (same DLT-template
-     limit the registration OTP already works around); the mobile edit row
-     warns about this before Send, same wording as the registration form's
-     own country-code note. -------- */
-  function renderContactEditor(host, sess, token) {
-    if (!host) return;
-    host.innerHTML =
-      '<div class="lr-contact-title">Your details</div>' +
-      '<div class="lr-crow" data-crow="email"><span class="lr-clabel">Email</span>' +
-      '<span class="lr-cval">' + escHtml(sess.email || '—') + '</span>' +
-      '<button type="button" class="lr-link" data-cedit="email">Edit</button></div>' +
-      '<div class="lr-crow" data-crow="mobile"><span class="lr-clabel">Mobile</span>' +
-      '<span class="lr-cval">' + escHtml((sess.mobileCountryCode ? sess.mobileCountryCode + ' ' : '') + (sess.mobile || '—')) + '</span>' +
-      '<button type="button" class="lr-link" data-cedit="mobile">Edit</button></div>';
-
-    host.querySelectorAll('[data-cedit]').forEach(function (btn) {
-      btn.onclick = function () { openEditRow(btn.getAttribute('data-cedit')); };
-    });
-
-    function rowEl(field) { return host.querySelector('[data-crow="' + field + '"]'); }
-
-    function dialCodeOptions(selected) {
-      return COUNTRIES.map(function (c) {
-        var code = DIAL_CODES[c[0]];
-        if (!code) return '';
-        return '<option value="' + code + '" data-iso="' + c[0] + '"' + (code === selected ? ' selected' : '') + '>' + c[0] + ' ' + code + '</option>';
-      }).join('');
-    }
-
-    function openEditRow(field) {
-      var row = rowEl(field);
-      var isEmail = field === 'email';
-      row.innerHTML = '<div class="lr-cedit">' +
-        '<div class="lr-cedit-row">' +
-        (isEmail ? '' : '<select class="lr-cc">' + dialCodeOptions(sess.mobileCountryCode || '+91') + '</select>') +
-        '<input type="' + (isEmail ? 'email' : 'tel') + '" class="lr-cnew" placeholder="' + (isEmail ? 'New email address' : 'New mobile number') + '"></div>' +
-        (isEmail ? '' : '<div class="lr-cc-warn" data-cc-warn hidden>Your mobile on file has an international code, so we can’t SMS a code to verify this change — it’ll be sent to your email instead.</div>') +
-        '<div class="lr-cedit-err"></div>' +
-        '<div class="lr-actions"><button type="button" class="btn-gold" data-csend>Send code</button>' +
-        '<button type="button" class="lr-link" data-ccancel>Cancel</button></div></div>';
-
-      var input = row.querySelector('.lr-cnew');
-      var errEl = row.querySelector('.lr-cedit-err');
-      var ccSel = row.querySelector('.lr-cc');
-      input.focus();
-
-      // The warning is about whose SMS support decides where the code
-      // actually goes — that's the EXISTING mobile's country, not whichever
-      // one they're picking for the new number.
-      var warnEl = row.querySelector('[data-cc-warn]');
-      if (warnEl) warnEl.hidden = (String(sess.mobileCountryCode || '+91').replace(/\D+/g, '') === '91');
-
-      function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
-
-      row.querySelector('[data-ccancel]').onclick = function () { renderContactEditor(host, sess, token); };
-      row.querySelector('[data-csend]').onclick = function () {
-        var val = input.value.trim();
-        if (isEmail && (!val || val.indexOf('@') < 1)) { showErr('Enter a valid email address.'); return; }
-        if (!isEmail && val.replace(/\D/g, '').length < 6) { showErr('Enter a valid mobile number.'); return; }
-        var newMobileCc = ccSel ? ccSel.value : '';
-        var btn = row.querySelector('[data-csend]');
-        btn.disabled = true; btn.textContent = 'Sending…';
-        send({ action: 'requestContactChangeOtp', token: token, vid: getVid(), field: field, newValue: val, newMobileCc: newMobileCc })
-          .then(function (r) {
-            btn.disabled = false; btn.textContent = 'Send code';
-            if (!r || !r.ok) { showErr((r && r.error) || 'Could not send a code — please try again.'); return; }
-            showOtpStep(field, val, newMobileCc, r.sentTo);
-          });
-      };
-    }
-
-    function showOtpStep(field, val, newMobileCc, sentTo) {
-      var row = rowEl(field);
-      row.innerHTML = '<div class="lr-cedit">' +
-        '<div class="lr-cedit-sent">Code sent to ' + escHtml(sentTo || 'your account') + '.</div>' +
-        '<div class="lr-cedit-row"><input type="text" class="lr-cnew" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code"></div>' +
-        '<div class="lr-cedit-err"></div>' +
-        '<div class="lr-actions"><button type="button" class="btn-gold" data-cverify>Verify &amp; save</button>' +
-        '<button type="button" class="lr-link" data-cresend>Resend code</button>' +
-        '<button type="button" class="lr-link" data-ccancel>Cancel</button></div></div>';
-
-      var codeInput = row.querySelector('.lr-cnew');
-      var errEl = row.querySelector('.lr-cedit-err');
-      codeInput.focus();
-      codeInput.addEventListener('input', function () { codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6); });
-
-      function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
-
-      row.querySelector('[data-ccancel]').onclick = function () { renderContactEditor(host, sess, token); };
-      row.querySelector('[data-cresend]').onclick = function (e) {
-        var b = e.currentTarget;
-        b.disabled = true; b.textContent = 'Sending…';
-        send({ action: 'requestContactChangeOtp', token: token, vid: getVid(), field: field, newValue: val, newMobileCc: newMobileCc })
-          .then(function (r) {
-            b.disabled = false; b.textContent = 'Resend code';
-            if (!r || !r.ok) { showErr((r && r.error) || 'Could not resend — please try again.'); return; }
-            codeInput.value = ''; codeInput.focus();
-          });
-      };
-      function doVerify() {
-        var otp = codeInput.value.trim();
-        if (!/^[0-9]{6}$/.test(otp)) { showErr('Enter the 6-digit code.'); return; }
-        errEl.style.display = 'none';
-        var vBtn = row.querySelector('[data-cverify]');
-        vBtn.disabled = true; vBtn.textContent = 'Verifying…';
-        send({ action: 'verifyContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc, otp: otp })
-          .then(function (r) {
-            vBtn.disabled = false; vBtn.textContent = 'Verify & save';
-            if (!r || !r.ok) { showErr((r && r.error) || 'Could not verify — please try again.'); return; }
-            sess.email = r.email; sess.mobile = r.mobile; sess.mobileCountryCode = r.mobileCountryCode;
-            rememberLead({ leadId: sess.leadId, name: sess.name, email: sess.email, mobile: sess.mobile, mobileCountryCode: sess.mobileCountryCode });
-            renderContactEditor(host, sess, token);
-          });
-      }
-      row.querySelector('[data-cverify]').onclick = doVerify;
-      codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doVerify(); } });
-    }
   }
 
   /* -------- Continue with Google: prefill name + verified email -------- */

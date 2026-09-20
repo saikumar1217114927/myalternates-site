@@ -102,7 +102,26 @@
         'opacity:0; visibility:hidden; transform:translateY(4px); transition:opacity .15s ease, transform .15s ease;' +
         'pointer-events:none; z-index:5;}' +
       '.mmr-add-wrap:hover .mmr-tip, .mmr-add-wrap:focus-within .mmr-tip{opacity:1; visibility:visible; transform:translateY(0);}' +
-      '.mmr-added{font-size:12.5px; font-weight:600; color:var(--emerald-light); white-space:nowrap;}';
+      '.mmr-added{font-size:12.5px; font-weight:600; color:var(--emerald-light); white-space:nowrap;}' +
+      '.npp-crow{display:flex; align-items:center; gap:8px; margin-top:2px;}' +
+      '.npp-crow .npp-row{flex:1; min-width:0; overflow-wrap:anywhere; margin:0;}' +
+      '.npp-edit{background:none; border:0; color:var(--muted-light); font-size:11.5px; cursor:pointer;' +
+        'text-decoration:underline; flex:none; padding:0;}' +
+      '.npp-edit:hover{color:var(--gold-light);}' +
+      '.npp-cedit{display:flex; flex-direction:column; gap:8px; width:100%; padding:2px 0 4px;}' +
+      '.npp-cedit-row{display:flex; gap:8px;}' +
+      '.npp-cedit input, .npp-cedit select{font-size:13px; padding:8px 9px; border:1px solid var(--line);' +
+        'border-radius:6px; font-family:inherit; color:var(--paper); background:var(--ink-2); box-sizing:border-box;}' +
+      '.npp-cedit input{flex:1; min-width:0;}' +
+      '.npp-cedit select{flex:none; width:88px;}' +
+      '.npp-cedit input:focus, .npp-cedit select:focus{outline:none; border-color:var(--gold);}' +
+      '.npp-cc-warn{color:var(--gold-light); font-size:11px; background:rgba(201,162,75,0.12);' +
+        'border:1px solid rgba(201,162,75,0.3); border-radius:6px; padding:6px 8px; line-height:1.4;}' +
+      '.npp-cedit-err{color:#ff9376; font-size:12px; display:none;}' +
+      '.npp-cedit-sent{color:var(--emerald-light); font-size:11.5px;}' +
+      '.npp-cedit-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}' +
+      '.npp-cedit-actions .btn-gold{padding:7px 14px; font-size:12.5px;}' +
+      '.npp-cedit-actions .ma-gate-link{margin:0; font-size:11.5px;}';
     document.head.appendChild(style);
   })();
 
@@ -570,14 +589,14 @@
     var panel = document.getElementById('maProfilePanel');
     if (!wrap || !btn || !panel) return;
 
-    function renderPanel(sess) {
+    function renderPanel(sess, token) {
       var expert = sess.expert;
       panel.innerHTML =
         '<div class="npp-section">' +
         '<div class="npp-label">Your details</div>' +
         '<div class="npp-name">' + esc(sess.name || 'Registered visitor') + '</div>' +
-        (sess.email ? '<div class="npp-row">' + esc(sess.email) + '</div>' : '') +
-        (sess.mobile ? '<div class="npp-row">' + esc(sess.mobileCountryCode || '') + ' ' + esc(sess.mobile) + '</div>' : '') +
+        contactRowHtml('email', sess.email) +
+        contactRowHtml('mobile', (sess.mobileCountryCode ? sess.mobileCountryCode + ' ' : '') + (sess.mobile || '')) +
         '</div>' +
         (expert ? (
           '<div class="npp-section npp-expert">' +
@@ -597,6 +616,125 @@
         window.MASession.clearToken();
         location.reload();
       };
+      wireContactEdit(sess, token);
+    }
+
+    // ---- self-service email/mobile edit, inline in this same panel ----
+    // The one place on the site this now lives — every "Welcome back" card
+    // (product pages, the landing page) shows contact info read-only; Edit
+    // only ever appears here. Changing either value requires proving you
+    // still control what's CURRENTLY on file: the OTP goes to the existing
+    // email/mobile, never the new one being typed. An existing mobile under
+    // a non-Indian code can't take an SMS OTP (same DLT-template limit the
+    // registration OTP already works around) — the mobile row warns about
+    // that before Send.
+    function contactRowHtml(field, value) {
+      return '<div class="npp-crow" data-crow="' + field + '">' +
+        '<div class="npp-row">' + esc(value || '—') + '</div>' +
+        '<button type="button" class="npp-edit" data-cedit="' + field + '">Edit</button></div>';
+    }
+
+    function wireContactEdit(sess, token) {
+      panel.querySelectorAll('[data-cedit]').forEach(function (b) {
+        b.onclick = function (e) { e.stopPropagation(); openEditRow(b.getAttribute('data-cedit'), sess, token); };
+      });
+    }
+
+    function rowEl(field) { return panel.querySelector('[data-crow="' + field + '"]'); }
+
+    function dialCodeOptions(selected) {
+      var countries = (window.MASession && window.MASession.countries) || [];
+      var dialCodes = (window.MASession && window.MASession.dialCodes) || {};
+      return countries.map(function (c) {
+        var code = dialCodes[c[0]];
+        if (!code) return '';
+        return '<option value="' + esc(code) + '" data-iso="' + esc(c[0]) + '"' + (code === selected ? ' selected' : '') + '>' + esc(c[0]) + ' ' + esc(code) + '</option>';
+      }).join('');
+    }
+
+    function openEditRow(field, sess, token) {
+      var row = rowEl(field);
+      var isEmail = field === 'email';
+      row.innerHTML = '<div class="npp-cedit">' +
+        '<div class="npp-cedit-row">' +
+        (isEmail ? '' : '<select class="npp-cc">' + dialCodeOptions(sess.mobileCountryCode || '+91') + '</select>') +
+        '<input type="' + (isEmail ? 'email' : 'tel') + '" class="npp-cnew" placeholder="' + (isEmail ? 'New email address' : 'New mobile number') + '"></div>' +
+        (isEmail ? '' : '<div class="npp-cc-warn" data-cc-warn hidden>Your mobile on file has an international code, so we can’t SMS a code to verify this change — it’ll be sent to your email instead.</div>') +
+        '<div class="npp-cedit-err"></div>' +
+        '<div class="npp-cedit-actions"><button type="button" class="btn-gold" data-csend>Send code</button>' +
+        '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
+
+      var input = row.querySelector('.npp-cnew');
+      var errEl = row.querySelector('.npp-cedit-err');
+      var ccSel = row.querySelector('.npp-cc');
+      input.focus();
+      var warnEl = row.querySelector('[data-cc-warn]');
+      if (warnEl) warnEl.hidden = (String(sess.mobileCountryCode || '+91').replace(/\D+/g, '') === '91');
+
+      function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+      row.querySelector('[data-ccancel]').onclick = function (e) { e.stopPropagation(); renderPanel(sess, token); };
+      row.querySelector('[data-csend]').onclick = function (e) {
+        e.stopPropagation();
+        var val = input.value.trim();
+        if (isEmail && (!val || val.indexOf('@') < 1)) { showErr('Enter a valid email address.'); return; }
+        if (!isEmail && val.replace(/\D/g, '').length < 6) { showErr('Enter a valid mobile number.'); return; }
+        var newMobileCc = ccSel ? ccSel.value : '';
+        var btn2 = row.querySelector('[data-csend]');
+        btn2.disabled = true; btn2.textContent = 'Sending…';
+        window.MASession.send({ action: 'requestContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc })
+          .then(function (r) {
+            btn2.disabled = false; btn2.textContent = 'Send code';
+            if (!r || !r.ok) { showErr((r && r.error) || 'Could not send a code — please try again.'); return; }
+            showOtpStep(field, val, newMobileCc, r.sentTo, sess, token);
+          });
+      };
+    }
+
+    function showOtpStep(field, val, newMobileCc, sentTo, sess, token) {
+      var row = rowEl(field);
+      row.innerHTML = '<div class="npp-cedit">' +
+        '<div class="npp-cedit-sent">Code sent to ' + esc(sentTo || 'your account') + '.</div>' +
+        '<input type="text" class="npp-cnew" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code">' +
+        '<div class="npp-cedit-err"></div>' +
+        '<div class="npp-cedit-actions"><button type="button" class="btn-gold" data-cverify>Verify &amp; save</button>' +
+        '<button type="button" class="ma-gate-link" data-cresend>Resend</button>' +
+        '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
+
+      var codeInput = row.querySelector('.npp-cnew');
+      var errEl = row.querySelector('.npp-cedit-err');
+      codeInput.focus();
+      codeInput.addEventListener('input', function () { codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6); });
+      function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+
+      row.querySelector('[data-ccancel]').onclick = function (e) { e.stopPropagation(); renderPanel(sess, token); };
+      row.querySelector('[data-cresend]').onclick = function (e) {
+        e.stopPropagation();
+        var b = e.currentTarget;
+        b.disabled = true; b.textContent = 'Sending…';
+        window.MASession.send({ action: 'requestContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc })
+          .then(function (r) {
+            b.disabled = false; b.textContent = 'Resend';
+            if (!r || !r.ok) { showErr((r && r.error) || 'Could not resend — please try again.'); return; }
+            codeInput.value = ''; codeInput.focus();
+          });
+      };
+      function doVerify() {
+        var otp = codeInput.value.trim();
+        if (!/^[0-9]{6}$/.test(otp)) { showErr('Enter the 6-digit code.'); return; }
+        errEl.style.display = 'none';
+        var vBtn = row.querySelector('[data-cverify]');
+        vBtn.disabled = true; vBtn.textContent = 'Verifying…';
+        window.MASession.send({ action: 'verifyContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc, otp: otp })
+          .then(function (r) {
+            vBtn.disabled = false; vBtn.textContent = 'Verify & save';
+            if (!r || !r.ok) { showErr((r && r.error) || 'Could not verify — please try again.'); return; }
+            sess.email = r.email; sess.mobile = r.mobile; sess.mobileCountryCode = r.mobileCountryCode;
+            renderPanel(sess, token);
+          });
+      }
+      row.querySelector('[data-cverify]').onclick = function (e) { e.stopPropagation(); doVerify(); };
+      codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doVerify(); } });
+      codeInput.addEventListener('click', function (e) { e.stopPropagation(); });
     }
 
     function load() {
@@ -605,7 +743,7 @@
       window.MASession.checkStatus(token).then(function (sess) {
         if (!sess || !sess.ok || !sess.loggedIn) { wrap.hidden = true; panel.hidden = true; return; }
         wrap.hidden = false;
-        renderPanel(sess);
+        renderPanel(sess, token);
       });
     }
     load();

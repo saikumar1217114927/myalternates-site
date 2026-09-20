@@ -2006,13 +2006,11 @@
         '<button type="button" id="maBook" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer">Schedule a call →</button>';
     }
     b.innerHTML = inner +
-      '<div id="maContactHost" style="margin-top:18px;padding-top:14px;border-top:1px solid #eee;"></div>' +
       '<div style="margin-top:16px"><button type="button" id="maSignOut" style="background:none;border:0;color:var(--muted,#6C7178);text-decoration:underline;font-size:12.5px;cursor:pointer">Not you? Sign out</button></div>';
 
     card.style.display = 'none';
     card.parentNode.insertBefore(b, card);
     document.getElementById('maSignOut').onclick = () => { maClearSession(); b.remove(); card.style.display = ''; };
-    renderContactEditorInline(b.querySelector('#maContactHost'), sess, token);
 
     const startBooking = (reschId) => {
       leadRecord = {
@@ -2027,119 +2025,6 @@
     if(rb) rb.onclick = () => startBooking(m.meetingId);
     const bk = document.getElementById('maBook');
     if(bk) bk.onclick = () => startBooking('');
-  }
-
-  // Self-service email/mobile edit for the verified-session card above.
-  // Index.html builds its own returning-visitor card independently of
-  // lead-form.js (different form field IDs, predates that shared widget),
-  // so this mirrors renderContactEditor there rather than sharing it.
-  // Changing either value always requires proving you still control
-  // what's CURRENTLY on file — the OTP goes to the existing email/mobile,
-  // never the new one being typed. An existing mobile under a non-Indian
-  // code can't take an SMS OTP, so the mobile row warns about that (same
-  // wording as the registration form's own country-code note) before Send.
-  function renderContactEditorInline(host, sess, token){
-    if(!host) return;
-    const row = (field, label, value) =>
-      '<div data-crow="'+field+'" style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:13.5px;'+(field==='mobile'?'border-top:1px solid #f1eee5;':'')+'">' +
-      '<span style="color:#8a8f99;width:56px;flex:none;">'+label+'</span>' +
-      '<span style="flex:1;font-weight:600;color:#1a1a1a;overflow-wrap:anywhere;">'+maEscHtml(value || '—')+'</span>' +
-      '<button type="button" data-cedit="'+field+'" style="background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline;">Edit</button></div>';
-    host.innerHTML =
-      '<div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#8a7c58;font-weight:700;margin-bottom:10px;">Your details</div>' +
-      row('email', 'Email', sess.email) +
-      row('mobile', 'Mobile', (sess.mobileCountryCode ? sess.mobileCountryCode + ' ' : '') + (sess.mobile || ''));
-
-    host.querySelectorAll('[data-cedit]').forEach((b) => { b.onclick = () => openEditRow(b.getAttribute('data-cedit')); });
-
-    const rowEl = (field) => host.querySelector('[data-crow="'+field+'"]');
-    const dialCodeOptions = (selected) => COUNTRIES.map(([code]) => {
-      const dial = DIAL_CODES[code];
-      if(!dial) return '';
-      return '<option value="'+dial+'" data-iso="'+code+'"'+(dial === selected ? ' selected' : '')+'>'+code+' '+dial+'</option>';
-    }).join('');
-
-    function openEditRow(field){
-      const rEl = rowEl(field);
-      const isEmail = field === 'email';
-      rEl.innerHTML =
-        '<div style="display:flex;flex-direction:column;gap:8px;width:100%;padding:6px 0;">' +
-        '<div style="display:flex;gap:8px;">' +
-        (isEmail ? '' : '<select class="lr-cc" style="flex:none;width:92px;font-size:14px;padding:9px 10px;border:1px solid #d8d2c2;border-radius:8px;">' + dialCodeOptions(sess.mobileCountryCode || '+91') + '</select>') +
-        '<input type="'+(isEmail ? 'email' : 'tel')+'" class="lr-cnew" placeholder="'+(isEmail ? 'New email address' : 'New mobile number')+'" style="flex:1;min-width:0;font-size:14px;padding:9px 10px;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box;"></div>' +
-        (isEmail ? '' : '<div data-cc-warn hidden style="color:#8a6d1f;font-size:12px;background:#fbf3e0;border:1px solid #ecdca8;border-radius:6px;padding:6px 9px;line-height:1.4;">Your mobile on file has an international code, so we can’t SMS a code to verify this change — it’ll be sent to your email instead.</div>') +
-        '<div class="lr-cedit-err" style="color:#a3402f;font-size:12.5px;display:none;"></div>' +
-        '<div style="display:flex;gap:10px;align-items:center;"><button type="button" data-csend style="background:#c9a24b;color:#1a1400;border:0;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">Send code</button>' +
-        '<button type="button" data-ccancel style="background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline;">Cancel</button></div></div>';
-
-      const input = rEl.querySelector('.lr-cnew');
-      const errEl = rEl.querySelector('.lr-cedit-err');
-      const ccSel = rEl.querySelector('.lr-cc');
-      input.focus();
-      const warnEl = rEl.querySelector('[data-cc-warn]');
-      if(warnEl) warnEl.hidden = (String(sess.mobileCountryCode || '+91').replace(/\D+/g, '') === '91');
-
-      const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
-      rEl.querySelector('[data-ccancel]').onclick = () => renderContactEditorInline(host, sess, token);
-      rEl.querySelector('[data-csend]').onclick = () => {
-        const val = input.value.trim();
-        if(isEmail && (!val || val.indexOf('@') < 1)){ showErr('Enter a valid email address.'); return; }
-        if(!isEmail && val.replace(/\D/g, '').length < 6){ showErr('Enter a valid mobile number.'); return; }
-        const newMobileCc = ccSel ? ccSel.value : '';
-        const b = rEl.querySelector('[data-csend]');
-        b.disabled = true; b.textContent = 'Sending…';
-        sendToLeadsSheet({ action:'requestContactChangeOtp', token, vid: MA_VID, field, newValue: val, newMobileCc }).then((r) => {
-          b.disabled = false; b.textContent = 'Send code';
-          if(!r || !r.ok){ showErr((r && r.error) || 'Could not send a code — please try again.'); return; }
-          showOtpStep(field, val, newMobileCc, r.sentTo);
-        });
-      };
-    }
-
-    function showOtpStep(field, val, newMobileCc, sentTo){
-      const rEl = rowEl(field);
-      rEl.innerHTML =
-        '<div style="display:flex;flex-direction:column;gap:8px;width:100%;padding:6px 0;">' +
-        '<div style="color:#1f6f43;font-size:12.5px;">Code sent to ' + maEscHtml(sentTo || 'your account') + '.</div>' +
-        '<input type="text" class="lr-cnew" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code" style="font-size:18px;letter-spacing:.3em;text-align:center;font-weight:700;padding:9px 10px;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box;">' +
-        '<div class="lr-cedit-err" style="color:#a3402f;font-size:12.5px;display:none;"></div>' +
-        '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><button type="button" data-cverify style="background:#c9a24b;color:#1a1400;border:0;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;">Verify &amp; save</button>' +
-        '<button type="button" data-cresend style="background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline;">Resend code</button>' +
-        '<button type="button" data-ccancel style="background:none;border:0;color:#6b7280;font-size:13px;cursor:pointer;text-decoration:underline;">Cancel</button></div></div>';
-
-      const codeInput = rEl.querySelector('.lr-cnew');
-      const errEl = rEl.querySelector('.lr-cedit-err');
-      codeInput.focus();
-      codeInput.addEventListener('input', () => { codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6); });
-      const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
-
-      rEl.querySelector('[data-ccancel]').onclick = () => renderContactEditorInline(host, sess, token);
-      rEl.querySelector('[data-cresend]').onclick = (e) => {
-        const b = e.currentTarget;
-        b.disabled = true; b.textContent = 'Sending…';
-        sendToLeadsSheet({ action:'requestContactChangeOtp', token, vid: MA_VID, field, newValue: val, newMobileCc }).then((r) => {
-          b.disabled = false; b.textContent = 'Resend code';
-          if(!r || !r.ok){ showErr((r && r.error) || 'Could not resend — please try again.'); return; }
-          codeInput.value = ''; codeInput.focus();
-        });
-      };
-      const doVerify = () => {
-        const otp = codeInput.value.trim();
-        if(!/^[0-9]{6}$/.test(otp)){ showErr('Enter the 6-digit code.'); return; }
-        errEl.style.display = 'none';
-        const vBtn = rEl.querySelector('[data-cverify]');
-        vBtn.disabled = true; vBtn.textContent = 'Verifying…';
-        sendToLeadsSheet({ action:'verifyContactChangeOtp', token, field, newValue: val, newMobileCc, otp }).then((r) => {
-          vBtn.disabled = false; vBtn.textContent = 'Verify & save';
-          if(!r || !r.ok){ showErr((r && r.error) || 'Could not verify — please try again.'); return; }
-          sess.email = r.email; sess.mobile = r.mobile; sess.mobileCountryCode = r.mobileCountryCode;
-          try{ localStorage.setItem('maLead', JSON.stringify({ leadId: sess.leadId, name: sess.name, email: sess.email, mobile: sess.mobile, mobileCountryCode: sess.mobileCountryCode })); }catch(e){}
-          renderContactEditorInline(host, sess, token);
-        });
-      };
-      rEl.querySelector('[data-cverify]').onclick = doVerify;
-      codeInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); doVerify(); } });
-    }
   }
 
   // Reads a saved session token (if any) and shows the recognized-visitor
