@@ -69,7 +69,7 @@
           <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login<small>Manage your book — backoffice.myalternates.com</small></a>
         </div>
       </div>
-      <a href="#enquiry" class="nav-cta" data-ma-talk="GIFT City products">Talk to an Expert</a>
+      <a href="#schemes" class="nav-cta" data-ma-talk="GIFT City products">Talk to an Expert</a>
       <div class="nav-profile" id="maProfile" hidden>
         <button type="button" class="nav-profile-btn" id="maProfileBtn" aria-label="Your profile">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path></svg>
@@ -89,142 +89,12 @@
 
 <!-- ================= FEATURED SCHEMES (real, unmasked examples) =================
      No separate hero — its CTA row (Talk to an expert/Reschedule) moved
-     into this section's own header, opposite the heading, same as PMS/AIF.
-     The bottom #enquiry form (below) still exists as a second path in for
-     now — left as-is, not part of this change. -->
+     into this section's own header, opposite the heading, same as PMS/AIF. -->
+<!-- No enquiry form (or "The basics"/"Why it matters"/"Why invest through
+     us" prose) on this page any more — a visitor picks a scheme here and
+     clicks Discover, which is the registration flow (same as PMS/AIF's
+     own lists). -->
 <section class="p-schemes" data-schemes="GIFT_IFSC" aria-label="Featured GIFT City schemes" id="schemes"></section>
-
-<section class="prose-section">
-  <div class="wrap">
-    <div class="prose">
-      <div class="section-tag">The basics</div>
-      <h2>What are GIFT City products?</h2>
-      <p>
-        GIFT City, in Gujarat, houses India's International Financial Services Centre (IFSC) —
-        a dedicated financial zone with its own regulator, the IFSCA. Funds set up there are
-        run by IFSCA-registered Fund Management Entities and transact in foreign currency,
-        usually US dollars, giving Indian investors a regulated onshore route to international
-        markets.
-      </p>
-      <p>
-        Resident individuals invest through the RBI's Liberalised Remittance Scheme (LRS),
-        which allows remittance of up to USD 250,000 per financial year for permitted purposes,
-        including investment in IFSC funds. Depending on the structure, you can access global
-        equity and debt strategies, feeder funds into offshore managers, and other
-        international mandates.
-      </p>
-      <p>
-        IFSC units and certain investor income carry tax concessions, but the treatment depends
-        on the fund, your residency and the year of investment — this is an area to work
-        through with a tax adviser before you commit.
-      </p>
-    </div>
-  </div>
-</section>
-
-<section class="prose-section">
-  <div class="wrap">
-    <div class="prose">
-      <div class="section-tag">Why it matters</div>
-      <h2>Why invest through GIFT City</h2>
-      <p>
-        For an investor looking to diversify outside India, GIFT City is often the cleanest
-        way to do it:
-      </p>
-      <ul>
-        <li>Global market and currency exposure that isn't tied to the rupee or Indian equities</li>
-        <li>A regulated Indian jurisdiction — IFSCA oversight, Indian courts, familiar reporting</li>
-        <li>A structured, transparent use of your LRS limit rather than piecemeal overseas transfers</li>
-        <li>Access to international strategies and managers packaged into IFSC funds</li>
-        <li>Tax concessions available to IFSC structures, subject to your own position</li>
-      </ul>
-      <p>
-        Eligibility, the remittance mechanics and the currency and tax implications all need to
-        be right before you invest — that's the part we help you work through.
-      </p>
-    </div>
-  </div>
-</section>
-
-<section class="whyus">
-  <div class="wrap">
-    <div class="section-head">
-      <div class="section-tag">Why invest through us</div>
-      <h2>Compliant global access — guided, and in one view.</h2>
-    </div>
-    <div class="feature-grid">
-      <div class="feature">
-        <div class="fnum">01</div>
-        <h4>Competitive pricing</h4>
-        <p>Platform-negotiated terms on GIFT City structures, passed through without hidden mark-ups.</p>
-      </div>
-      <div class="feature">
-        <div class="fnum">02</div>
-        <h4>Experts guide the structure choice</h4>
-        <p>Our team helps you understand eligibility, the remittance route and which structure fits your objective — so you invest in the right one.</p>
-      </div>
-      <div class="feature">
-        <div class="fnum">03</div>
-        <h4>One dashboard for everything</h4>
-        <p>Your GIFT City holdings appear alongside your PMS, AIF and SIF investments in a single live view.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="enquiry" id="enquiry">
-  <div class="wrap enquiry-grid">
-    <div class="enquiry-copy">
-      <div class="section-tag">Talk to an expert</div>
-      <h2>Explore a GIFT City allocation for your portfolio.</h2>
-      <p>Share a few details and a myAlternates investment expert will call you back within one business day — no obligation.</p>
-      <ul>
-        <li>A view of which GIFT City structures you are eligible for</li>
-        <li>Clarity on the remittance route, costs and tax</li>
-        <li>Help with onboarding and paperwork, end to end</li>
-      </ul>
-    </div>
-
-    <div class="lead-card">
-      <h3>Request a callback</h3>
-      <div class="sub">Your GIFT City enquiry goes straight to our investment team.</div>
-      <form id="leadForm" data-interest="GIFT City products">
-        <div class="field">
-          <label for="lf-name">Full name</label>
-          <input id="lf-name" type="text" required placeholder="Your name">
-        </div>
-        <div class="field">
-          <label for="lf-email">Email</label>
-          <input id="lf-email" type="email" required placeholder="you@email.com">
-        </div>
-        <div class="field">
-          <label for="lf-mobile">Mobile</label>
-          <div class="mobile-group">
-            <select id="lf-cc" aria-label="Mobile country code"></select>
-            <input id="lf-mobile" type="tel" required pattern="[0-9]{6,14}" placeholder="Mobile number">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="lf-country">Country</label>
-            <select id="lf-country"></select>
-          </div>
-          <div class="field">
-            <label for="lf-pincode">Pincode / ZIP</label>
-            <input id="lf-pincode" type="text" required placeholder="Pincode / ZIP">
-          </div>
-        </div>
-        <button type="submit" class="submit-btn" id="lf-submit">Request a callback</button>
-        <p class="form-note">By submitting, you agree to be contacted by a myAlternates expert.</p>
-      </form>
-      <div class="form-success">
-        <div class="check">✓</div>
-        <h4 id="lf-ok-title">Request received</h4>
-        <p id="lf-ok-body">Thank you — a myAlternates investment expert will call you within one business day to discuss GIFT City options for you.</p>
-      </div>
-    </div>
-  </div>
-</section>
 
 <footer>
   <div class="wrap">
