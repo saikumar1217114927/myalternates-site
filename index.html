@@ -369,13 +369,6 @@
   .success-msg p{color:var(--muted); font-size:13.5px; line-height:1.55;}
   .enquiry-card.hide-form .form-body{display:none;}
 
-  /* Continue with Google */
-  .lf-google{margin-bottom:8px;}
-  .lf-google .lf-gbtn{display:flex; justify-content:center; min-height:40px;}
-  .lf-google .lf-gnote{background:rgba(30,111,92,0.10); border:1px solid rgba(30,111,92,0.3); border-radius:10px; padding:10px 14px; font-size:12.5px; color:var(--emerald,#1e6f5c); line-height:1.5;}
-  .lf-google .lf-glink{background:none; border:0; color:inherit; font-size:12px; cursor:pointer; text-decoration:underline; padding:0;}
-  .lf-google .lf-gor{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; margin:10px 0 4px;}
-  .lf-google .lf-gor::before, .lf-google .lf-gor::after{content:""; flex:1; height:1px; background:var(--line,#e6e1d3);}
   .field input[readonly]{background:#f3f1ea; color:#5b6270; cursor:not-allowed;}
 
   /* ---------- SCHEDULE CALL MODAL (post-submit, optional) ---------- */
@@ -962,7 +955,7 @@
       <div class="form-body">
         <h3>Talk to your investment expert</h3>
         <p class="lede">Investor or distributor — tell us which, and our expert will call you back within one business day.</p>
-        <button type="button" class="ma-login-toggle" id="maLoginToggle">Already sent us an enquiry? <span class="arrow">Log in with your email or mobile →</span></button>
+        <button type="button" class="ma-login-toggle" id="maLoginToggle">Already a user? <span class="arrow">Log in with your email or mobile →</span></button>
         <div class="ma-login-expand" id="maLoginExpand" hidden>
           <div class="ma-login-row">
             <input type="text" id="maLoginContact" placeholder="Email or mobile number" autocomplete="username">
@@ -1480,7 +1473,6 @@
   </div>
 </footer>
 
-<script src="assets/google-signin.js"></script>
 <script>
   // Scroll reveal
   const revealEls = document.querySelectorAll('.reveal');
@@ -1823,35 +1815,6 @@
   const successBody = document.getElementById('successBody');
 
   let leadRecord = null; // holds the submitted enquiry (+ its sheet row number), reused by the schedule popup
-
-  // ---------- Continue with Google (prefills name + verified email) ----------
-  (function wireGoogle(){
-    if(typeof window.maGoogleSignin !== 'function' || !form) return;
-    const nameEl = document.getElementById('name'), emailEl = document.getElementById('email');
-    const wrap = document.createElement('div');
-    wrap.className = 'lf-google';
-    wrap.innerHTML = '<div class="lf-gbtn"></div><div class="lf-gnote" style="display:none;"></div>' +
-      '<div class="lf-gor"><span>or enter your details</span></div>';
-    form.insertBefore(wrap, form.firstChild);
-    const note = wrap.querySelector('.lf-gnote');
-    window.maGoogleSignin({
-      mount: wrap.querySelector('.lf-gbtn'),
-      onProfile: function(pr){
-        window.__maGoogleCred = pr.credential;
-        if(pr.name){ nameEl.value = pr.name; nameEl.readOnly = true; }
-        emailEl.value = pr.email; emailEl.readOnly = true;
-        wrap.querySelector('.lf-gbtn').style.display = 'none';
-        note.style.display = '';
-        note.innerHTML = '✓ Signed in as <b></b> · <button type="button" class="lf-glink">use a different email</button>';
-        note.querySelector('b').textContent = pr.email;
-        note.querySelector('.lf-glink').onclick = function(){
-          window.__maGoogleCred = '';
-          nameEl.readOnly = false; emailEl.readOnly = false; emailEl.value = '';
-          note.style.display = 'none'; wrap.querySelector('.lf-gbtn').style.display = '';
-        };
-      }
-    });
-  })();
 
   // ---------- Existing-user login (skip the form, verify by OTP) ----------
   // Separate from maRenderKnown below — that one only fires automatically
@@ -2199,29 +2162,7 @@
       rowNumber: null
     };
 
-    // "Continue with Google" already proves the email — skip the OTP step and
-    // go straight through, exactly as before.
-    if (window.__maGoogleCred) {
-      leadRecord.googleCredential = window.__maGoogleCred;
-      btn.textContent = 'Sending…';
-      sendToLeadsSheet(leadRecord).then(function(result){
-        if(result && result.row) leadRecord.rowNumber = result.row;
-        if(result && result.leadId){
-          leadRecord.leadId = result.leadId;
-          try{ localStorage.setItem('maLead', JSON.stringify({
-            leadId: result.leadId, name: leadRecord.name, email: leadRecord.email,
-            mobile: leadRecord.mobile, mobileCountryCode: leadRecord.mobileCountryCode
-          })); } catch(e){}
-        }
-        if(result && result.sessionToken) maSaveSessionToken(result.sessionToken);
-        if(result && result.expert){ window.__maExpert = result.expert; renderExpertScene(); }
-      });
-      card.classList.add('hide-form');
-      openScheduleModal();
-      return;
-    }
-
-    // Everyone else verifies first — one code, sent to both email and SMS at
+    // Everyone verifies first — one code, sent to both email and SMS at
     // once (see requestLeadOtp/verifyLeadOtp on the backend) — the lead is
     // only created once that code is confirmed.
     btn.textContent = 'Sending code…';
