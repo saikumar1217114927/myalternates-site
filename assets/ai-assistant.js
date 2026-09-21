@@ -82,22 +82,27 @@
         'border:none; font-size:17px; font-weight:700; cursor:pointer; transition:background .15s ease;}' +
       '.ma-ai-send:hover{background:var(--gold-light);}' +
       '@media (max-width:600px){.ma-ai-bubble, .ma-ai-panel{right:14px; bottom:14px;}}' +
-      // Simple, ongoing attention-grabber: a tiny robot tucked directly
-      // behind the launcher (lower z-index, same spot — fully hidden at
-      // rest) peeks out to one side every so often, holds a moment, then
-      // ducks back out of sight. One continuous CSS loop, no JS timers —
-      // just hidden while the chat panel itself is open (see .hide below).
-      '.ma-ai-peekbot{position:fixed; right:40px; bottom:34px; z-index:69; font-size:23px; line-height:1;' +
-        'transform:translateX(0) scale(.5); opacity:0; pointer-events:none;' +
+      // Simple, ongoing attention-grabber: a little illustrated bot tucked
+      // directly behind the launcher (lower z-index, same spot — fully
+      // hidden at rest) peeks out every so often, holds a moment, then
+      // ducks back out of sight. One continuous CSS loop, no per-cycle DOM
+      // work — the peek direction (side vs. top) is randomized each lap by
+      // toggling the --peek-x/--peek-y custom properties on the
+      // 'animationiteration' event (see build()), not by juggling separate
+      // keyframe sets. Hidden (and paused) while the chat panel is open.
+      '.ma-ai-peekbot{position:fixed; right:40px; bottom:34px; z-index:69; width:34px; height:34px;' +
+        '--peek-x:-70px; --peek-y:0px; transform:translate(0,0) scale(.5); opacity:0; pointer-events:none;' +
         'animation:maAiPeekaboo 9s ease-in-out infinite; transition:opacity .18s ease;}' +
+      '.ma-ai-peekbot svg{width:100%; height:100%; display:block;}' +
       '.ma-ai-peekbot.hide{opacity:0 !important; animation-play-state:paused;}' +
-      // -70px clears the launcher's own 62px width (plus its pulsing ring)
-      // — anything smaller left the "peek" still hidden behind the ring.
+      // 70px clears the launcher's own 62px width (plus its pulsing ring) in
+      // either direction — anything smaller left the "peek" still hidden
+      // behind the ring.
       '@keyframes maAiPeekaboo{' +
-        '0%,68%{transform:translateX(0) scale(.5); opacity:0;}' +
+        '0%,68%{transform:translate(0,0) scale(.5); opacity:0;}' +
         '74%{opacity:1;}' +
-        '80%,90%{transform:translateX(-70px) scale(1); opacity:1;}' +
-        '96%,100%{transform:translateX(0) scale(.5); opacity:0;}' +
+        '80%,90%{transform:translate(var(--peek-x),var(--peek-y)) scale(1); opacity:1;}' +
+        '96%,100%{transform:translate(0,0) scale(.5); opacity:0;}' +
       '}' +
       '@media (max-width:600px){.ma-ai-peekbot{right:28px; bottom:22px;}}' +
       '@media (prefers-reduced-motion: reduce){.ma-ai-bubble::before{animation:none; display:none;}' +
@@ -132,7 +137,23 @@
     var peekbot = document.createElement('div');
     peekbot.className = 'ma-ai-peekbot';
     peekbot.setAttribute('aria-hidden', 'true');
-    peekbot.textContent = '🤖';
+    // A small illustrated bot (not a plain emoji) — rounded head, glowing
+    // eyes, a smile, in the site's own ink/gold palette rather than a
+    // generic cyan-on-white stock look.
+    peekbot.innerHTML =
+      '<svg viewBox="0 0 40 40" aria-hidden="true">' +
+      '<line x1="20" y1="2" x2="20" y2="6" stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round"/>' +
+      '<circle cx="20" cy="1.6" r="1.6" fill="var(--gold)"/>' +
+      '<rect x="5" y="11" width="3.5" height="6.5" rx="1.7" fill="#fff" stroke="var(--gold)" stroke-width="1"/>' +
+      '<rect x="31.5" y="11" width="3.5" height="6.5" rx="1.7" fill="#fff" stroke="var(--gold)" stroke-width="1"/>' +
+      '<rect x="8" y="6" width="24" height="17" rx="7.5" fill="#fff" stroke="var(--gold)" stroke-width="1.1"/>' +
+      '<rect x="11.5" y="9.5" width="17" height="10.5" rx="4.5" fill="var(--ink)"/>' +
+      '<circle cx="16.8" cy="14.8" r="1.9" fill="var(--gold-light)"/>' +
+      '<circle cx="23.2" cy="14.8" r="1.9" fill="var(--gold-light)"/>' +
+      '<path d="M17.8 17.6 Q20 19.4 22.2 17.6" stroke="var(--gold-light)" stroke-width="1.1" fill="none" stroke-linecap="round"/>' +
+      '<path d="M12 24 Q20 20.6 28 24 L29.6 35 Q20 39 10.4 35 Z" fill="#fff" stroke="var(--gold)" stroke-width="1.1"/>' +
+      '<path d="M11.6 29.5 Q20 32.2 28.4 29.5" stroke="var(--gold)" stroke-width="0.8" fill="none" opacity=".45"/>' +
+      '</svg>';
 
     document.body.appendChild(bubble);
     document.body.appendChild(panel);
@@ -166,6 +187,22 @@
 
     bubble.onclick = openPanel;
     panel.querySelector('.ma-ai-close').onclick = closePanel;
+
+    // Alternates the peekbot's hiding spot each lap — from the side, then
+    // from the top, picked fresh right as each 9s loop restarts (see the
+    // maAiPeekaboo keyframes, which read --peek-x/--peek-y) — instead of
+    // popping out from the exact same place every single time.
+    var PEEK_DIRS = [
+      { x: '-70px', y: '0px' },  // from the side
+      { x: '0px', y: '-70px' }   // from the top
+    ];
+    function randomizePeekDir() {
+      var d = PEEK_DIRS[Math.floor(Math.random() * PEEK_DIRS.length)];
+      peekbot.style.setProperty('--peek-x', d.x);
+      peekbot.style.setProperty('--peek-y', d.y);
+    }
+    randomizePeekDir();
+    peekbot.addEventListener('animationiteration', randomizePeekDir);
 
     function actuallyAsk(question) {
       var token = window.MASession && window.MASession.getToken && window.MASession.getToken();
