@@ -95,6 +95,16 @@
         'animation:maAiPeekaboo 9s ease-in-out infinite; transition:opacity .18s ease;}' +
       '.ma-ai-peekbot svg{width:100%; height:100%; display:block;}' +
       '.ma-ai-peekbot.hide{opacity:0 !important; animation-play-state:paused;}' +
+      // The speech bubble is a child of the same animated container, so it
+      // rides along with the bot (fades and moves with it) for free — no
+      // separate positioning logic needed for the side vs. top case.
+      '.ma-ai-peek-bubble{position:absolute; bottom:100%; left:50%; transform:translateX(-50%);' +
+        'margin-bottom:9px; white-space:nowrap; background:var(--ink);' +
+        'background-image:linear-gradient(135deg,#171B24,var(--ink)); color:var(--paper);' +
+        'font-family:inherit; font-size:12px; font-weight:700; padding:7px 12px; border-radius:10px;' +
+        'border:1px solid rgba(201,162,75,0.45); box-shadow:0 10px 24px -8px rgba(11,14,19,0.5);}' +
+      '.ma-ai-peek-bubble::after{content:\'\'; position:absolute; top:100%; left:50%; transform:translateX(-50%);' +
+        'width:0; height:0; border:5px solid transparent; border-top-color:var(--ink);}' +
       // 70px clears the launcher's own 62px width (plus its pulsing ring) in
       // either direction — anything smaller left the "peek" still hidden
       // behind the ring.
@@ -141,6 +151,7 @@
     // eyes, a smile, in the site's own ink/gold palette rather than a
     // generic cyan-on-white stock look.
     peekbot.innerHTML =
+      '<div class="ma-ai-peek-bubble" id="maAiPeekBubble"></div>' +
       '<svg viewBox="0 0 40 40" aria-hidden="true">' +
       '<line x1="20" y1="2" x2="20" y2="6" stroke="var(--gold)" stroke-width="1.4" stroke-linecap="round"/>' +
       '<circle cx="20" cy="1.6" r="1.6" fill="var(--gold)"/>' +
@@ -191,18 +202,23 @@
     // Alternates the peekbot's hiding spot each lap — from the side, then
     // from the top, picked fresh right as each 9s loop restarts (see the
     // maAiPeekaboo keyframes, which read --peek-x/--peek-y) — instead of
-    // popping out from the exact same place every single time.
+    // popping out from the exact same place every single time. The speech
+    // bubble (a child of the same animated container — see injectStyles)
+    // rides along automatically and gets a fresh line of copy each lap too.
     var PEEK_DIRS = [
       { x: '-70px', y: '0px' },  // from the side
       { x: '0px', y: '-70px' }   // from the top
     ];
-    function randomizePeekDir() {
+    var PEEK_LINES = ['Hey! I\'m here 👋', '👋 I\'m your AI, here!'];
+    var peekBubble = peekbot.querySelector('#maAiPeekBubble');
+    function randomizePeek() {
       var d = PEEK_DIRS[Math.floor(Math.random() * PEEK_DIRS.length)];
       peekbot.style.setProperty('--peek-x', d.x);
       peekbot.style.setProperty('--peek-y', d.y);
+      peekBubble.textContent = PEEK_LINES[Math.floor(Math.random() * PEEK_LINES.length)];
     }
-    randomizePeekDir();
-    peekbot.addEventListener('animationiteration', randomizePeekDir);
+    randomizePeek();
+    peekbot.addEventListener('animationiteration', randomizePeek);
 
     function actuallyAsk(question) {
       var token = window.MASession && window.MASession.getToken && window.MASession.getToken();
