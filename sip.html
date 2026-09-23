@@ -223,42 +223,9 @@
     </div>
 
     <div class="lead-card">
-      <h3>Request a callback</h3>
-      <div class="sub">Your enquiry goes straight to our investment team.</div>
-      <form id="leadForm" data-interest="Not sure yet — need guidance">
-        <div class="field">
-          <label for="lf-name">Full name</label>
-          <input id="lf-name" type="text" required placeholder="Your name">
-        </div>
-        <div class="field">
-          <label for="lf-email">Email</label>
-          <input id="lf-email" type="email" required placeholder="you@email.com">
-        </div>
-        <div class="field">
-          <label for="lf-mobile">Mobile</label>
-          <div class="mobile-group">
-            <select id="lf-cc" aria-label="Mobile country code"></select>
-            <input id="lf-mobile" type="tel" required pattern="[0-9]{6,14}" placeholder="Mobile number">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="lf-country">Country</label>
-            <select id="lf-country"></select>
-          </div>
-          <div class="field">
-            <label for="lf-pincode">Pincode / ZIP</label>
-            <input id="lf-pincode" type="text" required placeholder="Pincode / ZIP">
-          </div>
-        </div>
-        <button type="submit" class="submit-btn" id="lf-submit">Request a callback</button>
-        <p class="form-note">By submitting, you agree to be contacted by a myAlternates expert.</p>
-      </form>
-      <div class="form-success">
-        <div class="check">✓</div>
-        <h4 id="lf-ok-title">Request received</h4>
-        <p id="lf-ok-body">Thank you — a myAlternates investment expert will call you within one business day.</p>
-      </div>
+      <h3>Talk to an expert</h3>
+      <div class="sub">Register or log in — then pick a time that works for you.</div>
+      <button type="button" class="btn-gold" style="width:100%; text-align:center;" data-ma-talk="Not sure yet — need guidance">Talk to an expert →</button>
     </div>
   </div>
 </section>
@@ -422,8 +389,8 @@
   calc();
 })();
 </script>
-<script src="assets/google-signin.js"></script>
 <script src="assets/lead-form.js"></script>
+<script src="assets/session-gate.js"></script>
 
 <script src="assets/nav.js" defer></script>
 <script src="assets/nav-search.js" defer></script>
