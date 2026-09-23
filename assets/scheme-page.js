@@ -421,7 +421,7 @@
   function fundTermsSection(p) {
     if (!p.aifCategory) return '';
     var cards = [];
-    if (p.targetAmount != null) cards.push({ label: 'Fund target size', value: fmtAmount(p.targetAmount, p.currency), hero: true });
+    if (p.targetAmount != null) cards.push({ label: 'Fund target size', value: fmtAmount(p.targetAmount, p.currency) });
     if (p.fundStructure) cards.push({ label: 'Fund structure', value: p.fundStructure });
     cards.push({ label: 'Subscription status', value: p.closedForSubscription ? 'Closed' : 'Open' });
     if (p.assetStructure) cards.push({ label: 'Asset structure', value: p.assetStructure });
