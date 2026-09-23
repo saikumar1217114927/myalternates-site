@@ -61,7 +61,97 @@
       '.lf-otp .lr-sub{color:#5b6270;font-size:14px;line-height:1.55;margin-bottom:16px}' +
       '.lf-otp input.lf-otp-code{font-size:22px;letter-spacing:.35em;text-align:center;font-weight:700;padding:12px 14px;width:100%;border:1px solid #d8d2c2;border-radius:8px;box-sizing:border-box}' +
       '.lf-otp .lf-otp-err{color:#a3402f;font-size:13px;margin-top:8px;display:none}' +
-      '.lf-otp .lr-actions{margin-top:14px}';
+      '.lf-otp .lr-actions{margin-top:14px}' +
+      // The full-screen scheduler (buildSchedule/openSchedule below) was only
+      // ever opened via a page's own #leadForm/lead-card — always on a page
+      // that links assets/site.css, which carries all of its .sched-*/
+      // .date-*/.time-*/.mode-*/.ec-* rules. That stopped being true once
+      // session-gate.js's Talk-to-Expert/Discover flows started calling
+      // MASession.openSchedule() directly — including from index.html, which
+      // doesn't link site.css. Without these, the scheduler still opens
+      // (classList.add('show') + overflow:hidden on <html>/<body>) but
+      // renders with none of its layout/positioning CSS — invisible or
+      // collapsed to nothing, with scrolling still locked and no visible
+      // way to close it. Self-injecting the same rules here (verbatim from
+      // site.css) fixes it everywhere, the same way this file's other
+      // shared widgets already do.
+      '.sched-page{position:fixed;inset:0;z-index:2000;background:var(--paper,#F7F4ED);display:none;overflow-x:hidden;overflow-y:auto;padding:44px 28px 60px}' +
+      '.sched-page.show{display:block;animation:sched-in .25s ease}' +
+      '@keyframes sched-in{from{opacity:0}to{opacity:1}}' +
+      '.sched-shell{max-width:1240px;margin:0 auto;position:relative}' +
+      '.sched-close{position:fixed;top:18px;right:20px;width:36px;height:36px;z-index:5;border-radius:50%;border:1.5px solid #ded6c2;background:#fff;color:var(--muted,#6C7178);font-size:15px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease,border-color .15s ease}' +
+      '.sched-close:hover{background:var(--paper-2,#EFEADD);color:var(--ink-text,#181B20);border-color:var(--gold,#C9A24B)}' +
+      '.sched-head{margin-bottom:32px;max-width:640px}' +
+      '.sched-head h2{font-family:\'Fraunces\',Georgia,serif;font-weight:500;font-size:clamp(26px,3.2vw,38px);line-height:1.15;color:var(--ink-text,#181B20);margin:10px 0 12px}' +
+      '.sched-head p{font-size:15px;line-height:1.65;color:var(--muted,#6C7178)}' +
+      '.sched-grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:28px;align-items:stretch}' +
+      '.sched-side,.sched-main{min-width:0}' +
+      '.sched-side{background:var(--paper-2,#EFEADD);border:1px solid #e6dfcd;border-radius:12px;padding:24px 22px;display:flex;flex-direction:column}' +
+      '.expert-call{margin-top:auto;padding-top:22px}' +
+      '.ec-frame{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:16/10;max-height:200px;background:var(--ink,#0B0E13);box-shadow:0 18px 40px -18px rgba(11,14,19,0.5)}' +
+      '.ec-svg{position:absolute;inset:0;width:100%;height:100%}' +
+      '.ec-person{animation:ecBob 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:bottom}' +
+      '@keyframes ecBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-1deg)}}' +
+      '.ec-talk circle{transform-box:fill-box;transform-origin:center;animation:ecTalk 1.1s ease-in-out infinite}' +
+      '.ec-talk circle:nth-child(2){animation-delay:.16s}.ec-talk circle:nth-child(3){animation-delay:.32s}' +
+      '@keyframes ecTalk{0%,100%{opacity:.2;transform:translateY(2px)}50%{opacity:1;transform:translateY(-2px)}}' +
+      '.ec-b{transform-box:fill-box;transform-origin:bottom;animation:ecGrow 5s ease-in-out infinite}' +
+      '.ec-b2{animation-delay:.12s}.ec-b3{animation-delay:.24s}.ec-b4{animation-delay:.36s}.ec-b5{animation-delay:.48s}' +
+      '@keyframes ecGrow{0%{transform:scaleY(.08)}26%,78%{transform:scaleY(1)}100%{transform:scaleY(.08)}}' +
+      '.ec-line{animation:ecDraw 5s ease-in-out infinite}' +
+      '@keyframes ecDraw{0%{stroke-dashoffset:150}32%,80%{stroke-dashoffset:0}100%{stroke-dashoffset:150}}' +
+      '.ec-live{position:absolute;top:10px;left:10px;z-index:2;display:flex;align-items:center;gap:6px;background:rgba(11,14,19,0.72);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:4px 9px;border-radius:999px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}' +
+      '.ec-live i{width:7px;height:7px;border-radius:50%;background:#2ecc71;animation:ecPulse 1.4s ease-in-out infinite}' +
+      '@keyframes ecPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(46,204,113,0.6)}50%{opacity:.5;box-shadow:0 0 0 6px rgba(46,204,113,0)}}' +
+      '.ec-bars{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:2;display:flex;align-items:flex-end;gap:3px;height:20px;background:rgba(11,14,19,0.5);padding:5px 9px;border-radius:999px;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' +
+      '.ec-bars span{width:3px;height:100%;border-radius:2px;background:var(--gold-light,#E9D19E);transform-origin:bottom;animation:ecBar 1s ease-in-out infinite}' +
+      '.ec-bars span:nth-child(1){animation-delay:-.1s}.ec-bars span:nth-child(2){animation-delay:-.5s}.ec-bars span:nth-child(3){animation-delay:-.2s}.ec-bars span:nth-child(4){animation-delay:-.7s}.ec-bars span:nth-child(5){animation-delay:-.35s}' +
+      '@keyframes ecBar{0%,100%{transform:scaleY(.28)}50%{transform:scaleY(1)}}' +
+      '.ec-cap{margin-top:12px;font-size:12px;line-height:1.55;color:var(--muted,#6C7178)}' +
+      '.sched-side h4{font-size:11.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted,#6C7178);margin-bottom:14px}' +
+      '.sched-greet{font-size:13px;color:var(--muted,#6C7178);margin-bottom:16px}' +
+      '.sched-greet strong{font-family:\'Fraunces\',Georgia,serif;font-weight:600;font-size:19px;color:var(--ink-text,#181B20);display:block;margin-top:2px}' +
+      '.sched-lock{display:flex;flex-direction:column;gap:3px;padding:10px 0;border-top:1px solid #e0d8c4}' +
+      '.sched-lock span{font-size:10.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted,#6C7178)}' +
+      '.sched-lock strong{font-size:13.5px;font-weight:600;color:var(--ink-text,#181B20);word-break:break-word}' +
+      '.sched-block{margin-bottom:24px}' +
+      '.sched-block-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted,#6C7178);margin-bottom:10px}' +
+      '.date-row{display:flex;align-items:center;gap:8px}' +
+      '.date-track{display:flex;gap:8px;flex:1;min-width:0}' +
+      '.date-chip{flex:1 1 0;min-width:0;text-align:center;cursor:pointer;border:1.5px solid #ded6c2;background:#fff;border-radius:10px;padding:9px 4px;font-family:inherit;animation:dtChipIn .22s ease both;transition:border-color .15s ease,background .15s ease}' +
+      '@keyframes dtChipIn{from{opacity:0;transform:translateY(4px)}}' +
+      '.date-chip .dow{display:block;font-size:10.5px;color:var(--muted,#6C7178);font-weight:600;margin-bottom:2px}' +
+      '.date-chip .dnum{display:block;font-size:13.5px;color:var(--ink-text,#181B20);font-weight:700}' +
+      '.date-chip:hover{border-color:var(--gold-light,#E9D19E)}' +
+      '.date-chip.active{border-color:var(--gold,#C9A24B);background:rgba(201,162,75,0.14)}' +
+      '.date-nav{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:1.5px solid #ded6c2;background:#fff;color:var(--muted,#6C7178);cursor:pointer;font-size:14px;font-family:inherit}' +
+      '.date-nav:hover{border-color:var(--gold,#C9A24B);color:var(--ink-text,#181B20)}' +
+      '.date-nav:disabled{opacity:.35;cursor:default}' +
+      '.time-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}' +
+      '.time-slot{min-width:0;text-align:center;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;border:1.5px solid #ded6c2;background:#fff;color:var(--ink-text,#181B20);border-radius:9px;padding:10px 4px;transition:border-color .15s ease,background .15s ease,color .15s ease}' +
+      '.time-slot:hover{border-color:var(--gold-light,#E9D19E)}' +
+      '.time-slot.active{border-color:var(--gold,#C9A24B);background:var(--gold,#C9A24B);color:var(--ink,#0B0E13)}' +
+      '.mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}' +
+      '.mode-card{min-width:0;border:1.5px solid #ded6c2;background:#fff;border-radius:10px;padding:14px 8px;text-align:center;cursor:pointer;font-family:inherit;transition:border-color .15s ease,background .15s ease}' +
+      '.mode-card span{font-size:12.5px;font-weight:600;color:var(--ink-text,#181B20)}' +
+      '.mode-card:hover{border-color:var(--gold-light,#E9D19E)}' +
+      '.mode-card.active{border-color:var(--gold,#C9A24B);background:rgba(201,162,75,0.12)}' +
+      '.sched-note{width:100%;resize:vertical;min-height:70px;border:1.5px solid #ded6c2;background:#fff;border-radius:10px;padding:11px 13px;font-size:13.5px;font-family:inherit;color:var(--ink-text,#181B20)}' +
+      '.sched-note:focus{outline:none;border-color:var(--gold,#C9A24B)}' +
+      '.sched-actions{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin-top:8px;padding-top:22px;border-top:1px solid #e0d8c4}' +
+      '.sched-skip{background:none;border:none;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--muted,#6C7178);padding:8px 6px}' +
+      '.sched-skip:hover{color:var(--ink-text,#181B20)}' +
+      '.sched-go{background:var(--ink,#0B0E13);color:var(--paper,#F7F4ED);border:none;cursor:pointer;font-family:inherit;font-size:14px;font-weight:700;letter-spacing:0.02em;border-radius:4px;padding:14px 30px;transition:background .2s ease}' +
+      '.sched-go:hover{background:var(--ink-3,#1B212B)}' +
+      '.sched-go:disabled{opacity:.6;cursor:default}' +
+      '@media (max-width:760px){' +
+        '.sched-page{padding:32px 16px 48px}' +
+        '.sched-grid{grid-template-columns:minmax(0,1fr);gap:22px}' +
+        '.time-grid{grid-template-columns:repeat(3,minmax(0,1fr))}' +
+        '.sched-close{top:12px;right:12px}' +
+        '.sched-actions{flex-direction:column-reverse;align-items:stretch;gap:10px}' +
+        '.sched-go{text-align:center}' +
+      '}';
     document.head.appendChild(s);
   })();
 
