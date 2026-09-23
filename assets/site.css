@@ -647,6 +647,13 @@ nav.links a:hover::after{width:100%;}
 .ft-line b{font-size:14px; font-weight:600; color:var(--ink-text); font-variant-numeric:tabular-nums;}
 @media (max-width:900px){
   .ft-meta{gap:20px; width:100%; padding-top:14px; border-top:1px dashed #F0EBDE;}
+  /* .ft-meta-col's 140px min-width (fine with room to spread across a
+     tablet-width row) stops shrinking once the row goes full-width below
+     900px — two of them plus the 20px gap (300px) routinely exceeds the
+     card's actual inner width on a phone, pushing the second column's
+     text outside the card. Let both columns share whatever width is
+     actually available instead of demanding 140px each. */
+  .ft-meta-col{min-width:0; flex:1 1 0;}
 }
 @media (max-width:900px){
   /* Sticky heading/filters cost too much of a small viewport's height —
@@ -661,7 +668,18 @@ nav.links a:hover::after{width:100%;}
   .scheme-row{gap:14px; padding:18px 20px;}
   .scheme-row.featured{padding-left:44px;}
   .scheme-row.featured::before{width:28px; font-size:9px;}
-  .sr-rets{gap:14px; width:100%; justify-content:space-between; padding-top:14px; border-top:1px dashed #F0EBDE;}
+  /* .sr-ret's 74px min-width (fine spread across a wide row) is what a
+     flex row with 4 of them + 3×14px gaps (338px) needs — more than a
+     phone-width card has, which pushed the last one or two return boxes
+     outside the card. A 4-column grid has no minimum to violate: it
+     always divides whatever width the card actually has. */
+  .sr-rets{
+    display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;
+    width:100%; padding-top:14px; border-top:1px dashed #F0EBDE;
+  }
+  .sr-ret{min-width:0; padding:10px 4px 9px;}
+  .sr-ret b{font-size:13px;}
+  .sr-ret span{font-size:8.5px;}
   .sr-actions{margin-left:0; padding-left:0; padding-top:14px; width:100%;}
   .sr-actions .sc-discover{width:100%; text-align:center;}
 }
