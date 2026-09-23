@@ -957,6 +957,21 @@ nav.links a:hover::after{width:100%;}
   .scm-fee-table th, .scm-fee-table td{padding:12px 14px;}
 }
 
+/* Investor eligibility (Cat I/II) — the same emerald/red pairing .scm-flag's
+   on/off states and the returns tables' pos/neg values already use for
+   "allowed" vs "not allowed" elsewhere on this page. */
+.scm-eligibility-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+@media (max-width:700px){ .scm-eligibility-grid{grid-template-columns:1fr;} }
+.scm-eligibility-card{border-radius:12px; padding:20px 22px; border:1px solid;}
+.scm-eligibility-card.can{background:rgba(30,111,92,0.05); border-color:rgba(30,111,92,0.28);}
+.scm-eligibility-card.cannot{background:rgba(181,80,46,0.05); border-color:rgba(181,80,46,0.25);}
+.scm-eligibility-label{
+  display:block; font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:10px;
+}
+.scm-eligibility-card.can .scm-eligibility-label{color:var(--emerald);}
+.scm-eligibility-card.cannot .scm-eligibility-label{color:#B5502E;}
+.scm-eligibility-card p{font-size:14px; line-height:1.7; color:var(--ink-text); margin:0;}
+
 /* Portfolio characteristics — a dark stat panel (the hero/enquiry-card's own
    black-and-gold treatment, not another white card on the page's off-white
    background) so this reads as the premium, headline moment a fact-sheet's

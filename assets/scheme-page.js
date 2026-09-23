@@ -564,6 +564,19 @@
       '</div></div>';
   }
 
+  // Cat I/II only (see publicSchemeView's whoCanInvest/whoCannotInvest) —
+  // the same green/red-accented language .scm-flag's on/off states and the
+  // returns tables' pos/neg colours already use elsewhere on this page, so
+  // "allowed" vs "not allowed" reads the same way everywhere rather than
+  // introducing a new colour pairing.
+  function investorEligibilitySection(p) {
+    if (!p.whoCanInvest && !p.whoCannotInvest) return '';
+    return '<div class="scm-section"><h2>Investor eligibility</h2><div class="scm-eligibility-grid">' +
+      (p.whoCanInvest ? '<div class="scm-eligibility-card can"><span class="scm-eligibility-label">✓ Can invest</span><p>' + esc(p.whoCanInvest) + '</p></div>' : '') +
+      (p.whoCannotInvest ? '<div class="scm-eligibility-card cannot"><span class="scm-eligibility-label">✕ Cannot invest</span><p>' + esc(p.whoCannotInvest) + '</p></div>' : '') +
+      '</div></div>';
+  }
+
   // Exit load comes back as "Exit Load: 1 Year: 1.00%, 2 Year: 0.00%, 3 Year:
   // 0.00%" — pull out each year's rate for its own card.
   function parseExitLoad(raw) {
@@ -681,6 +694,7 @@
       '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
       portfolioCharacteristicsSection(s) +
       feeStructureSection(p) +
+      investorEligibilitySection(p) +
       exitLoadSection(p) +
       flagsSection(p) +
       fundHouseSection(s) +
