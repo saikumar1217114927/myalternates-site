@@ -145,28 +145,86 @@ nav.links a:hover::after{width:100%;}
 }
 .nav-profile-btn svg{width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
 .nav-profile-btn:hover{background:var(--gold-light); border-color:var(--gold-light);}
-/* account.html's page-level wrapper — the card itself reuses .ma-gate.
-   ma-gate-full (self-injected by session-gate.js) for both the logged-out
-   gate and the logged-in details, so the two states look like one
-   continuous card rather than two different components. */
-.acct-wrap{max-width:440px; margin:0 auto;}
-.npp-label{font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted-light); margin-bottom:8px;}
-.npp-section{padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid var(--line);}
-.npp-section:last-of-type{border-bottom:0; margin-bottom:10px; padding-bottom:0;}
-.npp-name{font-family:'Fraunces', Georgia, serif; font-size:15px; color:var(--paper); margin-bottom:4px;}
-.npp-row{font-size:12.5px; color:var(--muted-light); line-height:1.6; word-break:break-word;}
-.npp-expert-row{display:flex; align-items:center; gap:12px;}
-.npp-avatar{width:44px; height:44px; border-radius:50%; object-fit:cover; flex:none;}
-.npp-avatar-fallback{
-  width:44px; height:44px; border-radius:50%; background:var(--ink-2); color:var(--gold-light);
-  font-weight:700; font-size:16px; display:flex; align-items:center; justify-content:center; flex:none;
+/* ---------- ACCOUNT PAGE (account.html) ---------- */
+.acct-wrap{max-width:780px; margin:0 auto;}
+.acct-card{
+  background:var(--ink); border:1px solid var(--line); border-radius:20px;
+  padding:46px 50px; box-shadow:0 30px 70px -20px rgba(0,0,0,0.4);
 }
-.npp-signout{
-  width:100%; background:none; border:1px solid var(--line); color:var(--muted-light);
-  font-family:inherit; font-size:12.5px; font-weight:600; padding:9px; border-radius:6px; cursor:pointer;
+.acct-card .section-tag{color:var(--gold-light); margin-bottom:10px;}
+.acct-head{
+  display:flex; align-items:center; gap:22px;
+  margin-bottom:38px; padding-bottom:34px; border-bottom:1px solid var(--line);
+}
+.acct-avatar{
+  width:76px; height:76px; border-radius:50%; flex:none;
+  background:linear-gradient(135deg, var(--gold), var(--gold-light)); color:var(--ink);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Fraunces', Georgia, serif; font-weight:600; font-size:30px;
+}
+.acct-greet{
+  font-family:'Fraunces', Georgia, serif; font-weight:500;
+  font-size:clamp(26px, 3.4vw, 34px); line-height:1.15; color:var(--paper);
+}
+.acct-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px 48px;}
+.acct-grid.single{grid-template-columns:1fr; max-width:420px;}
+.acct-section-title{margin-bottom:4px;}
+.acct-row{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  padding:18px 0; border-bottom:1px solid var(--line);
+}
+.acct-row:last-of-type{border-bottom:0;}
+.acct-row.editing{display:block; padding-bottom:22px;}
+.acct-row-label{font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted-light); margin-bottom:7px;}
+.acct-row-value{font-size:18px; color:var(--paper); font-weight:500; line-height:1.4; word-break:break-word;}
+.acct-edit{
+  flex:none; background:none; border:1px solid var(--line); color:var(--muted-light);
+  font-family:inherit; font-size:13px; font-weight:600; padding:9px 18px; border-radius:8px; cursor:pointer;
   transition:border-color .18s ease, color .18s ease;
 }
-.npp-signout:hover{border-color:var(--gold); color:var(--gold-light);}
+.acct-edit:hover{border-color:var(--gold); color:var(--gold-light);}
+.acct-expert-row{display:flex; align-items:center; gap:16px;}
+.acct-expert-avatar{width:62px; height:62px; border-radius:50%; object-fit:cover; flex:none;}
+.acct-expert-avatar-fallback{
+  width:62px; height:62px; border-radius:50%; background:var(--ink-2); color:var(--gold-light);
+  font-family:'Fraunces', Georgia, serif; font-weight:600; font-size:22px;
+  display:flex; align-items:center; justify-content:center; flex:none;
+}
+.acct-expert-name{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:19px; color:var(--paper); margin-bottom:5px;}
+.acct-expert-row .acct-row-value + .acct-row-value{margin-top:2px;}
+.acct-expert-contact{font-size:14px; color:var(--muted-light); line-height:1.7;}
+.acct-signout{
+  margin-top:38px; width:100%; background:none; border:1px solid var(--line); color:var(--muted-light);
+  font-family:inherit; font-size:14.5px; font-weight:600; padding:15px; border-radius:10px; cursor:pointer;
+  transition:border-color .18s ease, color .18s ease;
+}
+.acct-signout:hover{border-color:var(--gold); color:var(--gold-light);}
+
+/* ---- account.html: edit-in-place email/mobile form + OTP step ---- */
+.acct-edit-row{display:flex; flex-direction:column; gap:14px; width:100%; padding-top:2px;}
+.acct-edit-inputs{display:flex; gap:10px;}
+.acct-cc{flex:0 0 122px;}
+.acct-edit-row input, .acct-edit-row select{
+  font-size:15.5px; padding:13px 15px; border:1px solid var(--line); border-radius:9px;
+  font-family:inherit; color:var(--paper); background:var(--ink-2); box-sizing:border-box;
+}
+.acct-edit-row input{flex:1; min-width:0;}
+.acct-edit-row input:focus, .acct-edit-row select:focus{outline:none; border-color:var(--gold);}
+.acct-cc-warn{
+  color:var(--gold-light); font-size:13.5px; line-height:1.55;
+  background:rgba(201,162,75,0.12); border:1px solid rgba(201,162,75,0.3); border-radius:9px; padding:11px 14px;
+}
+.acct-edit-err{color:#ff9376; font-size:13.5px; display:none;}
+.acct-edit-sent{color:var(--emerald-light); font-size:14.5px;}
+.acct-edit-actions{display:flex; gap:16px; align-items:center; flex-wrap:wrap;}
+.acct-edit-actions .btn-gold{padding:12px 24px; font-size:14.5px;}
+.acct-edit-actions .ma-gate-link{margin:0; font-size:13.5px;}
+@media (max-width:680px){
+  .acct-card{padding:36px 26px;}
+  .acct-grid{grid-template-columns:1fr; gap:8px;}
+  .acct-edit-inputs{flex-direction:column;}
+  .acct-cc{flex:none; width:100%;}
+}
 
 .burger{display:none; background:none; border:none; color:var(--paper); font-size:24px; cursor:pointer;}
 

@@ -102,26 +102,7 @@
         'opacity:0; visibility:hidden; transform:translateY(4px); transition:opacity .15s ease, transform .15s ease;' +
         'pointer-events:none; z-index:5;}' +
       '.mmr-add-wrap:hover .mmr-tip, .mmr-add-wrap:focus-within .mmr-tip{opacity:1; visibility:visible; transform:translateY(0);}' +
-      '.mmr-added{font-size:12.5px; font-weight:600; color:var(--emerald-light); white-space:nowrap;}' +
-      '.npp-crow{display:flex; align-items:center; gap:8px; margin-top:2px;}' +
-      '.npp-crow .npp-row{flex:1; min-width:0; overflow-wrap:anywhere; margin:0;}' +
-      '.npp-edit{background:none; border:0; color:var(--muted-light); font-size:11.5px; cursor:pointer;' +
-        'text-decoration:underline; flex:none; padding:0;}' +
-      '.npp-edit:hover{color:var(--gold-light);}' +
-      '.npp-cedit{display:flex; flex-direction:column; gap:8px; width:100%; padding:2px 0 4px;}' +
-      '.npp-cedit-row{display:flex; gap:8px;}' +
-      '.npp-cedit input, .npp-cedit select{font-size:13px; padding:8px 9px; border:1px solid var(--line);' +
-        'border-radius:6px; font-family:inherit; color:var(--paper); background:var(--ink-2); box-sizing:border-box;}' +
-      '.npp-cedit input{flex:1; min-width:0;}' +
-      '.npp-cedit select{flex:none; width:88px;}' +
-      '.npp-cedit input:focus, .npp-cedit select:focus{outline:none; border-color:var(--gold);}' +
-      '.npp-cc-warn{color:var(--gold-light); font-size:11px; background:rgba(201,162,75,0.12);' +
-        'border:1px solid rgba(201,162,75,0.3); border-radius:6px; padding:6px 8px; line-height:1.4;}' +
-      '.npp-cedit-err{color:#ff9376; font-size:12px; display:none;}' +
-      '.npp-cedit-sent{color:var(--emerald-light); font-size:11.5px;}' +
-      '.npp-cedit-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}' +
-      '.npp-cedit-actions .btn-gold{padding:7px 14px; font-size:12.5px;}' +
-      '.npp-cedit-actions .ma-gate-link{margin:0; font-size:11.5px;}';
+      '.mmr-added{font-size:12.5px; font-weight:600; color:var(--emerald-light); white-space:nowrap;}';
     document.head.appendChild(style);
   })();
 
@@ -598,11 +579,11 @@
 
   // ---- account.html: the visitor's own details, as a full page ----
   // Used to be a small nav dropdown — moved to its own page because the
-  // contact-edit + OTP flow below never fit that panel comfortably. Reuses
-  // the same .ma-gate.ma-gate-full card the login/register gate renders, so
-  // a visitor who isn't logged in yet sees that gate right here instead of
-  // a separate empty state, and lands straight on their details the moment
-  // they verify.
+  // contact-edit + OTP flow below never fit that panel comfortably (and
+  // deserved bigger type than a 280px popup allowed). A visitor who isn't
+  // logged in yet sees the same .ma-gate.ma-gate-full login/register card
+  // used site-wide right here instead of a separate empty state, and lands
+  // straight on the full-size .acct-card the moment they verify.
   window.maRenderAccountPage = function (container) {
     var token = window.MASession && window.MASession.getToken();
     if (!token) { renderLoggedOut(container); return; }
@@ -626,29 +607,36 @@
 
   function renderAccountCard(container, sess, token) {
     var expert = sess.expert;
+    var firstName = (sess.name || '').trim().split(/\s+/)[0];
+    var initial = esc((firstName || '?').charAt(0).toUpperCase());
     container.innerHTML =
-      '<div class="ma-gate ma-gate-full">' +
-      '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
-      '<h3>' + esc(sess.name ? 'Hi, ' + sess.name.trim().split(/\s+/)[0] : 'Your account') + '</h3>' +
-      '<div class="npp-section" style="text-align:left;">' +
-      '<div class="npp-label">Your details</div>' +
+      '<div class="acct-card">' +
+      '<div class="acct-head">' +
+      '<div class="acct-avatar">' + initial + '</div>' +
+      '<div><div class="section-tag">Your account</div>' +
+      '<div class="acct-greet">' + esc(firstName ? 'Hi, ' + firstName : 'Welcome back') + '</div></div>' +
+      '</div>' +
+      '<div class="acct-grid' + (expert ? '' : ' single') + '">' +
+      '<div class="acct-col">' +
+      '<div class="section-tag acct-section-title">Your details</div>' +
       contactRowHtml('email', sess.email) +
       contactRowHtml('mobile', (sess.mobileCountryCode ? sess.mobileCountryCode + ' ' : '') + (sess.mobile || '')) +
       '</div>' +
       (expert ? (
-        '<div class="npp-section npp-expert" style="text-align:left;">' +
-        '<div class="npp-label">Your expert</div>' +
-        '<div class="npp-expert-row">' +
+        '<div class="acct-col">' +
+        '<div class="section-tag acct-section-title">Your expert</div>' +
+        '<div class="acct-expert-row">' +
         (expert.photo
-          ? '<img class="npp-avatar" src="' + esc(expert.photo) + '" alt="">'
-          : '<div class="npp-avatar-fallback">' + esc((expert.name || '?').charAt(0)) + '</div>') +
+          ? '<img class="acct-expert-avatar" src="' + esc(expert.photo) + '" alt="">'
+          : '<div class="acct-expert-avatar-fallback">' + esc((expert.name || '?').charAt(0)) + '</div>') +
         '<div>' +
-        '<div class="npp-name">' + esc(expert.name || '') + '</div>' +
-        (expert.email ? '<div class="npp-row">' + esc(expert.email) + '</div>' : '') +
-        (expert.mobile ? '<div class="npp-row">' + esc(expert.mobile) + '</div>' : '') +
+        '<div class="acct-expert-name">' + esc(expert.name || '') + '</div>' +
+        (expert.email ? '<div class="acct-expert-contact">' + esc(expert.email) + '</div>' : '') +
+        (expert.mobile ? '<div class="acct-expert-contact">' + esc(expert.mobile) + '</div>' : '') +
         '</div></div></div>'
       ) : '') +
-      '<button type="button" class="npp-signout" data-signout>Sign out</button>' +
+      '</div>' +
+      '<button type="button" class="acct-signout" data-signout>Sign out</button>' +
       '</div>';
     container.querySelector('[data-signout]').onclick = function () {
       window.MASession.clearToken();
@@ -666,9 +654,10 @@
   // the NEW mobile number is the same one the registration form itself
   // uses (countryOptionsHtml/dialCodeOptionsHtml's sibling here).
   function contactRowHtml(field, value) {
-    return '<div class="npp-crow" data-crow="' + field + '">' +
-      '<div class="npp-row">' + esc(value || '—') + '</div>' +
-      '<button type="button" class="npp-edit" data-cedit="' + field + '">Edit</button></div>';
+    return '<div class="acct-row" data-crow="' + field + '">' +
+      '<div><div class="acct-row-label">' + (field === 'email' ? 'Email' : 'Mobile') + '</div>' +
+      '<div class="acct-row-value">' + esc(value || '—') + '</div></div>' +
+      '<button type="button" class="acct-edit" data-cedit="' + field + '">Edit</button></div>';
   }
 
   function wireContactEdit(container, sess, token) {
@@ -692,18 +681,20 @@
   function openEditRow(container, field, sess, token) {
     var row = rowEl(container, field);
     var isEmail = field === 'email';
-    row.innerHTML = '<div class="npp-cedit">' +
-      '<div class="npp-cedit-row">' +
-      (isEmail ? '' : '<select class="npp-cc">' + dialCodeOptions(sess.mobileCountryCode || '+91') + '</select>') +
-      '<input type="' + (isEmail ? 'email' : 'tel') + '" class="npp-cnew" placeholder="' + (isEmail ? 'New email address' : 'New mobile number') + '"></div>' +
-      (isEmail ? '' : '<div class="npp-cc-warn" data-cc-warn hidden>Your mobile on file has an international code, so we can’t SMS a code to verify this change — it’ll be sent to your email instead.</div>') +
-      '<div class="npp-cedit-err"></div>' +
-      '<div class="npp-cedit-actions"><button type="button" class="btn-gold" data-csend>Send code</button>' +
+    row.classList.add('editing');
+    row.innerHTML = '<div class="acct-row-label">' + (isEmail ? 'Email' : 'Mobile') + '</div>' +
+      '<div class="acct-edit-row">' +
+      '<div class="acct-edit-inputs">' +
+      (isEmail ? '' : '<select class="acct-cc">' + dialCodeOptions(sess.mobileCountryCode || '+91') + '</select>') +
+      '<input type="' + (isEmail ? 'email' : 'tel') + '" class="acct-new-val" placeholder="' + (isEmail ? 'New email address' : 'New mobile number') + '"></div>' +
+      (isEmail ? '' : '<div class="acct-cc-warn" data-cc-warn hidden>Your mobile on file has an international code, so we can’t SMS a code to verify this change — it’ll be sent to your email instead.</div>') +
+      '<div class="acct-edit-err"></div>' +
+      '<div class="acct-edit-actions"><button type="button" class="btn-gold" data-csend>Send code</button>' +
       '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
 
-    var input = row.querySelector('.npp-cnew');
-    var errEl = row.querySelector('.npp-cedit-err');
-    var ccSel = row.querySelector('.npp-cc');
+    var input = row.querySelector('.acct-new-val');
+    var errEl = row.querySelector('.acct-edit-err');
+    var ccSel = row.querySelector('.acct-cc');
     input.focus();
     var warnEl = row.querySelector('[data-cc-warn]');
     if (warnEl) warnEl.hidden = (String(sess.mobileCountryCode || '+91').replace(/\D+/g, '') === '91');
@@ -728,16 +719,17 @@
 
   function showOtpStep(container, field, val, newMobileCc, sentTo, sess, token) {
     var row = rowEl(container, field);
-    row.innerHTML = '<div class="npp-cedit">' +
-      '<div class="npp-cedit-sent">Code sent to ' + esc(sentTo || 'your account') + '.</div>' +
-      '<input type="text" class="npp-cnew" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code">' +
-      '<div class="npp-cedit-err"></div>' +
-      '<div class="npp-cedit-actions"><button type="button" class="btn-gold" data-cverify>Verify &amp; save</button>' +
+    row.classList.add('editing');
+    row.innerHTML = '<div class="acct-edit-row">' +
+      '<div class="acct-edit-sent">Code sent to ' + esc(sentTo || 'your account') + '.</div>' +
+      '<input type="text" class="acct-new-val" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code">' +
+      '<div class="acct-edit-err"></div>' +
+      '<div class="acct-edit-actions"><button type="button" class="btn-gold" data-cverify>Verify &amp; save</button>' +
       '<button type="button" class="ma-gate-link" data-cresend>Resend</button>' +
       '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
 
-    var codeInput = row.querySelector('.npp-cnew');
-    var errEl = row.querySelector('.npp-cedit-err');
+    var codeInput = row.querySelector('.acct-new-val');
+    var errEl = row.querySelector('.acct-edit-err');
     codeInput.focus();
     codeInput.addEventListener('input', function () { codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6); });
     function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
