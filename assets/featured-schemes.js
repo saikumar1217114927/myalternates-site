@@ -526,6 +526,34 @@
     }).catch(function () { expandedCategories[cat] = false; }); // allow a retry on next tab click
   }
 
+  // Picking a different sort has the exact same blind spot expandSearch's
+  // own comment describes: allSchemes only ever holds the top ~50-100 by
+  // whatever criterion loaded it, so switching to "3 Year Return" can leave
+  // the real 3Y leader sitting outside that window with nothing to pull it
+  // in — client-side re-sorting alone can't find a scheme that was never
+  // fetched. Fetches a real top-N for the newly active metric and merges it
+  // in, same pattern as expandSearch/expandCategory. Cached per (key,dir)
+  // pair for the life of the page — once fetched, re-selecting the same
+  // sort just re-applies the already-merged pool.
+  var sortedOnce = {};
+  function expandSort(key, dir) {
+    var sig = key + ':' + dir;
+    if (sortedOnce[sig]) return;
+    sortedOnce[sig] = true;
+    var url = API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) +
+      '&sortKey=' + encodeURIComponent(key) + '&sortDir=' + encodeURIComponent(dir) + '&limit=100';
+    fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d || !d.ok) return;
+      var known = {};
+      allSchemes.forEach(function (s) { known[s.planId] = true; });
+      var added = false;
+      (d.schemes || []).forEach(function (s) {
+        if (!known[s.planId]) { allSchemes.push(s); known[s.planId] = true; added = true; }
+      });
+      if (added && state.sortKey === key && state.sortDir === dir) applyFilters();
+    }).catch(function () { sortedOnce[sig] = false; }); // allow a retry on next selection
+  }
+
   // Swaps in the right filter panel for the current tab (standard vs.
   // fund-terms) and wires whichever one just went in. Called on load and
   // again on every AIF category tab click.
@@ -543,7 +571,10 @@
 
   function wireStandardFilterPanel(panel) {
     var sortSel = panel.querySelector('#pssSort');
-    sortSel.addEventListener('change', function () { state.sortKey = sortSel.value; applyFilters(); });
+    sortSel.addEventListener('change', function () {
+      state.sortKey = sortSel.value; applyFilters(); // instant: sorts whatever's already loaded
+      expandSort(state.sortKey, state.sortDir); // then widen — see expandSort's own comment for why
+    });
 
     panel.querySelectorAll('.pss-dir-btn').forEach(function (btn) {
       btn.onclick = function () {
@@ -551,6 +582,7 @@
         btn.classList.add('active');
         state.sortDir = btn.dataset.dir;
         applyFilters();
+        expandSort(state.sortKey, state.sortDir);
       };
     });
 
@@ -793,7 +825,12 @@
   }
 
   function loadSchemes() {
-    fetch(API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) + '&limit=50')
+    // Sorted server-side by the active metric (state's own default, matching
+    // the "Sort by" dropdown's default selection) so the initial top-N cut
+    // itself reflects real performance — see the backend's own comment on
+    // why this can't just be a recency cut re-sorted afterwards.
+    fetch(API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) +
+      '&limit=50&sortKey=' + encodeURIComponent(state.sortKey) + '&sortDir=' + encodeURIComponent(state.sortDir))
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d && d.ok) renderList(d.schemes || []); else host.remove(); })
       .catch(function () { host.remove(); });
