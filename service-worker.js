@@ -9,7 +9,7 @@
  *
  * Bump CACHE_VERSION whenever precached files change so old caches are purged.
  */
-const CACHE_VERSION = 'v157';
+const CACHE_VERSION = 'v158';
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 const FONTS = `fonts-${CACHE_VERSION}`;

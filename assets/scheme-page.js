@@ -459,7 +459,50 @@
     return out;
   }
 
+  // Cat I/II's structured fee classes (see publicSchemeView's feeClasses) —
+  // one row per commitment tier, e.g. a fund charging the same 2%/20%/10hurdle
+  // whether you commit ₹1-10Cr (class A1) or ₹10Cr+ (class A2). Renders as an
+  // actual table (unlike the free-text path below, which has no natural rows/
+  // columns to line up) in this page's own light card styling — not the plain
+  // black-on-white reference layout, so it reads as part of this page rather
+  // than a pasted-in spec sheet.
+  function capitalCommitmentText(terms, currency) {
+    if (!terms || !terms.length) return '—';
+    var lower = terms.filter(function (t) { return t.operator === '>=' || t.operator === '>'; })[0];
+    var upper = terms.filter(function (t) { return t.operator === '<=' || t.operator === '<'; })[0];
+    if (lower && upper) {
+      return fmtAmount(lower.value, currency) + ' to ' + (upper.operator === '<' ? '< ' : '') + fmtAmount(upper.value, currency);
+    }
+    if (lower) return fmtAmount(lower.value, currency) + '+';
+    if (upper) return (upper.operator === '<' ? 'Up to < ' : 'Up to ') + fmtAmount(upper.value, currency);
+    return fmtAmount(terms[0].value, currency);
+  }
+
+  function feeClassesSection(p) {
+    if (!p.feeClasses || !p.feeClasses.length) return '';
+    var remarks = p.feeClasses.filter(function (c) { return c.remarks; });
+    return '<div class="scm-section"><h2>Fee structure</h2>' +
+      '<div class="scm-fee-table-wrap"><table class="scm-fee-table">' +
+      '<thead><tr><th>Class</th><th>Capital Commitment</th><th>Fixed Mgmt. Fee (p.a.)</th><th>Performance Fee</th><th>Hurdle</th></tr></thead>' +
+      '<tbody>' +
+      p.feeClasses.map(function (c) {
+        return '<tr>' +
+          '<td><span class="scm-fee-class">' + esc(c.class || '—') + '</span></td>' +
+          '<td>' + esc(capitalCommitmentText(c.capitalCommitment, p.currency)) + '</td>' +
+          '<td>' + esc(c.fixedFee || '—') + '</td>' +
+          '<td>' + esc(c.performanceFee || '—') + '</td>' +
+          '<td>' + esc(c.hurdle || '—') + '</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody></table></div>' +
+      (remarks.length ? '<p class="scm-fee-note">' +
+        remarks.map(function (c) { return '<b>' + esc(c.class) + ':</b> ' + esc(c.remarks); }).join(' &nbsp;·&nbsp; ') +
+        '</p>' : '') +
+      '</div>';
+  }
+
   function feeStructureSection(p) {
+    if (p.feeClasses && p.feeClasses.length) return feeClassesSection(p);
     if (!p.feeStructure) return '';
     var parsed = parseFeeStructure(p.feeStructure);
     var cards = [];

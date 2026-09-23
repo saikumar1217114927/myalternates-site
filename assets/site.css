@@ -922,6 +922,33 @@ nav.links a:hover::after{width:100%;}
 .scm-fee-card.wide{grid-column:1/-1;}
 .scm-fee-card.wide b{font-family:inherit; font-size:13.5px; font-weight:400; line-height:1.6;}
 
+/* Cat I/II structured fee classes — an actual table (multiple commitment
+   tiers each carrying the same five fields), same light-card language as
+   .scm-fee-card above rather than a plain black-on-white grid. */
+.scm-fee-table-wrap{overflow-x:auto; background:#fff; border:1px solid #E4DFD1; border-radius:12px;}
+.scm-fee-table{width:100%; min-width:540px; border-collapse:collapse;}
+.scm-fee-table th{
+  background:var(--paper-2); text-align:left; padding:14px 20px; white-space:nowrap;
+  font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--gold);
+  border-bottom:1px solid #E4DFD1;
+}
+.scm-fee-table th:first-child{border-radius:11px 0 0 0;}
+.scm-fee-table th:last-child{border-radius:0 11px 0 0;}
+.scm-fee-table td{
+  padding:14px 20px; font-size:14px; color:var(--ink-text); font-weight:500;
+  font-variant-numeric:tabular-nums; border-bottom:1px solid #F0EBDE; white-space:nowrap;
+}
+.scm-fee-table tr:last-child td{border-bottom:0;}
+.scm-fee-class{
+  display:inline-block; min-width:24px; text-align:center; padding:4px 10px; border-radius:999px;
+  background:var(--ink); color:var(--gold-light); font-size:11.5px; font-weight:700;
+}
+.scm-fee-note{margin-top:14px; font-size:12px; color:var(--muted); line-height:1.6;}
+.scm-fee-note b{color:var(--ink-text); font-weight:700;}
+@media (max-width:640px){
+  .scm-fee-table th, .scm-fee-table td{padding:12px 14px;}
+}
+
 /* Portfolio characteristics — a dark stat panel (the hero/enquiry-card's own
    black-and-gold treatment, not another white card on the page's off-white
    background) so this reads as the premium, headline moment a fact-sheet's
