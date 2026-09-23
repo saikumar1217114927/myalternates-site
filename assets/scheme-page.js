@@ -85,6 +85,9 @@
 
   // ---- trailing-returns bar chart (grouped: scheme vs benchmark, zero baseline) ----
   var RET_COLS = [['1M', 'r1m'], ['3M', 'r3m'], ['6M', 'r6m'], ['1Y', 'r1y'], ['2Y', 'r2y'], ['3Y', 'r3y'], ['5Y', 'r5y'], ['10Y', 'r10y'], ['SI', 'si']];
+  // The chart drops 1M — the Scheme returns table right below it still
+  // carries every period including 1M, this is chart-only.
+  var CHART_RET_COLS = RET_COLS.filter(function (c) { return c[0] !== '1M'; });
 
   function roundedBarPath(x, w, yTop, h, r, roundAtTop) {
     r = Math.max(0, Math.min(r, w / 2, h));
@@ -105,7 +108,7 @@
     var plotW = W - padL - padR, plotH = H - padTop - padBottom;
 
     var vals = [];
-    RET_COLS.forEach(function (c) {
+    CHART_RET_COLS.forEach(function (c) {
       if (s.returns[c[1]] != null) vals.push(s.returns[c[1]]);
       if (s.benchmark[c[1]] != null) vals.push(s.benchmark[c[1]]);
     });
@@ -119,24 +122,31 @@
     // pixel row instead of straddling two — against a plain white card that
     // sub-pixel blur read as the bars sitting slightly off the baseline.
     var zeroY = Math.round(padTop + maxV * scale - 0.5) + 0.5;
-    var groupW = plotW / RET_COLS.length;
+    var groupW = plotW / CHART_RET_COLS.length;
     var barW = Math.min(28, groupW * 0.34);
     var gapBetween = 6;
 
-    // No static value labels on the bars — with 9 grouped pairs, printing all
-    // 18 would collide constantly (adjacent bars, adjacent groups). The
+    // No static value labels on the bars — with 8 grouped pairs, printing all
+    // 16 would collide constantly (adjacent bars, adjacent groups). The
     // hover tooltip gives the exact value per bar, and the table right below
     // the chart already carries every number — so the chart stays a clean
     // shape-comparison, per the "label selectively" rule.
     var bars = '', axisLabels = '';
-    RET_COLS.forEach(function (c, i) {
+    CHART_RET_COLS.forEach(function (c, i) {
       var cx = padL + groupW * i + groupW / 2;
       var sv = s.returns[c[1]], bv = s.benchmark[c[1]];
       [['scheme', sv, s.schemeName, cx - barW - gapBetween / 2],
        ['bench', bv, s.benchmark.name || 'Benchmark', cx + gapBetween / 2]]
         .forEach(function (b) {
           var kind = b[0], v = b[1], seriesName = b[2], x = b[3];
-          if (v == null) return;
+          if (v == null) {
+            // No bar drawn (nothing to draw), but a bare gap next to a real
+            // bar reads as "zero", not "unknown" — an explicit NA marker at
+            // the baseline, right in that series' own slot, makes clear this
+            // period just isn't disclosed for it.
+            bars += '<text class="scm-bar-na" x="' + (x + barW / 2) + '" y="' + (zeroY + 4) + '" text-anchor="middle">NA</text>';
+            return;
+          }
           var h = Math.abs(v) * scale;
           var yTop = v >= 0 ? zeroY - h : zeroY;
           bars += '<path class="scm-bar ' + kind + '" d="' + roundedBarPath(x, barW, yTop, h, 4, v >= 0) +
@@ -267,7 +277,7 @@
       return '<tr class="' + cls + '"><td>' + esc(label) + '</td>' +
         RET_COLS.map(function (c) {
           var v = obj[c[1]];
-          return '<td class="' + (v == null ? 'na' : (v >= 0 ? 'pos' : 'neg')) + '">' + (v == null ? '–' : pct(v)) + '</td>';
+          return '<td class="' + (v == null ? 'na' : (v >= 0 ? 'pos' : 'neg')) + '">' + (v == null ? 'NA' : pct(v)) + '</td>';
         }).join('') + '</tr>';
     }
     return '<div class="scm-section"><div class="scm-sec-head"><h2>Scheme returns</h2>' +

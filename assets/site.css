@@ -864,6 +864,9 @@ nav.links a:hover::after{width:100%;}
 .scm-bar-label{font-family:'IBM Plex Mono', monospace; font-size:9.5px; font-weight:600; font-variant-numeric:tabular-nums; fill:var(--muted);}
 .scm-bar-label.pos{fill:var(--emerald);}
 .scm-bar-label.neg{fill:#B5502E;}
+/* Sits where a bar would be, marking that period as genuinely not
+   disclosed for that series — not just zero. */
+.scm-bar-na{font-family:'IBM Plex Mono', monospace; font-size:9.5px; font-weight:600; fill:var(--muted-light); text-anchor:middle;}
 .scm-axis-label{font-family:'Manrope', sans-serif; font-size:10.5px; fill:var(--muted); text-anchor:middle;}
 .scm-baseline{stroke:#D8D2C2; stroke-width:1;}
 .scm-tooltip{
