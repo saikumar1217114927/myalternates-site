@@ -399,6 +399,15 @@
   // actually gives one (e.g. "Extendable by 1+1 Years"). Field set
   // confirmed field-by-field against a real Category I fund (Morphosis
   // Venture Capital Fund I).
+  // A CSS grid row stretches every cell in it to match its tallest one — so
+  // one long value (Finalyca's own asset_structure text in particular can
+  // run to several sentences) was inflating the whole row, leaving its
+  // short neighbours (Fund structure, Subscription status, ...) mostly
+  // empty space. Any card whose value runs long moves to its own full-width
+  // row (same treatment Taxation already got), positioned right before it —
+  // a short card's position/width is untouched either way.
+  var HEAVY_VALUE_LEN = 70;
+
   function fundTermsSection(p) {
     if (!p.aifCategory) return '';
     var cards = [];
@@ -420,7 +429,18 @@
       });
     }
     cards.push({ label: 'Tentative final closing', value: tbd(p.finalClosingDate), note: p.finalClosingDate ? p.finalClosingRemarks : '' });
+
+    // Split out any naturally short card from any that turned out heavy —
+    // order within each group is otherwise untouched, so the normal 5-up
+    // grid reads exactly as it did before for every short card.
+    var shortCards = [], heavyCards = [];
+    cards.forEach(function (c) {
+      (String(c.value || '').length > HEAVY_VALUE_LEN ? heavyCards : shortCards).push(c);
+    });
+    heavyCards.forEach(function (c) { c.wide = true; });
+    cards = shortCards.concat(heavyCards);
     if (p.taxationRemarks) cards.push({ label: 'Taxation', value: p.taxationRemarks, wide: true });
+
     var badge = 'Category ' + p.aifCategory + (p.subCategory ? ' · ' + p.subCategory : '');
     return '<div class="scm-section"><div class="scm-sec-head"><h2>Fund terms</h2><span class="scm-asof">' + esc(badge) + '</span></div>' +
       '<div class="scm-fee-cards">' +
