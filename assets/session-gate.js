@@ -616,7 +616,7 @@
       '<div><div class="section-tag">Your account</div>' +
       '<div class="acct-greet">' + esc(firstName ? 'Hi, ' + firstName : 'Welcome back') + '</div></div>' +
       '</div>' +
-      '<div class="acct-grid' + (expert ? '' : ' single') + '">' +
+      '<div class="acct-grid">' +
       '<div class="acct-col">' +
       '<div class="section-tag acct-section-title">Your details</div>' +
       contactRowHtml('email', sess.email) +
