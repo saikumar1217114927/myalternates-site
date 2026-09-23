@@ -442,7 +442,12 @@
     if (p.taxationRemarks) cards.push({ label: 'Taxation', value: p.taxationRemarks, wide: true });
 
     var badge = 'Category ' + p.aifCategory + (p.subCategory ? ' · ' + p.subCategory : '');
-    return '<div class="scm-section"><div class="scm-sec-head"><h2>Fund terms</h2><span class="scm-asof">' + esc(badge) + '</span></div>' +
+    // .scm-asof (a plain, low-contrast pill) is right for a quiet "as of
+    // <date>" caption elsewhere on this page, but this badge is the
+    // category/asset-class itself — worth calling out, and worth reading as
+    // the same category pill the AIF/GIFT list cards already show (.ft-tag-
+    // cat), not a timestamp footnote.
+    return '<div class="scm-section"><div class="scm-sec-head"><h2>Fund terms</h2><span class="scm-cat-badge">' + esc(badge) + '</span></div>' +
       '<div class="scm-fee-cards">' +
       cards.map(function (c) {
         // Finalyca's own remark fields occasionally just restate the value
