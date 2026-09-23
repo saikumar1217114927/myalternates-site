@@ -827,7 +827,7 @@ nav.links a:hover::after{width:100%;}
 .scm-section h2{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:22px; color:var(--ink-text); margin-bottom:18px;}
 .scm-sec-head{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; margin-bottom:18px;}
 .scm-sec-head h2{margin-bottom:0;}
-.scm-objective{font-size:15.5px; line-height:1.8; color:#3a3f47; max-width:760px;}
+.scm-objective{font-size:15.5px; line-height:1.8; color:#3a3f47;}
 
 .scm-two-col{display:grid; grid-template-columns:1fr 1fr; gap:20px 40px; margin-bottom:44px;}
 .scm-two-col .scm-section{margin-bottom:0;}
