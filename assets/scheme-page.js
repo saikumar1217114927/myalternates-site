@@ -600,11 +600,24 @@
       '</div></div>';
   }
 
+  // A highlighted card, not a plain facts row — this AMC (logo, name,
+  // product) is the future entry point to "every scheme under this fund
+  // house", so it's styled to already read as a distinct, navigable unit
+  // (same .sr-logo/.sr-tag language the product-list cards use for an AMC)
+  // even though nothing here is clickable yet — no href/onclick, on purpose.
   function fundHouseSection(s) {
     if (!s.amcName) return '';
+    var logo = s.amcLogo
+      ? '<img class="sr-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;sr-logo-fallback&quot;>' + esc((s.amcName || '?').charAt(0)) + '</div>\'">'
+      : '<div class="sr-logo-fallback">' + esc((s.amcName || '?').charAt(0)) + '</div>';
     return '<div class="scm-section"><h2>Fund house</h2>' +
-      '<div class="scm-facts"><div class="scm-fact"><span>Asset manager</span><b>' + esc(s.amcName) + '</b></div>' +
-      '<div class="scm-fact"><span>Product</span><b>' + esc(s.productName) + '</b></div></div></div>';
+      '<div class="scm-fundhouse-card">' +
+      '<div class="scm-fundhouse-id">' + logo +
+      '<div><div class="scm-fundhouse-name">' + esc(s.amcName) + '</div>' +
+      (s.productName ? '<span class="sr-tag">' + esc(s.productName) + '</span>' : '') +
+      '</div></div>' +
+      '<span class="scm-fundhouse-arrow" aria-hidden="true">→</span>' +
+      '</div></div>';
   }
 
   // The registered visitor's meeting state — schedule a call, or reschedule

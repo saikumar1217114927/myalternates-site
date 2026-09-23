@@ -972,6 +972,23 @@ nav.links a:hover::after{width:100%;}
 .scm-flag.on{border-color:var(--emerald); color:var(--emerald); background:rgba(30,111,92,0.06);}
 .scm-flag.off{color:var(--muted-light);}
 
+/* Fund house — a highlighted card (the .scm-fee-card.hero gold treatment),
+   not a plain facts row: this AMC is going to become a link to every scheme
+   it offers, so it already reads as its own distinct, navigable unit. Reuses
+   .sr-logo/.sr-logo-fallback/.sr-tag — the exact same AMC-identity pieces
+   the product-list cards use — so it previews what that eventual card will
+   look like rather than inventing a one-off style. No href/cursor/hover
+   affordance yet — that's the "later" part. */
+.scm-fundhouse-card{
+  display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  background:linear-gradient(180deg,#fff,rgba(201,162,75,0.06));
+  border:1px solid var(--gold); border-radius:16px; padding:22px 26px;
+  box-shadow:0 14px 30px -20px rgba(201,162,75,0.45);
+}
+.scm-fundhouse-id{display:flex; align-items:center; gap:16px; min-width:0;}
+.scm-fundhouse-name{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:19px; color:var(--ink-text); margin-bottom:7px;}
+.scm-fundhouse-arrow{font-size:19px; color:var(--muted-light); flex:none; line-height:1;}
+
 .scm-cta{display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap; background:var(--paper-2); border-radius:12px; padding:24px 26px;}
 .scm-cta p{font-size:13.5px; color:var(--muted); max-width:420px; line-height:1.6; margin:0;}
 .scm-disclaimer{font-size:11.5px; color:var(--muted-light); line-height:1.6; border-top:1px solid #E4DFD1; padding-top:20px; margin-top:44px;}
