@@ -551,6 +551,11 @@
   }
 
   function exitLoadSection(p) {
+    // Doesn't apply to a closed-ended, drawdown-structured Cat I/II fund —
+    // there's no redeem-early penalty to speak of, so Finalyca's own field
+    // for these just comes back as boilerplate ("1 Year: No Option, 2 Year:
+    // No Option, ..."), not real information worth a section.
+    if (p.aifCategory) return '';
     if (!p.exitLoad) return '';
     var years = parseExitLoad(p.exitLoad);
     if (!years.length) {
@@ -562,6 +567,10 @@
   }
 
   function flagsSection(p) {
+    // A closed-ended Cat I/II fund has no SIP/STP/SWP or open-ended
+    // purchase/redemption window — this whole section is PMS/Cat III's
+    // concept, not theirs (see exitLoadSection's own guard above).
+    if (p.aifCategory) return '';
     var flags = [
       ['SIP', p.sipAvailable], ['STP', p.stpAvailable], ['SWP', p.swpAvailable],
       ['Purchase open', p.purchaseAvailable], ['Redemption open', p.redemptionAvailable]
@@ -627,8 +636,8 @@
       '</div></div>' +
       '<div class="scm-body wrap">' +
       factsSection(p) +
-      fundTermsSection(p) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
+      fundTermsSection(p) +
       schemeReturnsSection(s) +
       returnsRow +
       '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
