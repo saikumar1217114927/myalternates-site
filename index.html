@@ -1984,15 +1984,20 @@
   function maEscHtml(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
   // The full form always has both email and mobile, so this always said "to
-  // X and by SMS to Y" — the existing-user login row only ever collects one
-  // of the two, so this only mentions whichever channel(s) a code actually
-  // went to.
+  // X and by SMS to Y" regardless of country — but DLT-templated SMS only
+  // reaches Indian numbers (same rule requestLeadOtp enforces server-side),
+  // so claiming "and by SMS to Y" for any other country code names a text
+  // that was never actually sent. The existing-user login row only ever
+  // collects one of the two anyway — between the two, only mention
+  // whichever channel(s) a code actually went to.
   function maOtpDestText(rec){
     const mobileLabel = ((rec.mobileCountryCode || '') + ' ' + (rec.mobile || '')).trim();
-    const both = rec.email && rec.mobile;
+    const mobileOk = !!rec.mobile && String(rec.mobileCountryCode || '+91').replace(/\D+/g, '') === '91';
+    const both = rec.email && mobileOk;
     const dest = both
       ? 'to <b>' + maEscHtml(rec.email) + '</b> and by SMS to <b>' + maEscHtml(mobileLabel) + '</b>'
-      : rec.email ? 'to <b>' + maEscHtml(rec.email) + '</b>' : 'by SMS to <b>' + maEscHtml(mobileLabel) + '</b>';
+      : rec.email ? 'to <b>' + maEscHtml(rec.email) + '</b>'
+      : mobileOk ? 'by SMS to <b>' + maEscHtml(mobileLabel) + '</b>' : 'to your account';
     return 'We sent a 6-digit code ' + dest + (both ? ' — enter whichever arrives first.' : '.');
   }
 

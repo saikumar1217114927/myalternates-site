@@ -319,12 +319,18 @@
   // a channel up front or switch between them.
   function showFullOtpStep(container, lead, onVerified) {
     var mobileLabel = (lead.mobileCountryCode || '') + ' ' + (lead.mobile || '');
-    // The Login step only ever collects one of email/mobile — only mention
-    // whichever channel(s) a code was actually sent to.
-    var both = lead.email && lead.mobile;
+    // DLT-templated SMS only reaches Indian numbers (same rule
+    // requestLeadOtp enforces server-side) — mentioning "and by SMS to X"
+    // for any other country code claims a text that was never actually
+    // sent. The Login step also only ever collects one of email/mobile —
+    // between the two, only mention whichever channel(s) a code actually
+    // went to.
+    var mobileOk = !!lead.mobile && String(lead.mobileCountryCode || '+91').replace(/\D+/g, '') === '91';
+    var both = lead.email && mobileOk;
     var dest = both
       ? 'to <b>' + esc(lead.email) + '</b> and by SMS to <b>' + esc(mobileLabel) + '</b>'
-      : lead.email ? 'to <b>' + esc(lead.email) + '</b>' : 'by SMS to <b>' + esc(mobileLabel) + '</b>';
+      : lead.email ? 'to <b>' + esc(lead.email) + '</b>'
+      : mobileOk ? 'by SMS to <b>' + esc(mobileLabel) + '</b>' : 'to your account';
     container.innerHTML =
       '<div class="ma-gate ma-gate-full">' +
       '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
