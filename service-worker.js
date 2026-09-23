@@ -9,7 +9,7 @@
  *
  * Bump CACHE_VERSION whenever precached files change so old caches are purged.
  */
-const CACHE_VERSION = 'v150';
+const CACHE_VERSION = 'v151';
 const PRECACHE = `precache-${CACHE_VERSION}`;
 const RUNTIME = `runtime-${CACHE_VERSION}`;
 const FONTS = `fonts-${CACHE_VERSION}`;
@@ -20,6 +20,7 @@ const FONTS = `fonts-${CACHE_VERSION}`;
 const PRECACHE_URLS = [
   './',
   './about',
+  './account',
   './pms',
   './pms-fees',
   './scheme',

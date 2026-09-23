@@ -580,187 +580,200 @@
 
   // Registered-visitor profile icon (id="maProfile") next to the Talk to an
   // Expert CTA — hidden for an anonymous visitor, shown once a session
-  // token checks out live. Its panel shows the visitor's own registered
-  // details and, if one's assigned and opted into lead-facing display,
-  // their expert's photo + contact info.
-  function wireProfileWidget() {
+  // token checks out live. It's a plain link to account.html (a full page)
+  // now rather than a dropdown, so this widget only handles show/hide.
+  function wireProfileIcon() {
     var wrap = document.getElementById('maProfile');
-    var btn = document.getElementById('maProfileBtn');
-    var panel = document.getElementById('maProfilePanel');
-    if (!wrap || !btn || !panel) return;
-
-    function renderPanel(sess, token) {
-      var expert = sess.expert;
-      panel.innerHTML =
-        '<div class="npp-section">' +
-        '<div class="npp-label">Your details</div>' +
-        '<div class="npp-name">' + esc(sess.name || 'Registered visitor') + '</div>' +
-        contactRowHtml('email', sess.email) +
-        contactRowHtml('mobile', (sess.mobileCountryCode ? sess.mobileCountryCode + ' ' : '') + (sess.mobile || '')) +
-        '</div>' +
-        (expert ? (
-          '<div class="npp-section npp-expert">' +
-          '<div class="npp-label">Your expert</div>' +
-          '<div class="npp-expert-row">' +
-          (expert.photo
-            ? '<img class="npp-avatar" src="' + esc(expert.photo) + '" alt="">'
-            : '<div class="npp-avatar-fallback">' + esc((expert.name || '?').charAt(0)) + '</div>') +
-          '<div>' +
-          '<div class="npp-name">' + esc(expert.name || '') + '</div>' +
-          (expert.email ? '<div class="npp-row">' + esc(expert.email) + '</div>' : '') +
-          (expert.mobile ? '<div class="npp-row">' + esc(expert.mobile) + '</div>' : '') +
-          '</div></div></div>'
-        ) : '') +
-        '<button type="button" class="npp-signout" data-signout>Sign out</button>';
-      panel.querySelector('[data-signout]').onclick = function () {
-        window.MASession.clearToken();
-        location.reload();
-      };
-      wireContactEdit(sess, token);
-    }
-
-    // ---- self-service email/mobile edit, inline in this same panel ----
-    // The one place on the site this now lives — every "Welcome back" card
-    // (product pages, the landing page) shows contact info read-only; Edit
-    // only ever appears here. Changing either value requires proving you
-    // still control what's CURRENTLY on file: the OTP goes to the existing
-    // email/mobile, never the new one being typed. An existing mobile under
-    // a non-Indian code can't take an SMS OTP (same DLT-template limit the
-    // registration OTP already works around) — the mobile row warns about
-    // that before Send.
-    function contactRowHtml(field, value) {
-      return '<div class="npp-crow" data-crow="' + field + '">' +
-        '<div class="npp-row">' + esc(value || '—') + '</div>' +
-        '<button type="button" class="npp-edit" data-cedit="' + field + '">Edit</button></div>';
-    }
-
-    function wireContactEdit(sess, token) {
-      panel.querySelectorAll('[data-cedit]').forEach(function (b) {
-        b.onclick = function (e) { e.stopPropagation(); openEditRow(b.getAttribute('data-cedit'), sess, token); };
-      });
-    }
-
-    function rowEl(field) { return panel.querySelector('[data-crow="' + field + '"]'); }
-
-    function dialCodeOptions(selected) {
-      var countries = (window.MASession && window.MASession.countries) || [];
-      var dialCodes = (window.MASession && window.MASession.dialCodes) || {};
-      return countries.map(function (c) {
-        var code = dialCodes[c[0]];
-        if (!code) return '';
-        return '<option value="' + esc(code) + '" data-iso="' + esc(c[0]) + '"' + (code === selected ? ' selected' : '') + '>' + esc(c[0]) + ' ' + esc(code) + '</option>';
-      }).join('');
-    }
-
-    function openEditRow(field, sess, token) {
-      var row = rowEl(field);
-      var isEmail = field === 'email';
-      row.innerHTML = '<div class="npp-cedit">' +
-        '<div class="npp-cedit-row">' +
-        (isEmail ? '' : '<select class="npp-cc">' + dialCodeOptions(sess.mobileCountryCode || '+91') + '</select>') +
-        '<input type="' + (isEmail ? 'email' : 'tel') + '" class="npp-cnew" placeholder="' + (isEmail ? 'New email address' : 'New mobile number') + '"></div>' +
-        (isEmail ? '' : '<div class="npp-cc-warn" data-cc-warn hidden>Your mobile on file has an international code, so we can’t SMS a code to verify this change — it’ll be sent to your email instead.</div>') +
-        '<div class="npp-cedit-err"></div>' +
-        '<div class="npp-cedit-actions"><button type="button" class="btn-gold" data-csend>Send code</button>' +
-        '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
-
-      var input = row.querySelector('.npp-cnew');
-      var errEl = row.querySelector('.npp-cedit-err');
-      var ccSel = row.querySelector('.npp-cc');
-      input.focus();
-      var warnEl = row.querySelector('[data-cc-warn]');
-      if (warnEl) warnEl.hidden = (String(sess.mobileCountryCode || '+91').replace(/\D+/g, '') === '91');
-
-      function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
-      row.querySelector('[data-ccancel]').onclick = function (e) { e.stopPropagation(); renderPanel(sess, token); };
-      row.querySelector('[data-csend]').onclick = function (e) {
-        e.stopPropagation();
-        var val = input.value.trim();
-        if (isEmail && (!val || val.indexOf('@') < 1)) { showErr('Enter a valid email address.'); return; }
-        if (!isEmail && val.replace(/\D/g, '').length < 6) { showErr('Enter a valid mobile number.'); return; }
-        var newMobileCc = ccSel ? ccSel.value : '';
-        var btn2 = row.querySelector('[data-csend]');
-        btn2.disabled = true; btn2.textContent = 'Sending…';
-        window.MASession.send({ action: 'requestContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc })
-          .then(function (r) {
-            btn2.disabled = false; btn2.textContent = 'Send code';
-            if (!r || !r.ok) { showErr((r && r.error) || 'Could not send a code — please try again.'); return; }
-            showOtpStep(field, val, newMobileCc, r.sentTo, sess, token);
-          });
-      };
-    }
-
-    function showOtpStep(field, val, newMobileCc, sentTo, sess, token) {
-      var row = rowEl(field);
-      row.innerHTML = '<div class="npp-cedit">' +
-        '<div class="npp-cedit-sent">Code sent to ' + esc(sentTo || 'your account') + '.</div>' +
-        '<input type="text" class="npp-cnew" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code">' +
-        '<div class="npp-cedit-err"></div>' +
-        '<div class="npp-cedit-actions"><button type="button" class="btn-gold" data-cverify>Verify &amp; save</button>' +
-        '<button type="button" class="ma-gate-link" data-cresend>Resend</button>' +
-        '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
-
-      var codeInput = row.querySelector('.npp-cnew');
-      var errEl = row.querySelector('.npp-cedit-err');
-      codeInput.focus();
-      codeInput.addEventListener('input', function () { codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6); });
-      function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
-
-      row.querySelector('[data-ccancel]').onclick = function (e) { e.stopPropagation(); renderPanel(sess, token); };
-      row.querySelector('[data-cresend]').onclick = function (e) {
-        e.stopPropagation();
-        var b = e.currentTarget;
-        b.disabled = true; b.textContent = 'Sending…';
-        window.MASession.send({ action: 'requestContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc })
-          .then(function (r) {
-            b.disabled = false; b.textContent = 'Resend';
-            if (!r || !r.ok) { showErr((r && r.error) || 'Could not resend — please try again.'); return; }
-            codeInput.value = ''; codeInput.focus();
-          });
-      };
-      function doVerify() {
-        var otp = codeInput.value.trim();
-        if (!/^[0-9]{6}$/.test(otp)) { showErr('Enter the 6-digit code.'); return; }
-        errEl.style.display = 'none';
-        var vBtn = row.querySelector('[data-cverify]');
-        vBtn.disabled = true; vBtn.textContent = 'Verifying…';
-        window.MASession.send({ action: 'verifyContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc, otp: otp })
-          .then(function (r) {
-            vBtn.disabled = false; vBtn.textContent = 'Verify & save';
-            if (!r || !r.ok) { showErr((r && r.error) || 'Could not verify — please try again.'); return; }
-            sess.email = r.email; sess.mobile = r.mobile; sess.mobileCountryCode = r.mobileCountryCode;
-            renderPanel(sess, token);
-          });
-      }
-      row.querySelector('[data-cverify]').onclick = function (e) { e.stopPropagation(); doVerify(); };
-      codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doVerify(); } });
-      codeInput.addEventListener('click', function (e) { e.stopPropagation(); });
-    }
-
+    if (!wrap) return;
     function load() {
       var token = window.MASession && window.MASession.getToken();
-      if (!token) { wrap.hidden = true; panel.hidden = true; return; }
+      if (!token) { wrap.hidden = true; return; }
       window.MASession.checkStatus(token).then(function (sess) {
-        if (!sess || !sess.ok || !sess.loggedIn) { wrap.hidden = true; panel.hidden = true; return; }
-        wrap.hidden = false;
-        renderPanel(sess, token);
+        wrap.hidden = !(sess && sess.ok && sess.loggedIn);
       });
     }
     load();
     document.addEventListener('ma:scheduled', load);
+  }
 
-    btn.onclick = function (e) {
-      e.stopPropagation();
-      panel.hidden = !panel.hidden;
-    };
-    document.addEventListener('click', function (e) {
-      if (!panel.hidden && !wrap.contains(e.target)) panel.hidden = true;
+  // ---- account.html: the visitor's own details, as a full page ----
+  // Used to be a small nav dropdown — moved to its own page because the
+  // contact-edit + OTP flow below never fit that panel comfortably. Reuses
+  // the same .ma-gate.ma-gate-full card the login/register gate renders, so
+  // a visitor who isn't logged in yet sees that gate right here instead of
+  // a separate empty state, and lands straight on their details the moment
+  // they verify.
+  window.maRenderAccountPage = function (container) {
+    var token = window.MASession && window.MASession.getToken();
+    if (!token) { renderLoggedOut(container); return; }
+    window.MASession.checkStatus(token).then(function (sess) {
+      if (!sess || !sess.ok || !sess.loggedIn) { renderLoggedOut(container); return; }
+      renderAccountCard(container, sess, token);
     });
+  };
+
+  function renderLoggedOut(container) {
+    window.maRenderFullGate(container, {
+      message: 'Log in to view and manage your account details.',
+      onVerified: function (token) {
+        window.MASession.checkStatus(token).then(function (sess) {
+          if (sess && sess.ok) renderAccountCard(container, sess, token);
+          else renderLoggedOut(container);
+        });
+      }
+    });
+  }
+
+  function renderAccountCard(container, sess, token) {
+    var expert = sess.expert;
+    container.innerHTML =
+      '<div class="ma-gate ma-gate-full">' +
+      '<img class="ma-gate-logo" src="assets/logo-myalternates.png" alt="myAlternates">' +
+      '<h3>' + esc(sess.name ? 'Hi, ' + sess.name.trim().split(/\s+/)[0] : 'Your account') + '</h3>' +
+      '<div class="npp-section" style="text-align:left;">' +
+      '<div class="npp-label">Your details</div>' +
+      contactRowHtml('email', sess.email) +
+      contactRowHtml('mobile', (sess.mobileCountryCode ? sess.mobileCountryCode + ' ' : '') + (sess.mobile || '')) +
+      '</div>' +
+      (expert ? (
+        '<div class="npp-section npp-expert" style="text-align:left;">' +
+        '<div class="npp-label">Your expert</div>' +
+        '<div class="npp-expert-row">' +
+        (expert.photo
+          ? '<img class="npp-avatar" src="' + esc(expert.photo) + '" alt="">'
+          : '<div class="npp-avatar-fallback">' + esc((expert.name || '?').charAt(0)) + '</div>') +
+        '<div>' +
+        '<div class="npp-name">' + esc(expert.name || '') + '</div>' +
+        (expert.email ? '<div class="npp-row">' + esc(expert.email) + '</div>' : '') +
+        (expert.mobile ? '<div class="npp-row">' + esc(expert.mobile) + '</div>' : '') +
+        '</div></div></div>'
+      ) : '') +
+      '<button type="button" class="npp-signout" data-signout>Sign out</button>' +
+      '</div>';
+    container.querySelector('[data-signout]').onclick = function () {
+      window.MASession.clearToken();
+      location.href = './';
+    };
+    wireContactEdit(container, sess, token);
+  }
+
+  // The one place on the site email/mobile can be changed. Changing either
+  // value requires proving you still control what's CURRENTLY on file: the
+  // OTP goes to the existing email/mobile, never the new one being typed.
+  // An existing mobile under a non-Indian code can't take an SMS OTP (same
+  // DLT-template limit the registration OTP already works around) — the
+  // mobile row warns about that before Send. The country-code dropdown on
+  // the NEW mobile number is the same one the registration form itself
+  // uses (countryOptionsHtml/dialCodeOptionsHtml's sibling here).
+  function contactRowHtml(field, value) {
+    return '<div class="npp-crow" data-crow="' + field + '">' +
+      '<div class="npp-row">' + esc(value || '—') + '</div>' +
+      '<button type="button" class="npp-edit" data-cedit="' + field + '">Edit</button></div>';
+  }
+
+  function wireContactEdit(container, sess, token) {
+    container.querySelectorAll('[data-cedit]').forEach(function (b) {
+      b.onclick = function () { openEditRow(container, b.getAttribute('data-cedit'), sess, token); };
+    });
+  }
+
+  function rowEl(container, field) { return container.querySelector('[data-crow="' + field + '"]'); }
+
+  function dialCodeOptions(selected) {
+    var countries = (window.MASession && window.MASession.countries) || [];
+    var dialCodes = (window.MASession && window.MASession.dialCodes) || {};
+    return countries.map(function (c) {
+      var code = dialCodes[c[0]];
+      if (!code) return '';
+      return '<option value="' + esc(code) + '" data-iso="' + esc(c[0]) + '"' + (code === selected ? ' selected' : '') + '>' + esc(c[0]) + ' ' + esc(code) + '</option>';
+    }).join('');
+  }
+
+  function openEditRow(container, field, sess, token) {
+    var row = rowEl(container, field);
+    var isEmail = field === 'email';
+    row.innerHTML = '<div class="npp-cedit">' +
+      '<div class="npp-cedit-row">' +
+      (isEmail ? '' : '<select class="npp-cc">' + dialCodeOptions(sess.mobileCountryCode || '+91') + '</select>') +
+      '<input type="' + (isEmail ? 'email' : 'tel') + '" class="npp-cnew" placeholder="' + (isEmail ? 'New email address' : 'New mobile number') + '"></div>' +
+      (isEmail ? '' : '<div class="npp-cc-warn" data-cc-warn hidden>Your mobile on file has an international code, so we can’t SMS a code to verify this change — it’ll be sent to your email instead.</div>') +
+      '<div class="npp-cedit-err"></div>' +
+      '<div class="npp-cedit-actions"><button type="button" class="btn-gold" data-csend>Send code</button>' +
+      '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
+
+    var input = row.querySelector('.npp-cnew');
+    var errEl = row.querySelector('.npp-cedit-err');
+    var ccSel = row.querySelector('.npp-cc');
+    input.focus();
+    var warnEl = row.querySelector('[data-cc-warn]');
+    if (warnEl) warnEl.hidden = (String(sess.mobileCountryCode || '+91').replace(/\D+/g, '') === '91');
+
+    function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+    row.querySelector('[data-ccancel]').onclick = function () { renderAccountCard(container, sess, token); };
+    row.querySelector('[data-csend]').onclick = function () {
+      var val = input.value.trim();
+      if (isEmail && (!val || val.indexOf('@') < 1)) { showErr('Enter a valid email address.'); return; }
+      if (!isEmail && val.replace(/\D/g, '').length < 6) { showErr('Enter a valid mobile number.'); return; }
+      var newMobileCc = ccSel ? ccSel.value : '';
+      var btn2 = row.querySelector('[data-csend]');
+      btn2.disabled = true; btn2.textContent = 'Sending…';
+      window.MASession.send({ action: 'requestContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc })
+        .then(function (r) {
+          btn2.disabled = false; btn2.textContent = 'Send code';
+          if (!r || !r.ok) { showErr((r && r.error) || 'Could not send a code — please try again.'); return; }
+          showOtpStep(container, field, val, newMobileCc, r.sentTo, sess, token);
+        });
+    };
+  }
+
+  function showOtpStep(container, field, val, newMobileCc, sentTo, sess, token) {
+    var row = rowEl(container, field);
+    row.innerHTML = '<div class="npp-cedit">' +
+      '<div class="npp-cedit-sent">Code sent to ' + esc(sentTo || 'your account') + '.</div>' +
+      '<input type="text" class="npp-cnew" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" autocomplete="one-time-code">' +
+      '<div class="npp-cedit-err"></div>' +
+      '<div class="npp-cedit-actions"><button type="button" class="btn-gold" data-cverify>Verify &amp; save</button>' +
+      '<button type="button" class="ma-gate-link" data-cresend>Resend</button>' +
+      '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
+
+    var codeInput = row.querySelector('.npp-cnew');
+    var errEl = row.querySelector('.npp-cedit-err');
+    codeInput.focus();
+    codeInput.addEventListener('input', function () { codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6); });
+    function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
+
+    row.querySelector('[data-ccancel]').onclick = function () { renderAccountCard(container, sess, token); };
+    row.querySelector('[data-cresend]').onclick = function (e) {
+      var b = e.currentTarget;
+      b.disabled = true; b.textContent = 'Sending…';
+      window.MASession.send({ action: 'requestContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc })
+        .then(function (r) {
+          b.disabled = false; b.textContent = 'Resend';
+          if (!r || !r.ok) { showErr((r && r.error) || 'Could not resend — please try again.'); return; }
+          codeInput.value = ''; codeInput.focus();
+        });
+    };
+    function doVerify() {
+      var otp = codeInput.value.trim();
+      if (!/^[0-9]{6}$/.test(otp)) { showErr('Enter the 6-digit code.'); return; }
+      errEl.style.display = 'none';
+      var vBtn = row.querySelector('[data-cverify]');
+      vBtn.disabled = true; vBtn.textContent = 'Verifying…';
+      window.MASession.send({ action: 'verifyContactChangeOtp', token: token, field: field, newValue: val, newMobileCc: newMobileCc, otp: otp })
+        .then(function (r) {
+          vBtn.disabled = false; vBtn.textContent = 'Verify & save';
+          if (!r || !r.ok) { showErr((r && r.error) || 'Could not verify — please try again.'); return; }
+          sess.email = r.email; sess.mobile = r.mobile; sess.mobileCountryCode = r.mobileCountryCode;
+          renderAccountCard(container, sess, token);
+        });
+    }
+    row.querySelector('[data-cverify]').onclick = doVerify;
+    codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doVerify(); } });
   }
 
   function initNavWidgets() {
     wireTalkToExpertLinks();
-    wireProfileWidget();
+    wireProfileIcon();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initNavWidgets);
   else initNavWidgets();

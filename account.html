@@ -3,12 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alternative Investment Funds (AIF) — myAlternates</title>
-<meta name="description" content="Invest in AIFs through myAlternates — Category I, II and III strategies, expert scheme selection, competitive pricing, and one dashboard for your whole portfolio.">
+<title>Your Account — myAlternates</title>
+<meta name="description" content="View and manage your myAlternates account details — update your email or mobile number, and see your assigned expert.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/site.css">
+<style>
+  .acct-hero{padding:70px 0 8px; background:var(--paper);}
+  .acct-section{padding:40px 0 100px; background:var(--paper);}
+</style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0B0E13">
 <link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32">
@@ -28,6 +32,7 @@
 </head>
 <body>
 
+<!-- ================= NAV ================= -->
 <header class="nav">
   <div class="nav-inner">
     <div class="brand-group">
@@ -68,7 +73,7 @@
           <a href="https://backoffice.myalternates.com/" target="_blank" rel="noopener">Distributor Login<small>Manage your book — backoffice.myalternates.com</small></a>
         </div>
       </div>
-      <a href="#schemes" class="nav-cta" data-ma-talk="Alternative Investment Fund (AIF)">Talk to an Expert</a>
+      <a href="./#enquiry" class="nav-cta" data-ma-talk="Investing with myAlternates">Talk to an Expert</a>
       <div class="nav-profile" id="maProfile" hidden>
         <a class="nav-profile-btn" id="maProfileBtn" href="account" aria-label="Your account">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path></svg>
@@ -81,17 +86,27 @@
 
 <div class="crumb">
   <div class="wrap">
-    <a href="./#pillars">← Back to all products</a>
+    <a href="./">← Back to home</a>
   </div>
 </div>
 
-<!-- ================= FEATURED SCHEMES (real, unmasked examples) =================
-     No separate hero — its CTA row (Talk to an expert/Reschedule) moved
-     into this section's own header, opposite the heading, same as PMS. -->
-<!-- No enquiry form on this page — a visitor picks a scheme here and clicks
-     Discover, which is the registration flow (same as PMS's own list). -->
-<section class="p-schemes" data-schemes="AIF" aria-label="Featured AIF schemes" id="schemes"></section>
+<!-- ================= HERO ================= -->
+<section class="acct-hero">
+  <div class="wrap">
+    <div class="eyebrow">Account</div>
+    <h1>Your account.</h1>
+    <p class="lead">Your registered details, your assigned expert, and where to update your email or mobile number.</p>
+  </div>
+</section>
 
+<!-- ================= ACCOUNT CARD ================= -->
+<section class="acct-section">
+  <div class="wrap acct-wrap">
+    <div id="acctCard"></div>
+  </div>
+</section>
+
+<!-- ================= FOOTER ================= -->
 <footer>
   <div class="wrap">
     <div class="foot-grid">
@@ -136,10 +151,11 @@
 </footer>
 
 <script src="assets/lead-form.js"></script>
-<script src="assets/hero-meeting.js"></script>
 <script src="assets/session-gate.js"></script>
-<script src="assets/ai-assistant.js" defer></script>
-<script src="assets/featured-schemes.js"></script>
+<script>
+  window.maRenderAccountPage(document.getElementById('acctCard'));
+</script>
+
 <script src="assets/nav.js" defer></script>
 <script src="assets/nav-search.js" defer></script>
 <script src="assets/event-banner.js" defer></script>
