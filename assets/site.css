@@ -210,10 +210,11 @@ nav.links a:hover::after{width:100%;}
 }
 .acct-edit-row input{flex:1; min-width:0;}
 .acct-edit-row input:focus, .acct-edit-row select:focus{outline:none; border-color:var(--gold);}
-.acct-cc-warn{
+.acct-otp-note{
   color:var(--gold-light); font-size:13.5px; line-height:1.55;
   background:rgba(201,162,75,0.12); border:1px solid rgba(201,162,75,0.3); border-radius:9px; padding:11px 14px;
 }
+.acct-otp-note b{color:var(--paper); font-weight:700;}
 .acct-edit-err{color:#ff9376; font-size:13.5px; display:none;}
 .acct-edit-sent{color:var(--emerald-light); font-size:14.5px;}
 .acct-edit-actions{display:flex; gap:16px; align-items:center; flex-wrap:wrap;}

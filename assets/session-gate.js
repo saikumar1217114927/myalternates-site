@@ -678,6 +678,28 @@
     }).join('');
   }
 
+  // Shown above "Send code" on BOTH the email and mobile edit forms — a
+  // lead editing either field could otherwise assume the code is going to
+  // the NEW value they just typed. It always goes to whatever's CURRENTLY
+  // on file instead (the same values requestContactChangeOtp itself sends
+  // to), so this always reads sess.email/sess.mobile — never the new
+  // input — and reads the same regardless of which field is being edited.
+  function otpDestNote(sess) {
+    var email = sess.email || '';
+    var mobileCc = String(sess.mobileCountryCode || '+91').replace(/\D+/g, '');
+    var mobileOk = mobileCc === '91' && sess.mobile;
+    var mobile = mobileOk ? (sess.mobileCountryCode + ' ' + sess.mobile) : '';
+    var dest = email && mobile
+      ? 'to <b>' + esc(email) + '</b> and by SMS to <b>' + esc(mobile) + '</b>'
+      : email ? 'to <b>' + esc(email) + '</b>'
+      : mobile ? 'by SMS to <b>' + esc(mobile) + '</b>'
+      : 'to your account';
+    var intlNote = (sess.mobile && !mobileOk)
+      ? ' Your mobile on file has an international code, so it can only be sent by email.'
+      : '';
+    return 'We’ll send a verification code ' + dest + ' — your <b>current</b>, already-verified contact, not the new value above. Nothing changes until you verify it.' + intlNote;
+  }
+
   function openEditRow(container, field, sess, token) {
     var row = rowEl(container, field);
     var isEmail = field === 'email';
@@ -687,7 +709,7 @@
       '<div class="acct-edit-inputs">' +
       (isEmail ? '' : '<select class="acct-cc">' + dialCodeOptions(sess.mobileCountryCode || '+91') + '</select>') +
       '<input type="' + (isEmail ? 'email' : 'tel') + '" class="acct-new-val" placeholder="' + (isEmail ? 'New email address' : 'New mobile number') + '"></div>' +
-      (isEmail ? '' : '<div class="acct-cc-warn" data-cc-warn hidden>Your mobile on file has an international code, so we can’t SMS a code to verify this change — it’ll be sent to your email instead.</div>') +
+      '<div class="acct-otp-note">' + otpDestNote(sess) + '</div>' +
       '<div class="acct-edit-err"></div>' +
       '<div class="acct-edit-actions"><button type="button" class="btn-gold" data-csend>Send code</button>' +
       '<button type="button" class="ma-gate-link" data-ccancel>Cancel</button></div></div>';
@@ -696,8 +718,6 @@
     var errEl = row.querySelector('.acct-edit-err');
     var ccSel = row.querySelector('.acct-cc');
     input.focus();
-    var warnEl = row.querySelector('[data-cc-warn]');
-    if (warnEl) warnEl.hidden = (String(sess.mobileCountryCode || '+91').replace(/\D+/g, '') === '91');
 
     function showErr(msg) { errEl.textContent = msg; errEl.style.display = 'block'; }
     row.querySelector('[data-ccancel]').onclick = function () { renderAccountCard(container, sess, token); };
