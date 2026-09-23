@@ -439,42 +439,6 @@
     });
   }
 
-  /* ---------------- country <-> dial code ---------------- */
-  // Two-way sync: either field drives the other. Each only reacts to real
-  // user input (never a programmatic change), so whatever gets auto-selected
-  // stays fully editable — the lead can override it afterwards.
-  function wireCountryCode() {
-    function ccOptionForIso(iso) {
-      for (var i = 0; i < ccSel.options.length; i++) {
-        if (ccSel.options[i].getAttribute('data-iso') === iso) return ccSel.options[i];
-      }
-      return null;
-    }
-    function resetPincode() {
-      pinReqId++;
-      if (pinInput) pinInput.value = '';
-      clearLocation();
-      hideManual();
-      setStatus('', '');
-    }
-
-    // Country -> dial code (exact per-country option, not just the first
-    // option that shares the code).
-    countrySel.addEventListener('change', function () {
-      var o = ccOptionForIso(this.value);
-      if (o) ccSel.selectedIndex = o.index;
-    });
-
-    // Dial code -> country.
-    ccSel.addEventListener('change', function () {
-      var opt = ccSel.options[ccSel.selectedIndex];
-      var iso = opt && opt.getAttribute('data-iso');
-      if (!iso || iso === countrySel.value) return;
-      countrySel.value = iso;
-      resetPincode();
-    });
-  }
-
   /* ---------------- initial submit ---------------- */
 
   function buildLeadObj() {
@@ -1016,8 +980,11 @@
       ccSel.appendChild(o);
     }
 
+    // Country and mobile country-code stay fully independent — same as the
+    // Discover/Register gate (session-gate.js): a visitor abroad may still
+    // carry an Indian SIM, or the reverse, so picking one must never
+    // silently overwrite the other.
     if (pinInput) wirePincode();
-    wireCountryCode();
     wireKnownContact();
     wireGoogle();
     form.addEventListener('submit', onSubmit);

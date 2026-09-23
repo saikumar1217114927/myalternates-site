@@ -1712,23 +1712,12 @@
     setStatus('', '');
   }
 
+  // Country and mobile country-code stay fully independent — same as the
+  // Discover/Register gate (session-gate.js/lead-form.js): a visitor
+  // abroad may still carry an Indian SIM, or the reverse, so picking one
+  // must never silently overwrite the other.
   countrySelect.addEventListener('change', function(){
     // A new country means the previously entered pincode no longer applies.
-    resetPincodeFields();
-
-    // Keep the mobile dial code in step with the selected country by default.
-    // Pick the exact per-country option, not just the first one sharing the code.
-    const match = Array.prototype.find.call(mobileCountryCode.options,
-      o => o.dataset.country === this.value);
-    if(match) mobileCountryCode.selectedIndex = match.index;
-  });
-
-  // Reverse direction: choosing a dial code updates the Country field to match.
-  // Runs only on real user input, so either field can still be changed afterwards.
-  mobileCountryCode.addEventListener('change', function(){
-    const iso = this.options[this.selectedIndex]?.dataset.country;
-    if(!iso || iso === countrySelect.value) return;
-    countrySelect.value = iso;
     resetPincodeFields();
   });
 
