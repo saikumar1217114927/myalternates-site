@@ -342,10 +342,11 @@
   // compounded for exactly one year is the same as applying it once).
   // 'si' is resolved per-scheme from the actual inception date below, since
   // "years since inception" isn't a fixed number the way 2Y/3Y/5Y/10Y are.
+  // [returns key, short button label, long result label, compounding years].
   var CALC_PERIODS = [
-    ['r1m', '1 Month', null], ['r3m', '3 Months', null], ['r6m', '6 Months', null],
-    ['r1y', '1 Year', 1], ['r2y', '2 Years', 2], ['r3y', '3 Years', 3],
-    ['r5y', '5 Years', 5], ['r10y', '10 Years', 10], ['si', 'Since Inception', 'si']
+    ['r1m', '1M', '1 Month', null], ['r3m', '3M', '3 Months', null], ['r6m', '6M', '6 Months', null],
+    ['r1y', '1Y', '1 Year', 1], ['r2y', '2Y', '2 Years', 2], ['r3y', '3Y', '3 Years', 3],
+    ['r5y', '5Y', '5 Years', 5], ['r10y', '10Y', '10 Years', 10], ['si', 'SI', 'Since Inception', 'si']
   ];
   function calcYearsSinceInception(s) {
     var d = s.profile && s.profile.inceptionDate ? new Date(s.profile.inceptionDate) : null;
@@ -360,26 +361,50 @@
   function calcFmt(n, currency) {
     return (currency === 'USD' ? '$' : '₹') + Math.round(n).toLocaleString(currency === 'USD' ? 'en-US' : 'en-IN');
   }
+  // A period with no return on file (e.g. this scheme has no 10Y track
+  // record yet) gets a disabled button, not a clickable one that only shows
+  // "—" once picked — the mockup this was built against calls this out
+  // explicitly (SI is left out of that reference design's button grid, but
+  // kept here since it's a real column on the Scheme returns table above).
+  function calcAvailablePeriods(s, siYears) {
+    return CALC_PERIODS.filter(function (p) {
+      return s.returns[p[0]] != null && !(p[3] === 'si' && siYears == null);
+    });
+  }
   function calculatorSection(s) {
     var cfg = calculatorConfig(s);
     if (!cfg) return '';
+    var siYears = calcYearsSinceInception(s);
+    var available = calcAvailablePeriods(s, siYears);
     var sym = cfg.currency === 'USD' ? '$' : '₹';
-    return '<div class="scm-section scm-calc" id="scmCalc"><div class="scm-calc-inner">' +
-      '<h2>Returns calculator</h2>' +
-      '<p class="scm-calc-sub">See what your investment could have grown to, based on this scheme\'s own trailing returns.</p>' +
-      '<label class="scm-calc-amount"><span>' + sym + '</span>' +
-      '<input type="text" inputmode="numeric" id="scmCalcAmount" value="' + cfg.amount.toLocaleString(cfg.currency === 'USD' ? 'en-US' : 'en-IN') + '"></label>' +
-      '<div class="scm-calc-rows" id="scmCalcRows"></div>' +
-      '<p class="scm-calc-note">Illustrative only, based on trailing returns' + (s.asOf ? ' as of ' + esc(s.asOf) : '') + ' — not a projection or guarantee of future performance.</p>' +
-      '</div></div>';
+    var body = available.length
+      ? '<div class="scm-calc-field"><label>Investment amount</label><div class="scm-calc-amount"><span>' + sym + '</span>' +
+        '<input type="text" inputmode="numeric" id="scmCalcAmount" value="' + cfg.amount.toLocaleString(cfg.currency === 'USD' ? 'en-US' : 'en-IN') + '"></div></div>' +
+        '<div class="scm-calc-field"><label>Select period</label><div class="scm-calc-periods" id="scmCalcPeriods">' +
+        CALC_PERIODS.map(function (p) {
+          var isAvailable = s.returns[p[0]] != null && !(p[3] === 'si' && siYears == null);
+          return '<button type="button" data-key="' + p[0] + '"' + (isAvailable ? '' : ' disabled') + '>' + esc(p[1]) + '</button>';
+        }).join('') + '</div></div>' +
+        '<div class="scm-calc-result" id="scmCalcResult"></div>'
+      : '<p class="scm-calc-empty">No trailing returns on file for this scheme yet.</p>';
+    return '<div class="scm-calc-card" id="scmCalc">' +
+      '<h3>Returns calculator</h3>' +
+      '<p class="scm-calc-sub">See what your investment could have grown to based on this scheme\'s historical return.</p>' +
+      body +
+      '<p class="scm-calc-note">Illustrative calculation based on historical returns. Actual returns may vary.</p>' +
+      '</div>';
   }
   function wireCalculator(s) {
     var cfg = calculatorConfig(s);
-    var wrap = document.getElementById('scmCalc');
-    if (!cfg || !wrap) return;
+    var card = document.getElementById('scmCalc');
+    if (!cfg || !card) return;
     var input = document.getElementById('scmCalcAmount');
-    var rowsEl = document.getElementById('scmCalcRows');
+    var periodsEl = document.getElementById('scmCalcPeriods');
+    var resultEl = document.getElementById('scmCalcResult');
+    if (!input || !periodsEl || !resultEl) return; // no available periods — the empty state has neither
     var siYears = calcYearsSinceInception(s);
+    var available = calcAvailablePeriods(s, siYears);
+    var activeKey = available[0][0];
 
     function parseAmount() {
       var n = Number(String(input.value).replace(/[^\d.]/g, ''));
@@ -387,19 +412,26 @@
     }
     function recalc() {
       var amount = parseAmount();
-      rowsEl.innerHTML = CALC_PERIODS.map(function (p) {
-        var ret = s.returns[p[0]];
-        var years = p[2] === 'si' ? siYears : p[2];
-        if (ret == null || !amount || (p[2] === 'si' && years == null)) {
-          return '<div class="scm-calc-row"><span>' + esc(p[1]) + '</span><span class="scm-calc-val na">—</span></div>';
-        }
-        var fv = years == null ? amount * (1 + ret / 100) : amount * Math.pow(1 + ret / 100, years);
-        var gain = ((fv - amount) / amount) * 100;
-        return '<div class="scm-calc-row"><span>' + esc(p[1]) + '</span>' +
-          '<span class="scm-calc-val"><b>' + calcFmt(fv, cfg.currency) + '</b>' +
-          '<i class="' + (gain >= 0 ? 'pos' : 'neg') + '">' + pct(gain) + '</i></span></div>';
-      }).join('');
+      var p = CALC_PERIODS.filter(function (c) { return c[0] === activeKey; })[0];
+      var ret = s.returns[p[0]];
+      var years = p[3] === 'si' ? siYears : p[3];
+      if (!amount) { resultEl.innerHTML = ''; return; }
+      var fv = years == null ? amount * (1 + ret / 100) : amount * Math.pow(1 + ret / 100, years);
+      var gain = fv - amount, gainPct = (gain / amount) * 100, cls = gain >= 0 ? 'pos' : 'neg';
+      resultEl.innerHTML =
+        '<div class="scm-calc-result-head"><span>' + esc(p[2]) + '</span><b class="' + cls + '">' + pct(ret) + '</b></div>' +
+        '<div class="scm-calc-result-value">' + calcFmt(fv, cfg.currency) + '</div>' +
+        '<div class="scm-calc-result-gain">Gain: <b class="' + cls + '">' + calcFmt(gain, cfg.currency) + ' (' + pct(gainPct) + ')</b></div>';
     }
+    periodsEl.querySelectorAll('button').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.key === activeKey);
+      btn.onclick = function () {
+        if (btn.disabled || btn.dataset.key === activeKey) return;
+        activeKey = btn.dataset.key;
+        periodsEl.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        recalc();
+      };
+    });
     input.addEventListener('input', recalc);
     recalc();
   }
@@ -815,6 +847,28 @@
     });
   }
 
+  // Scheme returns through Fund house sit in a two-column grid with the
+  // calculator sticky in the right column (see .scm-with-calc) whenever
+  // there is one — it stays pinned in view while a lead scrolls through
+  // everything alongside it (Fund manager, Yearly returns, Holdings,
+  // Portfolio characteristics, ...), not just while Scheme returns itself
+  // is on screen. No calculator for this scheme (Cat I/II AIF) → the exact
+  // same sections just render single-column, same as before this existed.
+  function buildMainAndCalc(s, p) {
+    var main =
+      schemeReturnsSection(s) +
+      fundManagersSection(s) +
+      historicReturnsSection(s) +
+      '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
+      portfolioCharacteristicsSection(s) +
+      feeStructureSection(p) +
+      investorEligibilitySection(p) +
+      exitLoadSection(p) +
+      fundHouseSection(s);
+    var calc = calculatorSection(s);
+    return calc ? '<div class="scm-with-calc"><div class="scm-with-calc-main">' + main + '</div>' + calc + '</div>' : main;
+  }
+
   function render(s) {
     document.title = s.schemeName + ' — myAlternates';
     var p = s.profile;
@@ -843,16 +897,7 @@
       factsSection(p) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       fundTermsSection(p) +
-      schemeReturnsSection(s) +
-      calculatorSection(s) +
-      fundManagersSection(s) +
-      historicReturnsSection(s) +
-      '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
-      portfolioCharacteristicsSection(s) +
-      feeStructureSection(p) +
-      investorEligibilitySection(p) +
-      exitLoadSection(p) +
-      fundHouseSection(s) +
+      buildMainAndCalc(s, p) +
       '</div>';
 
     var chartWrap = document.getElementById('scmChartWrap');
