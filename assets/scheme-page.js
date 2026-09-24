@@ -301,12 +301,18 @@
   function schemeReturnsSection(s) {
     var hasAny = RET_COLS.some(function (c) { return s.returns[c[1]] != null || s.benchmark[c[1]] != null; });
     if (!hasAny) return ''; // a brand-new, still-fundraising scheme (see fundTermsSection) has nothing here yet
+    // The toggle sits right beside the "As of" date (both on the row's right
+    // edge, same as the date sat alone before this toggle existed) — not
+    // floating on its own in the middle of the header, which is what a
+    // plain 3-way space-between would have done.
     return '<div class="scm-section scm-highlight"><div class="scm-sec-head"><h2>Scheme returns</h2>' +
+      '<div class="scm-ret-controls">' +
       '<div class="scm-yr-toggle" id="scmRetToggle">' +
       '<button type="button" class="' + (returnsViewMode === 'table' ? 'active' : '') + '" data-mode="table">Table</button>' +
       '<button type="button" class="' + (returnsViewMode === 'graph' ? 'active' : '') + '" data-mode="graph">Graph</button>' +
       '</div>' +
-      (s.asOf ? '<span class="scm-asof">As of ' + esc(s.asOf) + '</span>' : '') + '</div>' +
+      (s.asOf ? '<span class="scm-asof">As of ' + esc(s.asOf) + '</span>' : '') +
+      '</div></div>' +
       '<div id="scmRetBody">' + schemeReturnsBodyHtml(s) + '</div>' +
       '</div>';
   }
