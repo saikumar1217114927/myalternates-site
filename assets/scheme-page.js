@@ -317,6 +317,93 @@
       '</div>';
   }
 
+  // ---- Returns calculator ----
+  // Only three product/category combos get one, each with its own real
+  // regulatory minimum ticket as the default (not something Finalyca sends
+  // per-scheme, so these are fixed here): PMS is a flat Rs. 50L across the
+  // board under SEBI rules; AIF Category III's own SEBI minimum is Rs. 1Cr;
+  // GIFT City (IFSC) Category III's minimum under IFSCA rules is $150,000.
+  // Category I/II AIF (either product) is close-ended and drawdown-
+  // structured — investors commit capital that's called over time, not a
+  // lump sum on day one — so a simple "invest X, here's what you'd have"
+  // calculation doesn't apply there the way it does for these three, hence
+  // no calculator for anything else.
+  function calculatorConfig(s) {
+    var product = String(s.productName || '').trim().toUpperCase();
+    var cat = (s.profile && s.profile.aifCategory) || '';
+    if (product === 'PMS') return { amount: 5000000, currency: 'INR' };
+    if (product === 'AIF' && cat === 'III') return { amount: 10000000, currency: 'INR' };
+    if (product === 'GIFT_IFSC' && cat === 'III') return { amount: 150000, currency: 'USD' };
+    return null;
+  }
+  // [returns key, label, compounding years or null]. null means "apply the
+  // rate once" — correct both for a sub-1-year period (1M/3M/6M, already a
+  // plain point-to-point return, not annualized) and for exactly 1Y (a CAGR
+  // compounded for exactly one year is the same as applying it once).
+  // 'si' is resolved per-scheme from the actual inception date below, since
+  // "years since inception" isn't a fixed number the way 2Y/3Y/5Y/10Y are.
+  var CALC_PERIODS = [
+    ['r1m', '1 Month', null], ['r3m', '3 Months', null], ['r6m', '6 Months', null],
+    ['r1y', '1 Year', 1], ['r2y', '2 Years', 2], ['r3y', '3 Years', 3],
+    ['r5y', '5 Years', 5], ['r10y', '10 Years', 10], ['si', 'Since Inception', 'si']
+  ];
+  function calcYearsSinceInception(s) {
+    var d = s.profile && s.profile.inceptionDate ? new Date(s.profile.inceptionDate) : null;
+    if (!d || isNaN(d)) return null;
+    var years = (Date.now() - d.getTime()) / (365.25 * 24 * 3600 * 1000);
+    return years > 0 ? years : null;
+  }
+  // Full-precision comma formatting (not the Cr/K/M shorthand fmtAmount
+  // uses elsewhere) — a calculator result is exactly the kind of number a
+  // lead wants to see precisely, not rounded to "0 Cr" for anything under
+  // a crore.
+  function calcFmt(n, currency) {
+    return (currency === 'USD' ? '$' : '₹') + Math.round(n).toLocaleString(currency === 'USD' ? 'en-US' : 'en-IN');
+  }
+  function calculatorSection(s) {
+    var cfg = calculatorConfig(s);
+    if (!cfg) return '';
+    var sym = cfg.currency === 'USD' ? '$' : '₹';
+    return '<div class="scm-section scm-calc" id="scmCalc"><div class="scm-calc-inner">' +
+      '<h2>Returns calculator</h2>' +
+      '<p class="scm-calc-sub">See what your investment could have grown to, based on this scheme\'s own trailing returns.</p>' +
+      '<label class="scm-calc-amount"><span>' + sym + '</span>' +
+      '<input type="text" inputmode="numeric" id="scmCalcAmount" value="' + cfg.amount.toLocaleString(cfg.currency === 'USD' ? 'en-US' : 'en-IN') + '"></label>' +
+      '<div class="scm-calc-rows" id="scmCalcRows"></div>' +
+      '<p class="scm-calc-note">Illustrative only, based on trailing returns' + (s.asOf ? ' as of ' + esc(s.asOf) : '') + ' — not a projection or guarantee of future performance.</p>' +
+      '</div></div>';
+  }
+  function wireCalculator(s) {
+    var cfg = calculatorConfig(s);
+    var wrap = document.getElementById('scmCalc');
+    if (!cfg || !wrap) return;
+    var input = document.getElementById('scmCalcAmount');
+    var rowsEl = document.getElementById('scmCalcRows');
+    var siYears = calcYearsSinceInception(s);
+
+    function parseAmount() {
+      var n = Number(String(input.value).replace(/[^\d.]/g, ''));
+      return isFinite(n) && n > 0 ? n : 0;
+    }
+    function recalc() {
+      var amount = parseAmount();
+      rowsEl.innerHTML = CALC_PERIODS.map(function (p) {
+        var ret = s.returns[p[0]];
+        var years = p[2] === 'si' ? siYears : p[2];
+        if (ret == null || !amount || (p[2] === 'si' && years == null)) {
+          return '<div class="scm-calc-row"><span>' + esc(p[1]) + '</span><span class="scm-calc-val na">—</span></div>';
+        }
+        var fv = years == null ? amount * (1 + ret / 100) : amount * Math.pow(1 + ret / 100, years);
+        var gain = ((fv - amount) / amount) * 100;
+        return '<div class="scm-calc-row"><span>' + esc(p[1]) + '</span>' +
+          '<span class="scm-calc-val"><b>' + calcFmt(fv, cfg.currency) + '</b>' +
+          '<i class="' + (gain >= 0 ? 'pos' : 'neg') + '">' + pct(gain) + '</i></span></div>';
+      }).join('');
+    }
+    input.addEventListener('input', recalc);
+    recalc();
+  }
+
   function wireReturnsToggle(s) {
     var toggle = document.getElementById('scmRetToggle');
     if (!toggle) return;
@@ -757,6 +844,7 @@
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       fundTermsSection(p) +
       schemeReturnsSection(s) +
+      calculatorSection(s) +
       fundManagersSection(s) +
       historicReturnsSection(s) +
       '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
@@ -773,6 +861,7 @@
     if (yearlyWrap) wireTooltip(yearlyWrap);
     wireYearlyToggle(s);
     wireReturnsToggle(s);
+    wireCalculator(s);
     loadMeetingAction(s);
 
     // Scheduling happens through a full-screen modal that lives outside this

@@ -1030,6 +1030,43 @@ nav.links a:hover::after{width:100%;}
 .scm-fm-li:hover{opacity:.82;}
 @media (max-width:560px){ .scm-fm-card{flex-direction:column;} }
 
+/* Returns calculator — sits inline right after Scheme returns by default;
+   see the wide-viewport rule below for when it floats into the side
+   margin instead. */
+.scm-calc .scm-calc-inner{
+  background:#fff; border:1px solid var(--gold); border-radius:18px;
+  padding:26px 28px; box-shadow:0 24px 55px -30px rgba(201,162,75,0.55);
+}
+.scm-calc h2{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:20px; color:var(--ink-text); margin:0 0 6px;}
+.scm-calc-sub{font-size:13px; color:var(--muted); margin:0 0 18px; line-height:1.5;}
+.scm-calc-amount{display:flex; align-items:center; gap:8px; border:1px solid #D8D2C2; border-radius:10px; padding:10px 14px; margin-bottom:16px; background:var(--paper-2);}
+.scm-calc-amount span{font-family:'Fraunces', Georgia, serif; font-size:18px; color:var(--gold); font-weight:600;}
+.scm-calc-amount input{border:none; background:none; outline:none; font-size:18px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--ink-text); width:100%; font-family:'IBM Plex Mono',monospace;}
+.scm-calc-rows{display:flex; flex-direction:column; gap:2px;}
+.scm-calc-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid #EDE7D8; font-size:13px; color:var(--ink-text);}
+.scm-calc-row:last-child{border-bottom:0;}
+.scm-calc-val{display:flex; align-items:baseline; gap:8px; font-variant-numeric:tabular-nums; white-space:nowrap;}
+.scm-calc-val b{font-family:'IBM Plex Mono',monospace; font-weight:600;}
+.scm-calc-val i{font-style:normal; font-size:11.5px;}
+.scm-calc-val i.pos{color:var(--emerald);}
+.scm-calc-val i.neg{color:#B5502E;}
+.scm-calc-val.na{color:var(--muted-light);}
+.scm-calc-note{font-size:11px; color:var(--muted-light); line-height:1.5; margin:16px 0 0;}
+
+/* Only float into the side margin once there's genuinely enough of it —
+   at 1180px content + a 260px card + 40px breathing room on both sides of
+   it, 1800px is the narrowest viewport that doesn't crowd the main column.
+   Below that it just sits inline, in normal document flow, right after
+   Scheme returns (position:fixed removes it from flow entirely, so this
+   leaves no gap behind on wide screens either). */
+@media (min-width:1800px){
+  .scm-calc{margin-bottom:0;}
+  .scm-calc .scm-calc-inner{
+    position:fixed; top:150px; right:40px; width:260px; z-index:5;
+    max-height:calc(100vh - 180px); overflow-y:auto;
+  }
+}
+
 /* Fund house — a highlighted card (the .scm-fee-card.hero gold treatment),
    not a plain facts row: this AMC is going to become a link to every scheme
    it offers, so it already reads as its own distinct, navigable unit. Reuses
