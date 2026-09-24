@@ -664,6 +664,32 @@
       '</div></div>';
   }
 
+  // Who currently manages this fund — see publicSchemeView's
+  // activeFundManagers (server-side join on finalyca_fund_manager_funds,
+  // fund_manager_to IS NULL). A scheme with no fund manager data fetched
+  // yet, or none currently active, just omits this section — nothing to
+  // show yet isn't an error.
+  function fundManagersSection(s) {
+    var mgrs = s.profile && s.profile.activeFundManagers;
+    if (!mgrs || !mgrs.length) return '';
+    var heading = mgrs.length > 1 ? 'Fund managers' : 'Fund manager';
+    return '<div class="scm-section"><h2>' + heading + '</h2><div class="scm-fm-list">' +
+      mgrs.map(function (m) {
+        var photo = m.image
+          ? '<img class="scm-fm-photo" src="' + esc(m.image) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;scm-fm-photo-fallback&quot;>' + esc((m.name || '?').charAt(0)) + '</div>\'">'
+          : '<div class="scm-fm-photo-fallback">' + esc((m.name || '?').charAt(0)) + '</div>';
+        return '<div class="scm-fm-card">' + photo +
+          '<div class="scm-fm-body">' +
+          '<div class="scm-fm-name">' + esc(m.name) +
+          (m.linkedinUrl ? ' <a href="' + esc(m.linkedinUrl) + '" target="_blank" rel="noopener" class="scm-fm-li" aria-label="LinkedIn">in</a>' : '') +
+          '</div>' +
+          (m.designation ? '<div class="scm-fm-role">' + esc(m.designation) + '</div>' : '') +
+          (m.description ? '<p class="scm-fm-desc">' + esc(m.description) + '</p>' : '') +
+          '</div></div>';
+      }).join('') +
+      '</div></div>';
+  }
+
   // A highlighted card, not a plain facts row — this AMC (logo, name,
   // product) is the future entry point to "every scheme under this fund
   // house", so it's styled to already read as a distinct, navigable unit
@@ -737,6 +763,7 @@
       feeStructureSection(p) +
       investorEligibilitySection(p) +
       exitLoadSection(p) +
+      fundManagersSection(s) +
       fundHouseSection(s) +
       '</div>';
 
