@@ -386,11 +386,20 @@
   function calculatorTeaserSection(s) {
     if (!calculatorConfig(s) || !calcAvailablePeriods(s, calcYearsSinceInception(s)).length) return '';
     return '<div class="scm-calc-teaser" id="scmCalcTeaser" role="button" tabindex="0">' +
-      '<div class="scm-calc-teaser-icon">🧮</div>' +
-      '<div class="scm-calc-teaser-text"><h3>Returns calculator</h3>' +
-      '<p>See what your investment could have grown to based on this scheme\'s historical return.</p></div>' +
-      '<span class="scm-calc-teaser-arrow" aria-hidden="true">→</span>' +
+      '<div class="scm-calc-teaser-icon">' + calcIconSvg(30) + '</div>' +
+      '<div class="scm-calc-teaser-text"><h3>Calculate your potential returns</h3>' +
+      '<p>See how your investment in this scheme could have grown over different time periods.</p>' +
+      '<div class="scm-calc-teaser-scheme"><b>' + esc(s.amcName || s.productName) + '</b>' +
+      '<span class="scm-calc-teaser-dot" aria-hidden="true">•</span><span>' + esc(s.schemeName) + '</span></div></div>' +
+      '<span class="scm-calc-teaser-btn">' + calcIconSvg(17) + 'Check now<span aria-hidden="true">→</span></span>' +
       '</div>';
+  }
+  // Calculator glyph (+ − × = keys) — drawn in currentColor so the same
+  // icon works gold-on-cream in the icon tile and white on the button.
+  function calcIconSvg(size) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">' +
+      '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 12h16M12 3v18"/>' +
+      '<path d="M8 5.8v3M6.5 7.3h3M14.5 7.3h3M6.8 15l2.4 2.4M9.2 15l-2.4 2.4M14.5 15.5h3M14.5 17.5h3"/></svg>';
   }
   // The popup itself — sits outside .scm-body entirely (appended straight
   // after it in render(), see below) so it's a plain full-viewport overlay,
