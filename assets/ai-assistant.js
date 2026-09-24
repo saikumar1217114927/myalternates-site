@@ -17,7 +17,7 @@
    the same way session-gate.js's own injected styles already do.
    ========================================================================== */
 (function () {
-  var API_URL = 'https://myalternates-backend.onrender.com/';
+  var API_URL = 'https://myalternates-backend-c3u7.onrender.com/';
   var messages = []; // {role: 'user'|'assistant'|'error', text}
   var pendingQuestion = null; // set while the gate modal is open, sent once verified
   var sending = false;

@@ -19,7 +19,7 @@
 (function () {
   'use strict';
 
-  var LEADS_WEBHOOK_URL = 'https://myalternates-backend.onrender.com/';
+  var LEADS_WEBHOOK_URL = 'https://myalternates-backend-c3u7.onrender.com/';
 
   // styles for the returning-visitor card (self-contained, no site.css edit)
   (function () {

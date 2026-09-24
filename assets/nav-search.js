@@ -16,7 +16,7 @@
 (function () {
   'use strict';
 
-  var API_URL = 'https://myalternates-backend.onrender.com/';
+  var API_URL = 'https://myalternates-backend-c3u7.onrender.com/';
   var PRODUCT_LABEL = { PMS: 'PMS', AIF: 'AIF', GIFT_IFSC: 'GIFT City', SIF: 'SIF' };
   var PRODUCT_INTEREST = {
     PMS: 'Portfolio Management Services (PMS)',

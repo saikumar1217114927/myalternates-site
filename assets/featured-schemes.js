@@ -15,7 +15,7 @@
   var host = document.querySelector('.p-schemes[data-schemes]');
   if (!host) return;
 
-  var API_URL = 'https://myalternates-backend.onrender.com/';
+  var API_URL = 'https://myalternates-backend-c3u7.onrender.com/';
   var productCode = host.dataset.schemes || 'PMS';
   var PRODUCT_LABEL = { PMS: 'PMS', AIF: 'AIF', GIFT_IFSC: 'GIFT City' }[productCode] || productCode;
   // "Explore ... Schemes" heading only — GIFT_IFSC's cat-tabs ("All GIFT

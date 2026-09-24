@@ -11,7 +11,7 @@
   var root = document.getElementById('schemeRoot');
   if (!root) return;
 
-  var API_URL = 'https://myalternates-backend.onrender.com/';
+  var API_URL = 'https://myalternates-backend-c3u7.onrender.com/';
   var params = new URLSearchParams(location.search);
   var planId = params.get('id');
 

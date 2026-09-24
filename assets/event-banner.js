@@ -12,7 +12,7 @@
    ========================================================================== */
 (function () {
   'use strict';
-  var API_URL = 'https://myalternates-backend.onrender.com/';
+  var API_URL = 'https://myalternates-backend-c3u7.onrender.com/';
   var DISMISS_KEY = 'ma_site_banner_dismissed';
 
   function escapeHtml(s) {
