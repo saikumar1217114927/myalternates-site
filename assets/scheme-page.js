@@ -897,6 +897,17 @@
       factsSection(p) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       fundTermsSection(p) +
+      '</div>' +
+      // Its own wider wrap (not nested in the 1180px one above) — with a
+      // calculator alongside it, this block needs real room on the right
+      // for that column without squeezing the main content narrower than
+      // it was before the calculator existed (see .scm-body-wide in
+      // site.css for the actual numbers). scm-body-wide only gets added
+      // when there's actually a calculator (calculatorConfig(s)) — no
+      // calculator for this scheme (Cat I/II AIF) means no reason to widen
+      // past the normal 1180px reading width, so it stays exactly as it
+      // was before this existed.
+      '<div class="' + (calculatorConfig(s) ? 'scm-body-wide ' : '') + 'wrap">' +
       buildMainAndCalc(s, p) +
       '</div>';
 

@@ -1034,8 +1034,18 @@ nav.links a:hover::after{width:100%;}
    (see buildMainAndCalc in scheme-page.js for exactly what's alongside it),
    sticky so it stays in view while that column scrolls past. Collapses to
    a single stacked column on narrower screens, where sticky stops making
-   sense — the calculator just sits below Scheme returns in normal flow. */
-.scm-with-calc{display:grid; grid-template-columns:1fr 320px; gap:28px; align-items:start;}
+   sense — the calculator just sits below Scheme returns in normal flow.
+   This block gets its own wider wrap (scm-body-wide, applied only when a
+   calculator actually exists — see render() in scheme-page.js) rather than
+   splitting the normal 1180px reading width in two: 1560px total, minus
+   the wrap's own 32px side padding and this grid's 40px gap and 340px
+   calculator column, leaves the main content column ~1116px — the exact
+   width it already had before the calculator existed. The whole block
+   ends up sitting left of true viewport-center on a wide screen as a
+   result (wider on the right for the calculator, unchanged on the left),
+   not narrower main content squeezed to fit a sidebar into the old width. */
+.scm-body-wide.wrap{max-width:1560px;}
+.scm-with-calc{display:grid; grid-template-columns:1fr 340px; gap:40px; align-items:start;}
 .scm-with-calc-main{min-width:0;}
 @media (max-width:980px){ .scm-with-calc{grid-template-columns:1fr;} }
 
