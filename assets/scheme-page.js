@@ -328,21 +328,28 @@
   // lump sum on day one — so a simple "invest X, here's what you'd have"
   // calculation doesn't apply there the way it does for these three, hence
   // no calculator for anything else.
+  // productName arrives as "GIFT IFSC" (with a space), so spaces are folded
+  // to underscores before matching. aifCategory is only set for Cat I/II
+  // fundraising schemes (alternate_scheme_details) — a plain open-ended
+  // Cat III scheme has it blank, so fall back to the "CAT III - ..."
+  // prefix of its classification, same as the backend's deriveAifCategory.
   function calculatorConfig(s) {
-    var product = String(s.productName || '').trim().toUpperCase();
-    var cat = (s.profile && s.profile.aifCategory) || '';
+    var product = String(s.productName || '').trim().toUpperCase().replace(/\s+/g, '_');
+    var p = s.profile || {};
+    var m = /^CAT\s+(III|II|I)\b/i.exec(String(p.classification || '').trim());
+    var cat = String(p.aifCategory || '').trim().toUpperCase() || (m ? m[1].toUpperCase() : '');
     if (product === 'PMS') return { amount: 5000000, currency: 'INR' };
     if (product === 'AIF' && cat === 'III') return { amount: 10000000, currency: 'INR' };
     if (product === 'GIFT_IFSC' && cat === 'III') return { amount: 150000, currency: 'USD' };
     return null;
   }
-  // [returns key, label, compounding years or null]. null means "apply the
-  // rate once" — correct both for a sub-1-year period (1M/3M/6M, already a
-  // plain point-to-point return, not annualized) and for exactly 1Y (a CAGR
-  // compounded for exactly one year is the same as applying it once).
-  // 'si' is resolved per-scheme from the actual inception date below, since
-  // "years since inception" isn't a fixed number the way 2Y/3Y/5Y/10Y are.
-  // [returns key, short button label, long result label, compounding years].
+  // [returns key, short button label, long result label, compounding years
+  // or null]. null means "apply the rate once" — correct both for a
+  // sub-1-year period (1M/3M/6M, already a plain point-to-point return, not
+  // annualized) and for exactly 1Y (a CAGR compounded for exactly one year
+  // is the same as applying it once). 'si' is resolved per-scheme from the
+  // actual inception date below, since "years since inception" isn't a
+  // fixed number the way 2Y/3Y/5Y/10Y are.
   var CALC_PERIODS = [
     ['r1m', '1M', '1 Month', null], ['r3m', '3M', '3 Months', null], ['r6m', '6M', '6 Months', null],
     ['r1y', '1Y', '1 Year', 1], ['r2y', '2Y', '2 Years', 2], ['r3y', '3Y', '3 Years', 3],
@@ -359,7 +366,8 @@
   // lead wants to see precisely, not rounded to "0 Cr" for anything under
   // a crore.
   function calcFmt(n, currency) {
-    return (currency === 'USD' ? '$' : '₹') + Math.round(n).toLocaleString(currency === 'USD' ? 'en-US' : 'en-IN');
+    var r = Math.round(n);
+    return (r < 0 ? '-' : '') + (currency === 'USD' ? '$' : '₹') + Math.abs(r).toLocaleString(currency === 'USD' ? 'en-US' : 'en-IN');
   }
   // A period with no return on file (e.g. this scheme has no 10Y track
   // record yet) gets a disabled button, not a clickable one that only shows
@@ -376,7 +384,7 @@
   // opens (calculatorModalHtml), not inline on the page at all, so the
   // rest of the page's layout/width is completely untouched by any of this.
   function calculatorTeaserSection(s) {
-    if (!calculatorConfig(s)) return '';
+    if (!calculatorConfig(s) || !calcAvailablePeriods(s, calcYearsSinceInception(s)).length) return '';
     return '<div class="scm-calc-teaser" id="scmCalcTeaser" role="button" tabindex="0">' +
       '<div class="scm-calc-teaser-icon">🧮</div>' +
       '<div class="scm-calc-teaser-text"><h3>Returns calculator</h3>' +
@@ -452,7 +460,9 @@
       var amount = parseAmount();
       var p = CALC_PERIODS.filter(function (c) { return c[0] === activeKey; })[0];
       var ret = s.returns[p[0]];
-      var years = p[3] === 'si' ? siYears : p[3];
+      // A scheme under a year old reports SI as a plain absolute return
+      // (not annualized), so it's applied once rather than compounded.
+      var years = p[3] === 'si' ? (siYears < 1 ? null : siYears) : p[3];
       if (!amount) { resultEl.innerHTML = ''; return; }
       var fv = years == null ? amount * (1 + ret / 100) : amount * Math.pow(1 + ret / 100, years);
       var gain = fv - amount, gainPct = (gain / amount) * 100, cls = gain >= 0 ? 'pos' : 'neg';
@@ -885,11 +895,6 @@
     });
   }
 
-  // Scheme returns through Fund house sit in a two-column grid with the
-  // calculator sticky in the right column (see .scm-with-calc) whenever
-  // there is one — it stays pinned in view while a lead scrolls through
-  // everything alongside it (Fund manager, Yearly returns, Holdings,
-  // Portfolio characteristics, ...), not just while Scheme returns itself
   function render(s) {
     document.title = s.schemeName + ' — myAlternates';
     var p = s.profile;
