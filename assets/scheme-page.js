@@ -757,13 +757,13 @@
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       fundTermsSection(p) +
       schemeReturnsSection(s) +
+      fundManagersSection(s) +
       historicReturnsSection(s) +
       '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
       portfolioCharacteristicsSection(s) +
       feeStructureSection(p) +
       investorEligibilitySection(p) +
       exitLoadSection(p) +
-      fundManagersSection(s) +
       fundHouseSection(s) +
       '</div>';
 

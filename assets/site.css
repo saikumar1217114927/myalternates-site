@@ -1011,10 +1011,12 @@ nav.links a:hover::after{width:100%;}
    One card per manager (a scheme can have more than one). */
 .scm-fm-list{display:flex; flex-direction:column; gap:16px;}
 .scm-fm-card{display:flex; gap:18px; background:#fff; border:1px solid #E4DFD1; border-radius:14px; padding:22px 24px;}
-.scm-fm-photo{width:64px; height:64px; border-radius:50%; object-fit:cover; flex:none; border:1px solid #EAE4D4;}
+/* Sized deliberately large — a lead should be able to actually make out
+   the fund manager's face at a glance, not squint at a tiny thumbnail. */
+.scm-fm-photo{width:120px; height:120px; border-radius:50%; object-fit:cover; flex:none; border:1px solid #EAE4D4;}
 .scm-fm-photo-fallback{
-  width:64px; height:64px; border-radius:50%; background:var(--paper-2); color:var(--muted); flex:none;
-  font-family:'Fraunces', Georgia, serif; font-weight:600; font-size:24px;
+  width:120px; height:120px; border-radius:50%; background:var(--paper-2); color:var(--muted); flex:none;
+  font-family:'Fraunces', Georgia, serif; font-weight:600; font-size:42px;
   display:flex; align-items:center; justify-content:center;
 }
 .scm-fm-body{min-width:0;}
