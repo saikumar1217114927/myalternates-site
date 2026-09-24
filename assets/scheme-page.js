@@ -371,9 +371,31 @@
       return s.returns[p[0]] != null && !(p[3] === 'si' && siYears == null);
     });
   }
-  function calculatorSection(s) {
+  // A plain clickable teaser card, same weight as the Fund house card right
+  // above it — the actual calculator only exists inside the popup this
+  // opens (calculatorModalHtml), not inline on the page at all, so the
+  // rest of the page's layout/width is completely untouched by any of this.
+  function calculatorTeaserSection(s) {
+    if (!calculatorConfig(s)) return '';
+    return '<div class="scm-calc-teaser" id="scmCalcTeaser" role="button" tabindex="0">' +
+      '<div class="scm-calc-teaser-icon">🧮</div>' +
+      '<div class="scm-calc-teaser-text"><h3>Returns calculator</h3>' +
+      '<p>See what your investment could have grown to based on this scheme\'s historical return.</p></div>' +
+      '<span class="scm-calc-teaser-arrow" aria-hidden="true">→</span>' +
+      '</div>';
+  }
+  // The popup itself — sits outside .scm-body entirely (appended straight
+  // after it in render(), see below) so it's a plain full-viewport overlay,
+  // not something living inside (and constrained by) any of the page's own
+  // width. Header repeats the AMC logo/name + scheme name (same sr-logo/
+  // sr-logo-fallback pieces Fund house above uses) so it's clear which
+  // scheme this is calculating for once the rest of the page is covered.
+  function calculatorModalHtml(s) {
     var cfg = calculatorConfig(s);
     if (!cfg) return '';
+    var logo = s.amcLogo
+      ? '<img class="sr-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;sr-logo-fallback&quot;>' + esc((s.amcName || '?').charAt(0)) + '</div>\'">'
+      : '<div class="sr-logo-fallback">' + esc((s.amcName || '?').charAt(0)) + '</div>';
     var siYears = calcYearsSinceInception(s);
     var available = calcAvailablePeriods(s, siYears);
     var sym = cfg.currency === 'USD' ? '$' : '₹';
@@ -387,17 +409,33 @@
         }).join('') + '</div></div>' +
         '<div class="scm-calc-result" id="scmCalcResult"></div>'
       : '<p class="scm-calc-empty">No trailing returns on file for this scheme yet.</p>';
-    return '<div class="scm-calc-card" id="scmCalc">' +
+    return '<div class="scm-calc-modal" id="scmCalcModal">' +
+      '<div class="scm-calc-modal-backdrop" id="scmCalcBackdrop"></div>' +
+      '<div class="scm-calc-modal-box" role="dialog" aria-modal="true">' +
+      '<button type="button" class="scm-calc-modal-close" id="scmCalcClose" aria-label="Close">✕</button>' +
+      '<div class="scm-calc-modal-head">' + logo +
+      '<div><div class="scm-calc-modal-amc">' + esc(s.amcName || s.productName) + '</div>' +
+      '<div class="scm-calc-modal-scheme">' + esc(s.schemeName) + '</div></div></div>' +
       '<h3>Returns calculator</h3>' +
       '<p class="scm-calc-sub">See what your investment could have grown to based on this scheme\'s historical return.</p>' +
       body +
       '<p class="scm-calc-note">Illustrative calculation based on historical returns. Actual returns may vary.</p>' +
-      '</div>';
+      '</div></div>';
   }
   function wireCalculator(s) {
     var cfg = calculatorConfig(s);
-    var card = document.getElementById('scmCalc');
-    if (!cfg || !card) return;
+    var teaser = document.getElementById('scmCalcTeaser');
+    var modal = document.getElementById('scmCalcModal');
+    if (!cfg || !teaser || !modal) return;
+
+    function openModal() { modal.classList.add('show'); document.body.style.overflow = 'hidden'; }
+    function closeModal() { modal.classList.remove('show'); document.body.style.overflow = ''; }
+    teaser.onclick = openModal;
+    teaser.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); } };
+    document.getElementById('scmCalcClose').onclick = closeModal;
+    document.getElementById('scmCalcBackdrop').onclick = closeModal;
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal.classList.contains('show')) closeModal(); });
+
     var input = document.getElementById('scmCalcAmount');
     var periodsEl = document.getElementById('scmCalcPeriods');
     var resultEl = document.getElementById('scmCalcResult');
@@ -852,23 +890,6 @@
   // there is one — it stays pinned in view while a lead scrolls through
   // everything alongside it (Fund manager, Yearly returns, Holdings,
   // Portfolio characteristics, ...), not just while Scheme returns itself
-  // is on screen. No calculator for this scheme (Cat I/II AIF) → the exact
-  // same sections just render single-column, same as before this existed.
-  function buildMainAndCalc(s, p) {
-    var main =
-      schemeReturnsSection(s) +
-      fundManagersSection(s) +
-      historicReturnsSection(s) +
-      '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
-      portfolioCharacteristicsSection(s) +
-      feeStructureSection(p) +
-      investorEligibilitySection(p) +
-      exitLoadSection(p) +
-      fundHouseSection(s);
-    var calc = calculatorSection(s);
-    return calc ? '<div class="scm-with-calc"><div class="scm-with-calc-main">' + main + '</div>' + calc + '</div>' : main;
-  }
-
   function render(s) {
     document.title = s.schemeName + ' — myAlternates';
     var p = s.profile;
@@ -897,19 +918,18 @@
       factsSection(p) +
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       fundTermsSection(p) +
+      schemeReturnsSection(s) +
+      fundManagersSection(s) +
+      historicReturnsSection(s) +
+      '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
+      portfolioCharacteristicsSection(s) +
+      feeStructureSection(p) +
+      investorEligibilitySection(p) +
+      exitLoadSection(p) +
+      fundHouseSection(s) +
+      calculatorTeaserSection(s) +
       '</div>' +
-      // Its own wider wrap (not nested in the 1180px one above) — with a
-      // calculator alongside it, this block needs real room on the right
-      // for that column without squeezing the main content narrower than
-      // it was before the calculator existed (see .scm-body-wide in
-      // site.css for the actual numbers). scm-body-wide only gets added
-      // when there's actually a calculator (calculatorConfig(s)) — no
-      // calculator for this scheme (Cat I/II AIF) means no reason to widen
-      // past the normal 1180px reading width, so it stays exactly as it
-      // was before this existed.
-      '<div class="' + (calculatorConfig(s) ? 'scm-body-wide ' : '') + 'wrap">' +
-      buildMainAndCalc(s, p) +
-      '</div>';
+      calculatorModalHtml(s);
 
     var chartWrap = document.getElementById('scmChartWrap');
     if (chartWrap) wireTooltip(chartWrap);

@@ -1030,31 +1030,50 @@ nav.links a:hover::after{width:100%;}
 .scm-fm-li:hover{opacity:.82;}
 @media (max-width:560px){ .scm-fm-card{flex-direction:column;} }
 
-/* Returns calculator — a right-hand column beside Scheme returns onward
-   (see buildMainAndCalc in scheme-page.js for exactly what's alongside it),
-   sticky so it stays in view while that column scrolls past. Collapses to
-   a single stacked column on narrower screens, where sticky stops making
-   sense — the calculator just sits below Scheme returns in normal flow.
-   This block gets its own wider wrap (scm-body-wide, applied only when a
-   calculator actually exists — see render() in scheme-page.js) rather than
-   splitting the normal 1180px reading width in two: 1560px total, minus
-   the wrap's own 32px side padding and this grid's 40px gap and 340px
-   calculator column, leaves the main content column ~1116px — the exact
-   width it already had before the calculator existed. The whole block
-   ends up sitting left of true viewport-center on a wide screen as a
-   result (wider on the right for the calculator, unchanged on the left),
-   not narrower main content squeezed to fit a sidebar into the old width. */
-.scm-body-wide.wrap{max-width:1560px;}
-.scm-with-calc{display:grid; grid-template-columns:1fr 340px; gap:40px; align-items:start;}
-.scm-with-calc-main{min-width:0;}
-@media (max-width:980px){ .scm-with-calc{grid-template-columns:1fr;} }
-
-.scm-calc-card{
-  background:#fff; border:1px solid var(--gold); border-radius:16px;
-  padding:24px 24px 20px; box-shadow:0 24px 55px -30px rgba(201,162,75,0.55);
+/* Returns calculator — a plain clickable teaser card sitting right after
+   Fund house, same weight as that card above it. The calculator itself
+   lives only inside the popup this opens, so none of this touches the
+   rest of the page's layout or width at all. */
+.scm-calc-teaser{
+  display:flex; align-items:center; gap:18px; cursor:pointer;
+  background:linear-gradient(180deg,#fff,rgba(201,162,75,0.06));
+  border:1px solid var(--gold); border-radius:16px; padding:20px 24px;
+  box-shadow:0 14px 30px -20px rgba(201,162,75,0.45);
+  transition:box-shadow .15s ease, transform .15s ease;
 }
-@media (min-width:981px){ .scm-calc-card{position:sticky; top:24px;} }
-.scm-calc-card h3{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:19px; color:var(--ink-text); margin:0 0 6px;}
+.scm-calc-teaser:hover{box-shadow:0 18px 38px -18px rgba(201,162,75,0.6); transform:translateY(-1px);}
+.scm-calc-teaser-icon{font-size:26px; flex:none; line-height:1;}
+.scm-calc-teaser-text{min-width:0;}
+.scm-calc-teaser-text h3{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:17px; color:var(--ink-text); margin:0 0 4px;}
+.scm-calc-teaser-text p{font-size:13px; color:var(--muted); margin:0; line-height:1.5;}
+.scm-calc-teaser-arrow{font-size:19px; color:var(--muted-light); flex:none; line-height:1; margin-left:auto;}
+
+/* The popup — a plain centered dialog + backdrop, not the full-page
+   .sched-page takeover lead-form.js's own scheduler uses (a compact
+   calculator doesn't need the whole screen the way a multi-step booking
+   flow does). */
+.scm-calc-modal{position:fixed; inset:0; z-index:1500; display:none;}
+.scm-calc-modal.show{display:block;}
+.scm-calc-modal-backdrop{position:absolute; inset:0; background:rgba(11,14,19,0.55); animation:scmCalcFade .15s ease;}
+@keyframes scmCalcFade{from{opacity:0} to{opacity:1}}
+.scm-calc-modal-box{
+  position:relative; z-index:1; max-width:420px; width:calc(100% - 40px); margin:6vh auto 0;
+  background:#fff; border-radius:18px; padding:28px 26px 22px; max-height:88vh; overflow-y:auto;
+  box-shadow:0 40px 80px -30px rgba(11,14,19,0.5); animation:scmCalcUp .2s ease;
+}
+@keyframes scmCalcUp{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)}}
+.scm-calc-modal-close{
+  position:absolute; top:16px; right:16px; width:32px; height:32px; border-radius:50%;
+  border:1px solid #ded6c2; background:#fff; color:var(--muted); font-size:14px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:border-color .15s ease, color .15s ease;
+}
+.scm-calc-modal-close:hover{border-color:var(--gold); color:var(--ink-text);}
+.scm-calc-modal-head{display:flex; align-items:center; gap:12px; margin:0 28px 18px 0; padding-bottom:16px; border-bottom:1px solid #EDE7D8;}
+.scm-calc-modal-amc{font-size:11px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--gold); margin-bottom:3px;}
+.scm-calc-modal-scheme{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:15.5px; color:var(--ink-text); line-height:1.3;}
+.scm-calc-modal-box h3{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:19px; color:var(--ink-text); margin:0 0 6px;}
+@media (max-width:480px){ .scm-calc-modal-box{margin-top:0; max-height:100vh; height:100%; border-radius:0;} }
+
 .scm-calc-sub{font-size:12.5px; color:var(--muted); margin:0 0 20px; line-height:1.5;}
 .scm-calc-field{margin-bottom:18px;}
 .scm-calc-field label{display:block; font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-bottom:8px;}
