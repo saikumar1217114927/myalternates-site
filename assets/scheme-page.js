@@ -180,24 +180,16 @@
     }
   }
 
-  // Two separate sections, both always visible — a chart ("Trailing
-  // returns") and a table ("Scheme returns"), not a toggle between them.
-  function trailingReturnsSection(s) {
-    var chart = buildChart(s);
-    if (!chart) return '';
-    return '<div class="scm-section"><div class="scm-sec-head"><h2>Trailing returns</h2>' +
-      (s.asOf ? '<span class="scm-asof">As of ' + esc(s.asOf) + '</span>' : '') + '</div>' +
-      '<div class="scm-chart-wrap" id="scmChartWrap">' + chart + '</div>' +
-      '<div class="scm-legend"><span><i class="scheme"></i>' + esc(s.schemeName) + '</span>' +
-      (s.benchmark.name ? '<span><i class="bench"></i>' + esc(s.benchmark.name) + '</span>' : '') + '</div>' +
-      '</div>';
-  }
+  // Scheme returns' own Table/Graph switch reuses this chart — see
+  // schemeReturnsSection below (used to be a separate always-visible
+  // "Trailing returns" section; folded in as the Graph view instead of
+  // showing the same table's numbers twice in two different shapes).
 
   // ---- yearly returns bar chart (single series: Calendar Year or Financial
-  // Year, zero baseline) — sits opposite the trailing-returns chart above, in
-  // a two-column row. No per-bar value labels, same reasoning as the
-  // trailing chart: up to 17 years packed into a half-width column would
-  // collide; the hover tooltip carries the exact figure instead.
+  // Year, zero baseline) — own section, right below Scheme returns. No
+  // per-bar value labels, same reasoning as Scheme returns' own graph view:
+  // up to 17 years packed in would collide; the hover tooltip carries the
+  // exact figure instead.
   var yearlyMode = 'cy';
 
   function buildYearlyChart(rows) {
@@ -270,9 +262,16 @@
     });
   }
 
-  function schemeReturnsSection(s) {
-    var hasAny = RET_COLS.some(function (c) { return s.returns[c[1]] != null || s.benchmark[c[1]] != null; });
-    if (!hasAny) return ''; // a brand-new, still-fundraising scheme (see fundTermsSection) has nothing here yet
+  // The scheme's own trailing numbers — the single most important thing a
+  // lead comes to this page for, so this section gets the page's one
+  // highlighted-card treatment (.scm-highlight) instead of sitting as a
+  // plain section like everything around it. A Table/Graph switch (same
+  // .scm-yr-toggle piece Yearly returns' own Calendar/Financial year switch
+  // uses) lets a lead read it either way, without showing the identical
+  // numbers twice in two always-visible sections.
+  var returnsViewMode = 'table';
+
+  function schemeReturnsTableHtml(s) {
     function row(label, obj, cls) {
       return '<tr class="' + cls + '"><td>' + esc(label) + '</td>' +
         RET_COLS.map(function (c) {
@@ -280,14 +279,52 @@
           return '<td class="' + (v == null ? 'na' : (v >= 0 ? 'pos' : 'neg')) + '">' + (v == null ? 'NA' : pct(v)) + '</td>';
         }).join('') + '</tr>';
     }
-    return '<div class="scm-section"><div class="scm-sec-head"><h2>Scheme returns</h2>' +
-      (s.asOf ? '<span class="scm-asof">As of ' + esc(s.asOf) + '</span>' : '') + '</div>' +
-      '<div class="scm-table-wrap"><table class="scm-perf-table"><thead><tr><th>Returns (ann.)</th>' +
+    return '<div class="scm-table-wrap"><table class="scm-perf-table"><thead><tr><th>Returns (ann.)</th>' +
       RET_COLS.map(function (c) { return '<th>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
       row(s.schemeName, s.returns, '') +
       (s.benchmark.name ? row(s.benchmark.name, s.benchmark, 'bench-row') : '') +
-      '</tbody></table></div>' +
+      '</tbody></table></div>';
+  }
+
+  function schemeReturnsGraphHtml(s) {
+    var chart = buildChart(s);
+    if (!chart) return '<p style="color:var(--muted);font-size:12.5px;padding:20px 0;text-align:center;">No graph data yet.</p>';
+    return '<div class="scm-chart-wrap" id="scmChartWrap">' + chart + '</div>' +
+      '<div class="scm-legend"><span><i class="scheme"></i>' + esc(s.schemeName) + '</span>' +
+      (s.benchmark.name ? '<span><i class="bench"></i>' + esc(s.benchmark.name) + '</span>' : '') + '</div>';
+  }
+
+  function schemeReturnsBodyHtml(s) {
+    return returnsViewMode === 'table' ? schemeReturnsTableHtml(s) : schemeReturnsGraphHtml(s);
+  }
+
+  function schemeReturnsSection(s) {
+    var hasAny = RET_COLS.some(function (c) { return s.returns[c[1]] != null || s.benchmark[c[1]] != null; });
+    if (!hasAny) return ''; // a brand-new, still-fundraising scheme (see fundTermsSection) has nothing here yet
+    return '<div class="scm-section scm-highlight"><div class="scm-sec-head"><h2>Scheme returns</h2>' +
+      '<div class="scm-yr-toggle" id="scmRetToggle">' +
+      '<button type="button" class="' + (returnsViewMode === 'table' ? 'active' : '') + '" data-mode="table">Table</button>' +
+      '<button type="button" class="' + (returnsViewMode === 'graph' ? 'active' : '') + '" data-mode="graph">Graph</button>' +
+      '</div>' +
+      (s.asOf ? '<span class="scm-asof">As of ' + esc(s.asOf) + '</span>' : '') + '</div>' +
+      '<div id="scmRetBody">' + schemeReturnsBodyHtml(s) + '</div>' +
       '</div>';
+  }
+
+  function wireReturnsToggle(s) {
+    var toggle = document.getElementById('scmRetToggle');
+    if (!toggle) return;
+    toggle.querySelectorAll('button').forEach(function (btn) {
+      btn.onclick = function () {
+        if (btn.dataset.mode === returnsViewMode) return;
+        returnsViewMode = btn.dataset.mode;
+        toggle.querySelectorAll('button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        var body = document.getElementById('scmRetBody');
+        body.innerHTML = schemeReturnsBodyHtml(s);
+        var chartWrap = document.getElementById('scmChartWrap');
+        if (chartWrap) wireTooltip(chartWrap);
+      };
+    });
   }
 
   // Weight is already a % of the portfolio, so the meter fill width is just
@@ -672,11 +709,6 @@
       ? '<img class="scm-hero-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.remove()">'
       : '';
 
-    // Stacked, full width, Yearly returns above Trailing returns — not side
-    // by side (that read as cramped: two charts of very different bar counts
-    // squeezed into half-width columns each).
-    var returnsRow = historicReturnsSection(s) + trailingReturnsSection(s);
-
     root.innerHTML =
       '<div class="scm-hero"><div class="wrap">' +
       '<div class="scm-hero-top">' +
@@ -693,7 +725,7 @@
       (p.objective ? '<div class="scm-section"><h2>Investment objective</h2><p class="scm-objective">' + esc(p.objective) + '</p></div>' : '') +
       fundTermsSection(p) +
       schemeReturnsSection(s) +
-      returnsRow +
+      historicReturnsSection(s) +
       '<div class="scm-two-col">' + holdingsSection(s) + sectorsSection(s) + '</div>' +
       portfolioCharacteristicsSection(s) +
       feeStructureSection(p) +
@@ -707,6 +739,7 @@
     var yearlyWrap = document.getElementById('scmYearlyChartWrap');
     if (yearlyWrap) wireTooltip(yearlyWrap);
     wireYearlyToggle(s);
+    wireReturnsToggle(s);
     loadMeetingAction(s);
 
     // Scheduling happens through a full-screen modal that lives outside this
