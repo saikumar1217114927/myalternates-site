@@ -363,17 +363,24 @@
     // fund has fundTermsSection instead (target size, tenure, commitment,
     // drawdown, closing).
     if (s.profile && s.profile.aifCategory) return '';
+    var p = s.profile || {};
     var pc = s.portfolioCharacteristics || {};
     var keys = Object.keys(pc).filter(function (k) { return !CHAR_SKIP_KEYS[k] && pc[k] != null && pc[k] !== ''; });
-    if (!keys.length) return '';
+    var tiles = keys.map(function (k) {
+      return '<div class="scm-char-tile"><span class="scm-char-label">' + esc(charLabel(k)) + '</span>' +
+        '<span class="scm-char-value">' + esc(charValue(k, pc[k])) + '</span></div>';
+    });
+    // SIP/STP availability (scheme_sip_available/scheme_stp_available,
+    // already stored — see publicSchemeView's sipAvailable/stpAvailable) —
+    // moved here from the old standalone Transactability section.
+    [['SIP Availability', p.sipAvailable], ['STP Availability', p.stpAvailable]].forEach(function (f) {
+      tiles.push('<div class="scm-char-tile"><span class="scm-char-label">' + esc(f[0]) + '</span>' +
+        '<span class="scm-char-value">' + (f[1] ? 'Available' : 'Not Available') + '</span></div>');
+    });
+    if (!tiles.length) return '';
     return '<div class="scm-section"><div class="scm-sec-head"><h2>Portfolio characteristics</h2>' +
       (pc.date ? '<span class="scm-asof">As of ' + esc(pc.date) + '</span>' : '') + '</div>' +
-      '<div class="scm-chars-panel"><div class="scm-chars-grid">' +
-      keys.map(function (k) {
-        return '<div class="scm-char-tile"><span class="scm-char-label">' + esc(charLabel(k)) + '</span>' +
-          '<span class="scm-char-value">' + esc(charValue(k, pc[k])) + '</span></div>';
-      }).join('') +
-      '</div></div></div>';
+      '<div class="scm-chars-panel"><div class="scm-chars-grid">' + tiles.join('') + '</div></div></div>';
   }
 
   function factsSection(p) {
@@ -614,20 +621,6 @@
       '</div></div>';
   }
 
-  function flagsSection(p) {
-    // A closed-ended Cat I/II fund has no SIP/STP/SWP or open-ended
-    // purchase/redemption window — this whole section is PMS/Cat III's
-    // concept, not theirs (see exitLoadSection's own guard above).
-    if (p.aifCategory) return '';
-    var flags = [
-      ['SIP', p.sipAvailable], ['STP', p.stpAvailable], ['SWP', p.swpAvailable],
-      ['Purchase open', p.purchaseAvailable], ['Redemption open', p.redemptionAvailable]
-    ];
-    return '<div class="scm-section"><h2>Transactability</h2><div class="scm-flags">' +
-      flags.map(function (f) { return '<span class="scm-flag ' + (f[1] ? 'on' : 'off') + '">' + (f[1] ? '✓' : '—') + ' ' + esc(f[0]) + '</span>'; }).join('') +
-      '</div></div>';
-  }
-
   // A highlighted card, not a plain facts row — this AMC (logo, name,
   // product) is the future entry point to "every scheme under this fund
   // house", so it's styled to already read as a distinct, navigable unit
@@ -706,7 +699,6 @@
       feeStructureSection(p) +
       investorEligibilitySection(p) +
       exitLoadSection(p) +
-      flagsSection(p) +
       fundHouseSection(s) +
       '</div>';
 
