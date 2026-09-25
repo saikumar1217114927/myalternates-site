@@ -175,7 +175,7 @@
     // category the scheme actually falls under — pair it with that.
     var aifCat = aifCategoryOf(s);
     var strategy = strategyOf(s);
-    return '<div class="scheme-row' + (s.featured ? ' featured' : '') + '">' +
+    return '<div class="scheme-row' + (s.featured ? ' featured' : '') + '">' + compareBtnHtml(s) +
       '<div class="sr-id">' + logo +
       '<div class="sr-id-text">' +
       '<div class="sr-toprow"><span class="sc-amc">' + esc(s.amcName || s.productName) + '</span></div>' +
@@ -219,7 +219,7 @@
     var commitment = p.minCommitment != null ? fmtAmount(p.minCommitment, currency) : null;
     var targetLabel = 'Fund target size' + (currency === 'INR' ? ' (in Cr)' : '');
     var closing = p.finalClosingDate || p.finalClosingRemarks || 'To be determined';
-    return '<div class="scheme-row fund-terms' + (s.featured ? ' featured' : '') + '">' +
+    return '<div class="scheme-row fund-terms' + (s.featured ? ' featured' : '') + '">' + compareBtnHtml(s) +
       '<div class="sr-id">' + logo +
       '<div class="sr-id-text">' +
       '<div class="sr-toprow"><span class="sc-amc">' + esc(s.amcName || s.productName) + '</span></div>' +
@@ -302,6 +302,10 @@
     listEl.querySelectorAll('[data-discover]').forEach(function (btn) {
       btn.onclick = function () { goToScheme(btn.dataset.discover); };
     });
+    listEl.querySelectorAll('[data-compare]').forEach(function (btn) {
+      btn.onclick = function (e) { e.stopPropagation(); toggleCompare(btn.dataset.compare); };
+    });
+    syncCompareButtons();
   }
 
   function uniqueSorted(arr) {
@@ -777,6 +781,308 @@
   // in the heading row, changing its height.
   document.addEventListener('ma:scheduled', function () { setTimeout(updateStickyOffsets, 150); });
 
+  // ---- Compare (2–3 schemes, like-for-like only) ----
+  // A scheme can only be compared with others in the same group: PMS with
+  // PMS, and AIF / GIFT City within the same SEBI category (Cat I with Cat
+  // I, and so on) — a drawdown Cat II fund and a listed-equity Cat III one
+  // don't share the metrics a side-by-side table needs. The selection lives
+  // in sessionStorage per product page, so it survives a trip to a scheme
+  // page and back.
+  var COMPARE_MAX = 3, COMPARE_MIN = 2;
+  var COMPARE_KEY = 'maCompare:' + productCode;
+  var compareSel = loadCompareSel();
+  var compareMsgTimer = null;
+
+  function compareGroupOf(s) {
+    if (!FUND_TERMS_PRODUCTS[productCode]) return productCode;
+    return productCode + ':' + (aifCategoryOf(s) || '?');
+  }
+  function compareGroupLabel(group) {
+    var parts = String(group).split(':');
+    if (parts.length < 2) return PRODUCT_LABEL;
+    return PRODUCT_LABEL + (parts[1] === '?' ? '' : ' Cat ' + parts[1]);
+  }
+  function loadCompareSel() {
+    try {
+      var v = JSON.parse(sessionStorage.getItem(COMPARE_KEY) || '[]');
+      return Array.isArray(v) ? v.slice(0, COMPARE_MAX) : [];
+    } catch (e) { return []; }
+  }
+  function saveCompareSel() {
+    try { sessionStorage.setItem(COMPARE_KEY, JSON.stringify(compareSel)); } catch (e) {}
+  }
+  function findScheme(planId) {
+    for (var i = 0; i < allSchemes.length; i++) if (String(allSchemes[i].planId) === String(planId)) return allSchemes[i];
+    return null;
+  }
+  var COMPARE_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h11m0 0-3-3m3 3-3 3M16 13H5m0 0 3-3m-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function compareBtnHtml(s) {
+    return '<button type="button" class="sr-compare" data-compare="' + esc(s.planId) + '" title="Add to compare" aria-label="Add ' + esc(s.schemeName) + ' to compare" aria-pressed="false">' + COMPARE_ICON + '</button>';
+  }
+  function syncCompareButtons() {
+    var picked = {};
+    compareSel.forEach(function (c) { picked[String(c.planId)] = 1; });
+    host.querySelectorAll('[data-compare]').forEach(function (btn) {
+      var on = !!picked[btn.dataset.compare];
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.title = on ? 'Remove from compare' : 'Add to compare';
+    });
+  }
+  function toggleCompare(planId) {
+    var idx = -1;
+    compareSel.forEach(function (c, i) { if (String(c.planId) === String(planId)) idx = i; });
+    if (idx > -1) {
+      compareSel.splice(idx, 1);
+    } else {
+      var s = findScheme(planId);
+      if (!s) return;
+      var group = compareGroupOf(s);
+      if (compareSel.length && compareSel[0].group !== group) {
+        var cur = compareGroupLabel(compareSel[0].group);
+        showCompareMsg('You can compare ' + cur + ' schemes only with other ' + cur + ' schemes. Clear your selection to compare ' + compareGroupLabel(group) + ' instead.');
+        return;
+      }
+      if (compareSel.length >= COMPARE_MAX) {
+        showCompareMsg('You can compare up to ' + COMPARE_MAX + ' schemes at a time. Remove one to add another.');
+        return;
+      }
+      compareSel.push({ planId: s.planId, schemeName: s.schemeName, amcName: s.amcName || '', group: group });
+    }
+    saveCompareSel();
+    syncCompareButtons();
+    renderCompareTray();
+  }
+
+  var trayEl = null;
+  function ensureTray() {
+    if (trayEl) return trayEl;
+    trayEl = document.createElement('div');
+    trayEl.className = 'cmp-tray';
+    trayEl.hidden = true;
+    trayEl.innerHTML = '<div class="cmp-tray-in">' +
+      '<div class="cmp-tray-head"><b id="cmpTrayTitle"></b><span id="cmpTrayCount"></span></div>' +
+      '<div class="cmp-slots" id="cmpSlots"></div>' +
+      '<div class="cmp-tray-actions"><button type="button" class="cmp-clear" id="cmpClear">Clear</button>' +
+      '<button type="button" class="sc-discover cmp-go" id="cmpGo">Compare</button></div>' +
+      '<div class="cmp-msg" id="cmpMsg" role="status" aria-live="polite"></div>' +
+      '</div>';
+    document.body.appendChild(trayEl);
+    trayEl.querySelector('#cmpClear').onclick = function () {
+      compareSel = []; saveCompareSel(); syncCompareButtons(); renderCompareTray();
+    };
+    trayEl.querySelector('#cmpGo').onclick = function () {
+      if (compareSel.length >= COMPARE_MIN) openCompareGated();
+    };
+    trayEl.querySelector('#cmpSlots').onclick = function (e) {
+      var x = e.target.closest('[data-cmp-remove]');
+      if (x) toggleCompare(x.dataset.cmpRemove);
+    };
+    return trayEl;
+  }
+  function renderCompareTray() {
+    var t = ensureTray();
+    if (!compareSel.length) {
+      t.hidden = true;
+      document.body.classList.remove('cmp-tray-on');
+      return;
+    }
+    t.querySelector('#cmpTrayTitle').textContent = 'Compare ' + compareGroupLabel(compareSel[0].group);
+    t.querySelector('#cmpTrayCount').textContent = compareSel.length + ' of ' + COMPARE_MAX + ' selected' +
+      (compareSel.length < COMPARE_MIN ? ' · add at least one more' : '');
+    var slots = compareSel.map(function (c) {
+      return '<div class="cmp-slot"><div class="cmp-slot-text"><span>' + esc(c.amcName) + '</span><b>' + esc(c.schemeName) + '</b></div>' +
+        '<button type="button" class="cmp-slot-x" data-cmp-remove="' + esc(c.planId) + '" aria-label="Remove ' + esc(c.schemeName) + '">✕</button></div>';
+    });
+    for (var i = compareSel.length; i < COMPARE_MAX; i++) slots.push('<div class="cmp-slot cmp-slot-empty">+ Add a scheme</div>');
+    t.querySelector('#cmpSlots').innerHTML = slots.join('');
+    t.querySelector('#cmpGo').disabled = compareSel.length < COMPARE_MIN;
+    t.hidden = false;
+    document.body.classList.add('cmp-tray-on');
+    document.body.style.setProperty('--cmp-tray-h', t.offsetHeight + 'px');
+  }
+  function showCompareMsg(text) {
+    var t = ensureTray();
+    if (t.hidden) renderCompareTray();
+    var m = t.querySelector('#cmpMsg');
+    m.textContent = text;
+    m.classList.add('show');
+    clearTimeout(compareMsgTimer);
+    compareMsgTimer = setTimeout(function () { m.classList.remove('show'); }, 4500);
+  }
+
+  // Same rule as Discover: full scheme data is for registered visitors, so
+  // an anonymous one registers first and lands straight in the comparison.
+  function openCompareGated() {
+    if (window.MASession && window.MASession.getToken()) { openCompare(); return; }
+    window.maOpenGateModal({
+      message: 'Create your free account to compare schemes side by side.',
+      interest: PRODUCT_INTEREST,
+      onVerified: function (token, r, lead, close) { close(); openCompare(); }
+    });
+  }
+
+  function fmtMoney(v, currency) {
+    if (v == null || v === '') return null;
+    v = Number(v);
+    if (!isFinite(v)) return null;
+    if (currency && currency !== 'INR') return fmtAmount(v, currency);
+    if (v >= 1e7) return '₹' + (Math.round(v / 1e5) / 100).toLocaleString('en-IN') + ' Cr';
+    if (v >= 1e5) return '₹' + (Math.round(v / 1e3) / 100).toLocaleString('en-IN') + ' L';
+    return '₹' + Math.round(v).toLocaleString('en-IN');
+  }
+  function cmpText(v) { return v == null || v === '' ? '<span class="cmp-na">–</span>' : esc(v); }
+  function cmpRow(label, cells) {
+    return '<tr><th scope="row">' + esc(label) + '</th>' + cells.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>';
+  }
+  function cmpSection(label, n) {
+    return '<tr class="cmp-sec"><th colspan="' + (n + 1) + '">' + esc(label) + '</th></tr>';
+  }
+  // One returns row: scheme return in each column, benchmark underneath,
+  // and the best scheme figure in the row picked out.
+  function cmpReturnRow(label, key, list) {
+    var vals = list.map(function (s) { var v = (s.returns || {})[key]; return v == null ? null : Number(v); });
+    var nums = vals.filter(function (v) { return v != null; });
+    if (!nums.length) return '';
+    var best = nums.length > 1 ? Math.max.apply(null, nums) : null;
+    return cmpRow(label, vals.map(function (v, i) {
+      var bm = (list[i].benchmark || {})[key];
+      if (v == null) return '<span class="cmp-na">–</span>';
+      return '<b class="cmp-ret ' + (v >= 0 ? 'pos' : 'neg') + (v === best ? ' best' : '') + '">' + pct(v) + '</b>' +
+        (bm != null ? '<small class="cmp-bm">Benchmark ' + pct(Number(bm)) + '</small>' : '');
+    }));
+  }
+  function topList(arr, n) {
+    arr = Array.isArray(arr) ? arr.slice(0, n) : [];
+    if (!arr.length) return '<span class="cmp-na">–</span>';
+    return '<ul class="cmp-list">' + arr.map(function (x) {
+      return '<li><span>' + esc(x.name) + '</span>' + (x.weight != null ? '<b>' + Number(x.weight).toFixed(1) + '%</b>' : '') + '</li>';
+    }).join('') + '</ul>';
+  }
+  function num(v, digits) { return v == null ? null : Number(v).toLocaleString('en-IN', { maximumFractionDigits: digits }); }
+
+  function compareTableHtml(list) {
+    var n = list.length;
+    var head = '<tr><th class="cmp-corner"></th>' + list.map(function (s) {
+      var logo = s.amcLogo
+        ? '<img class="sr-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.outerHTML=\'<div class=&quot;sr-logo-fallback&quot;>' + esc((s.amcName || '?').charAt(0)) + '</div>\'">'
+        : '<div class="sr-logo-fallback">' + esc((s.amcName || '?').charAt(0)) + '</div>';
+      return '<th class="cmp-head">' + logo +
+        '<div class="sc-amc">' + esc(s.amcName || s.productName) + '</div>' +
+        '<div class="cmp-head-name">' + esc(s.schemeName) + '</div>' +
+        '<a class="cmp-head-link" href="scheme?id=' + encodeURIComponent(s.planId) + '">View details →</a></th>';
+    }).join('') + '</tr>';
+    var P = function (s) { return s.profile || {}; };
+    var rows = [];
+    var fundTerms = list.every(isFundTermsScheme);
+    rows.push(cmpSection('Overview', n));
+    rows.push(cmpRow('Category', list.map(function (s) { return cmpText(categoryLabel(s)); })));
+    if (!fundTerms) rows.push(cmpRow('Strategy', list.map(function (s) { return cmpText(strategyOf(s)); })));
+    rows.push(cmpRow('Structure', list.map(function (s) { return cmpText(P(s).fundStructure || P(s).schemeType); })));
+    rows.push(cmpRow('Inception', list.map(function (s) { return cmpText(fmtInception(s) === '–' ? null : fmtInception(s)); })));
+    if (!fundTerms) {
+      rows.push(cmpRow('AUM', list.map(function (s) { return cmpText(aumOf(s) == null ? null : fmtAum(s)); })));
+      rows.push(cmpRow('Min. investment', list.map(function (s) { return cmpText(fmtMoney(P(s).minInvestment, P(s).currency)); })));
+      rows.push(cmpRow('Benchmark', list.map(function (s) { return cmpText((s.benchmark || {}).name); })));
+      rows.push(cmpSection('Returns', n));
+      [['1 Month', 'r1m'], ['3 Months', 'r3m'], ['6 Months', 'r6m'], ['1 Year', 'r1y'], ['2 Years', 'r2y'],
+       ['3 Years', 'r3y'], ['5 Years', 'r5y'], ['10 Years', 'r10y'], ['Since inception', 'si']].forEach(function (r) {
+        var row = cmpReturnRow(r[0], r[1], list);
+        if (row) rows.push(row);
+      });
+      var pcs = list.map(function (s) { return s.portfolioCharacteristics || {}; });
+      if (pcs.some(function (c) { return c.total_stocks != null || c.p_e != null; })) {
+        rows.push(cmpSection('Portfolio', n));
+        rows.push(cmpRow('No. of stocks', pcs.map(function (c) { return cmpText(num(c.total_stocks, 0)); })));
+        rows.push(cmpRow('P/E', pcs.map(function (c) { return cmpText(num(c.p_e, 2)); })));
+        rows.push(cmpRow('P/B', pcs.map(function (c) { return cmpText(num(c.p_b, 2)); })));
+        rows.push(cmpRow('Avg. market cap', pcs.map(function (c) { return cmpText(c.avg_mkt_cap == null ? null : '₹' + num(c.avg_mkt_cap, 0) + ' Cr'); })));
+      }
+      if (list.some(function (s) { return (s.sectors || []).length; })) {
+        rows.push(cmpRow('Top sectors', list.map(function (s) { return topList(s.sectors, 3); })));
+      }
+      if (list.some(function (s) { return (s.holdings || []).length; })) {
+        rows.push(cmpRow('Top holdings', list.map(function (s) { return topList(s.holdings, 3); })));
+      }
+    } else {
+      rows.push(cmpSection('Fund terms', n));
+      rows.push(cmpRow('Target fund size', list.map(function (s) { return cmpText(fmtMoney(P(s).targetAmount, P(s).currency)); })));
+      rows.push(cmpRow('Min. commitment', list.map(function (s) { return cmpText(fmtMoney(P(s).minCommitment, P(s).currency)); })));
+      rows.push(cmpRow('Tenure', list.map(function (s) {
+        var p = P(s);
+        return p.tenureYears == null ? cmpText(p.tenureRemarks) :
+          esc(p.tenureYears + ' year' + (p.tenureYears > 1 ? 's' : '')) + (p.tenureRemarks ? '<small class="cmp-bm">' + esc(p.tenureRemarks) + '</small>' : '');
+      })));
+      rows.push(cmpRow('Initial drawdown', list.map(function (s) {
+        var p = P(s);
+        return p.drawdownPercent == null ? cmpText(p.drawdownRemarks) :
+          esc(p.drawdownPercent + '%') + (p.drawdownRemarks ? '<small class="cmp-bm">' + esc(p.drawdownRemarks) + '</small>' : '');
+      })));
+      rows.push(cmpRow('Final closing', list.map(function (s) { return cmpText(P(s).finalClosingDate || P(s).finalClosingRemarks); })));
+      rows.push(cmpRow('Targeted gross IRR', list.map(function (s) {
+        var p = P(s);
+        return cmpText(p.targetedGrossIrr != null ? p.targetedGrossIrr + '%' : p.targetedGrossIrrRemarks);
+      })));
+      rows.push(cmpRow('Sponsor commitment', list.map(function (s) {
+        var p = P(s);
+        return cmpText(p.sponsorCommitmentAmount != null ? fmtMoney(p.sponsorCommitmentAmount, p.currency) : p.sponsorCommitmentRemarks);
+      })));
+    }
+    rows.push(cmpSection('Fees & exit', n));
+    rows.push(cmpRow('Fee structure', list.map(function (s) { return cmpText(P(s).feeStructure); })));
+    rows.push(cmpRow('Exit load', list.map(function (s) { return cmpText(String(P(s).exitLoad || '').replace(/^Exit Load:\s*/i, '')); })));
+    if (!fundTerms) rows.push(cmpRow('Lock-in', list.map(function (s) {
+      var m = P(s).minLockinMonths;
+      return cmpText(m ? m + ' month' + (m > 1 ? 's' : '') : (m === 0 ? 'None' : null));
+    })));
+    rows.push(cmpRow('Fund managers', list.map(function (s) {
+      var fm = P(s).fundManagers || [];
+      return fm.length ? esc(fm.join(', ')) : '<span class="cmp-na">–</span>';
+    })));
+    return '<table class="cmp-table cols-' + n + '"><thead>' + head + '</thead><tbody>' + rows.join('') + '</tbody></table>';
+  }
+
+  var cmpModal = null;
+  function closeCompare() {
+    if (!cmpModal) return;
+    cmpModal.remove(); cmpModal = null;
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onCompareKey);
+  }
+  function onCompareKey(e) { if (e.key === 'Escape') closeCompare(); }
+  function openCompare() {
+    closeCompare();
+    var picked = compareSel.slice();
+    cmpModal = document.createElement('div');
+    cmpModal.className = 'cmp-modal';
+    cmpModal.innerHTML = '<div class="cmp-modal-backdrop"></div>' +
+      '<div class="cmp-modal-box" role="dialog" aria-modal="true" aria-label="Compare schemes">' +
+      '<button type="button" class="cmp-modal-close" aria-label="Close">✕</button>' +
+      '<h3>Compare ' + esc(compareGroupLabel(picked[0].group)) + ' schemes</h3>' +
+      '<div class="cmp-body"><div class="cmp-loading">Loading scheme data…</div></div>' +
+      '<p class="cmp-note">Past performance is not indicative of future returns. Data as reported by the fund houses; please read the scheme documents before investing.</p>' +
+      '</div>';
+    document.body.appendChild(cmpModal);
+    document.body.style.overflow = 'hidden';
+    cmpModal.querySelector('.cmp-modal-backdrop').onclick = closeCompare;
+    cmpModal.querySelector('.cmp-modal-close').onclick = closeCompare;
+    document.addEventListener('keydown', onCompareKey);
+    var modalRef = cmpModal;
+    Promise.all(picked.map(function (c) {
+      return fetch(API_URL + '?action=getPublicSchemeDetail&id=' + encodeURIComponent(c.planId))
+        .then(function (r) { return r.json(); })
+        .then(function (d) { return d && d.ok ? d.scheme : null; })
+        .catch(function () { return null; });
+    })).then(function (list) {
+      if (cmpModal !== modalRef) return; // closed or reopened meanwhile
+      list = list.filter(Boolean);
+      var body = modalRef.querySelector('.cmp-body');
+      body.innerHTML = list.length >= COMPARE_MIN
+        ? '<div class="cmp-scroll">' + compareTableHtml(list) + '</div>'
+        : '<div class="cmp-loading">Couldn\'t load these schemes right now — please try again in a moment.</div>';
+    });
+  }
+
   function goToScheme(planId) {
     if (window.MASession && window.MASession.getToken()) {
       location.href = 'scheme?id=' + encodeURIComponent(planId);
@@ -836,5 +1142,6 @@
       .catch(function () { host.remove(); });
   }
 
+  if (compareSel.length) renderCompareTray();
   loadSchemes();
 })();
