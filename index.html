@@ -2558,10 +2558,37 @@ scheduleForm.addEventListener('submit', async function(e){
     });
   }
 
-  // Drop a leftover #hero (or the logo's old target) from the address bar.
-  if(location.hash === '#hero' || location.hash === '#top'){
-    history.replaceState(null, '', location.pathname + location.search);
+  // Section links (./#pillars from every page's Products / "Back to all
+  // products") still land on their section, but the #hash is dropped from
+  // the address bar so the home page URL stays clean.
+  function clearHash(){ history.replaceState(null, '', location.pathname + location.search); }
+  if(location.hash){
+    var landing = null;
+    try { landing = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch(e){}
+    clearHash();
+    if(landing){
+      // Clearing the hash cancels the browser's own jump, so land there
+      // ourselves — instantly (html has scroll-behavior:smooth), and again
+      // once images/fonts have settled and shifted the layout.
+      var land = function(){ landing.scrollIntoView({ behavior: 'instant' }); };
+      land();
+      window.addEventListener('load', land);
+    }
   }
+  // Same-page section links: smooth-scroll without writing a #hash.
+  document.addEventListener('click', function(e){
+    if(e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    var a = e.target.closest && e.target.closest('a[href*="#"]');
+    if(!a) return;
+    var url = new URL(a.href, location.href);
+    if(url.pathname !== location.pathname || !url.hash) return;
+    var target = null;
+    try { target = document.getElementById(decodeURIComponent(url.hash.slice(1))); } catch(err){}
+    if(!target) return;
+    e.preventDefault();
+    target.scrollIntoView({ behavior: 'smooth' });
+    clearHash();
+  });
   // Logo click on the home page: smooth-scroll to top, no #hash left behind.
   var logoLink = document.querySelector('.logo-link');
   if(logoLink){
