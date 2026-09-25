@@ -1,11 +1,12 @@
 /* ===================================================================
    myAlternates — SIF scheme list (sif.html)
 
-   Specialised Investment Funds come from AMFI's free daily SIF NAV file
-   (Finalyca doesn't carry SIF), synced nightly by the backend — Regular
-   plans only, latest NAV only. So each card shows the latest NAV and a
-   since-inception return (from the ₹10 launch NAV), not 1Y/3Y/5Y.
-   Reuses the PMS list's .scheme-row card styles from site.css.
+   Specialised Investment Funds come from AMFI (Finalyca doesn't carry
+   SIF), synced nightly by the backend — Regular plans only, with 1Y / 3Y /
+   5Y / SI returns from each plan's AMFI NAV history. Reuses the PMS list's
+   .scheme-row card styles from site.css, and its Discover flow: a
+   registered visitor goes straight to scheme?sif=<code>, an anonymous one
+   registers in the same gate modal first.
    =================================================================== */
 (function () {
   var API_URL = 'https://myalternates-backend-c3u7.onrender.com/';
@@ -44,11 +45,16 @@
 
   var listEl = host.querySelector('#sifList');
 
+  function retCol(label, v) {
+    var cls = v == null ? 'na' : (v >= 0 ? 'pos' : 'neg');
+    return '<div class="sr-ret"><b class="' + cls + '">' + (v == null ? 'NA' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%') +
+      '</b><span>' + esc(label) + '</span></div>';
+  }
+
   function rowHtml(s) {
-    var si = s.si;
-    var siCls = !si ? 'na' : (si.pct >= 0 ? 'pos' : 'neg');
-    var siVal = !si ? 'NA' : (si.pct >= 0 ? '+' : '') + si.pct.toFixed(2) + '%';
-    var siLbl = !si ? 'Since incep.' : (si.annualised ? 'SI (p.a.)' : 'Since incep.');
+    var r = s.returns || {};
+    // Older backend (no NAV history yet) only sends si
+    var siPct = r.si != null ? r.si : (s.si ? s.si.pct : null);
     return '<div class="scheme-row">' +
       '<div class="sr-id"><div class="sr-logo-fallback">' + esc((s.amcName || brandLabel(s.sifBrand)).charAt(0).toUpperCase()) + '</div>' +
       '<div class="sr-id-text">' +
@@ -59,18 +65,45 @@
       (s.assetClass ? '<span class="sr-tag-cat">' + esc(s.assetClass) + '</span>' : '') +
       '</div>' +
       '<div class="sr-meta">' +
+      '<span>Inception <b>' + esc(fmtDate(s.launchDate)) + '</b></span>' +
+      '<span>NAV <b>₹' + esc(s.nav.toFixed(4)) + '</b></span>' +
       '<span>Type <b>' + esc(s.fundType || '–') + '</b></span>' +
       '<span>Option <b>' + esc(s.option || '–') + '</b></span>' +
-      '<span>Launched <b>' + esc(fmtDate(s.launchDate)) + '</b></span>' +
       (s.ter ? '<span>TER <b>' + esc(s.ter) + '</b></span>' : '') +
       '</div></div></div>' +
-      '<div class="sr-rets sif-rets">' +
-      '<div class="sr-ret"><b>₹' + esc(s.nav.toFixed(4)) + '</b><span>NAV · ' + esc(fmtDate(s.navDate)) + '</span></div>' +
-      '<div class="sr-ret"><b class="' + siCls + '">' + esc(siVal) + '</b><span>' + esc(siLbl) + '</span></div>' +
-      '</div>' +
-      '<div class="sr-actions"><a href="#enquiry" class="sc-discover">Enquire →</a></div>' +
+      '<div class="sr-rets">' + retCol('1Y', r.r1y) + retCol('3Y', r.r3y) + retCol('5Y', r.r5y) + retCol('SI', siPct) + '</div>' +
+      '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.schemeCode) + '">Discover →</button></div>' +
       '</div>';
   }
+
+  // Same as the PMS/AIF list's Discover (featured-schemes.js): registered →
+  // straight to the scheme page; anonymous → register in the gate modal,
+  // offer the optional call scheduler (unless one's already booked), then go.
+  var INTEREST = 'Specialised Investment Fund (SIF)';
+  function goToScheme(code) {
+    var url = 'scheme?sif=' + encodeURIComponent(code);
+    if (window.MASession && window.MASession.getToken()) { location.href = url; return; }
+    if (!window.maOpenGateModal) { location.href = url; return; }
+    window.maOpenGateModal({
+      message: 'Create your free account to see this SIF\'s live returns and full profile.',
+      interest: INTEREST,
+      onVerified: function (token, res, lead, close) {
+        close();
+        window.MASession.checkStatus(token).then(function (sess) {
+          if (sess && sess.ok && sess.upcomingMeeting && sess.upcomingMeeting.date) { location.href = url; return; }
+          document.addEventListener('ma:scheduled', function goNext() {
+            document.removeEventListener('ma:scheduled', goNext);
+            location.href = url;
+          }, { once: true });
+          window.MASession.openSchedule(Object.assign({}, lead, res), '', INTEREST);
+        });
+      }
+    });
+  }
+  listEl.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-discover]');
+    if (b) goToScheme(b.getAttribute('data-discover'));
+  });
 
   function render() {
     var q = state.q.toLowerCase();
@@ -110,8 +143,8 @@
       }
       var navDate = all.map(function (s) { return s.navDate; }).filter(Boolean).sort().pop();
       host.querySelector('#sifDisc').textContent =
-        'NAV source: AMFI, latest as of ' + fmtDate(navDate) + '. Regular plans shown. Since-inception return is measured from the ₹10 launch NAV — ' +
-        'absolute for strategies under a year old, annualised after. Minimum investment ₹10 lakh per investor across an AMC\'s SIF strategies. ' +
+        'NAV source: AMFI, latest as of ' + fmtDate(navDate) + '. Regular plans shown. Returns over a year are annualised; since-inception (SI) is measured from ' +
+        'the launch NAV and is absolute for strategies under a year old. NA means the strategy is younger than that period. Minimum investment ₹10 lakh per investor across an AMC\'s SIF strategies. ' +
         'Past performance is not indicative of future returns; please read the scheme documents carefully.';
       renderPills(); render();
     })

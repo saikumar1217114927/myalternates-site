@@ -14,6 +14,11 @@
   var API_URL = 'https://myalternates-backend-c3u7.onrender.com/';
   var params = new URLSearchParams(location.search);
   var planId = params.get('id');
+  // ?sif=<AMFI scheme code> — a SIF from sif.html's Discover button. SIFs
+  // come from AMFI (getPublicSifSchemes), not Finalyca, so they get their
+  // own lighter profile (renderSif) instead of the full PMS/AIF page.
+  var sifCode = params.get('sif');
+  var SIF_INTEREST = 'Specialised Investment Fund (SIF)';
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -44,18 +49,30 @@
   // sent along with a schedule/discussion-note action needs to match
   // whichever product this particular scheme actually is.
   function schemeInterest(s) {
+    if (s && s.isSif) return SIF_INTEREST;
     var code = String((s && s.productName) || '').trim().toUpperCase();
     return code === 'AIF' ? 'Alternative Investment Fund (AIF)' : 'Portfolio Management Services (PMS)';
   }
 
   function notFound() {
     root.innerHTML = '<div class="scm-loading wrap"><p>This scheme isn\'t available right now.</p>' +
-      '<p style="margin-top:10px;"><a href="pms" class="btn-ghost" style="color:var(--ink-text) !important; border-color:#d7d0c0;">← Back to PMS</a></p></div>';
+      '<p style="margin-top:10px;"><a href="' + (sifCode ? 'sif' : 'pms') + '" class="btn-ghost" style="color:var(--ink-text) !important; border-color:#d7d0c0;">← Back to ' +
+      (sifCode ? 'SIF' : 'PMS') + '</a></p></div>';
   }
 
-  if (!planId) { notFound(); return; }
+  if (!planId && !sifCode) { notFound(); return; }
 
   function loadScheme() {
+    if (sifCode) {
+      fetch(API_URL + '?action=getPublicSifSchemes')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var s = d && d.ok && (d.schemes || []).filter(function (x) { return x.schemeCode === sifCode; })[0];
+          if (s) renderSif(s); else notFound();
+        })
+        .catch(notFound);
+      return;
+    }
     fetch(API_URL + '?action=getPublicSchemeDetail&id=' + encodeURIComponent(planId))
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d && d.ok) render(d.scheme); else notFound(); })
@@ -69,7 +86,7 @@
     root.innerHTML = '<div class="wrap" style="padding:60px 0;"><div id="scGate"></div></div>';
     window.maRenderFullGate(document.getElementById('scGate'), {
       message: 'Scheme performance data is available to registered users only — create your free account to see this scheme\'s live returns and full profile.',
-      interest: 'Portfolio Management Services (PMS)',
+      interest: sifCode ? SIF_INTEREST : 'Portfolio Management Services (PMS)',
       onVerified: function () { loadScheme(); }
     });
   }
@@ -901,6 +918,67 @@
         interest: schemeInterest(s),
         discussionNote: 'Discuss: ' + s.schemeName + (s.amcName ? ' (' + s.amcName + ')' : '')
       });
+    });
+  }
+
+  // SIF profile — everything AMFI gives us today (NAV history-based returns,
+  // strategy, launch date) plus any SID details an admin has entered. The
+  // fuller SIF page design comes later; this reuses the PMS page's blocks.
+  function renderSif(s) {
+    s.isSif = true;
+    document.title = s.schemeName + ' — myAlternates';
+    var r = s.returns || {};
+    function fmtD(iso) {
+      if (!iso) return '';
+      var d = new Date(iso + 'T00:00:00');
+      return isNaN(d) ? iso : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    var chips = [['NAV · ' + fmtD(s.navDate), '₹' + s.nav.toFixed(4)]];
+    if (s.launchDate) chips.push(['Launch date', fmtD(s.launchDate)]);
+    chips.push(['Min. investment', '₹10 lakh']);
+    if (s.benchmark) chips.push(['Benchmark', s.benchmark]);
+
+    var facts = [];
+    if (s.strategy) facts.push(['Investment strategy', s.strategy]);
+    if (s.assetClass) facts.push(['Asset class', s.assetClass]);
+    if (s.fundType) facts.push(['Structure', s.fundType]);
+    facts.push(['Plan', 'Regular · ' + (s.option || 'Growth')]);
+    if (s.sifBrand) facts.push(['SIF brand', s.sifBrand]);
+    if (s.fundManager) facts.push(['Fund manager(s)', s.fundManager]);
+    if (s.ter) facts.push(['Expense ratio (TER)', s.ter]);
+    if (s.exitLoad) facts.push(['Exit load', s.exitLoad]);
+
+    var periods = [['1 Year', r.r1y], ['3 Years', r.r3y], ['5 Years', r.r5y],
+      ['Since inception' + (s.si && !s.si.annualised ? ' (absolute)' : ''), r.si]];
+
+    root.innerHTML =
+      '<div class="scm-hero"><div class="wrap">' +
+      '<div class="scm-hero-top">' +
+      '<div class="scm-hero-id"><div><div class="sc-amc">' + esc(s.amcName || s.sifBrand) + '</div>' +
+      '<h1>' + esc(s.schemeName) + '</h1></div></div>' +
+      '<div class="scm-hero-meeting" id="scMeetingSection"></div>' +
+      '</div>' +
+      '<div class="scm-chips">' + chips.map(function (c) {
+        return '<div class="scm-chip"><span>' + esc(c[0]) + '</span><b>' + esc(c[1]) + '</b></div>';
+      }).join('') + '</div>' +
+      '</div></div>' +
+      '<div class="scm-body wrap">' +
+      '<div class="scm-section"><h2>Returns</h2><div class="scm-facts">' +
+      periods.map(function (p) {
+        var cls = p[1] == null ? ' style="color:var(--muted-light);font-weight:400;"'
+          : (p[1] >= 0 ? ' style="color:var(--emerald);"' : ' style="color:#B5502E;"');
+        return '<div class="scm-fact"><span>' + esc(p[0]) + '</span><b' + cls + '>' + (p[1] == null ? 'NA' : pct(p[1])) + '</b></div>';
+      }).join('') +
+      '</div><p style="margin-top:12px;font-size:12.5px;line-height:1.5;color:var(--muted);">Regular plan, from AMFI\'s daily NAVs. Returns over a year are annualised; ' +
+      'NA means the strategy is younger than that period. Past performance is not indicative of future returns.</p></div>' +
+      '<div class="scm-section"><h2>Scheme profile</h2><div class="scm-facts">' +
+      facts.map(function (f) { return '<div class="scm-fact"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; }).join('') +
+      '</div></div>' +
+      '</div>';
+
+    loadMeetingAction(s);
+    document.addEventListener('ma:scheduled', function (e) {
+      if (e.detail && e.detail.scheduled) loadMeetingAction(s);
     });
   }
 
