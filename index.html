@@ -561,31 +561,35 @@
   .pillars{padding:104px 0 96px; background:var(--paper);}
   .pillar-cards{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; max-width:1000px; margin:0 auto;}
   .pcard{
-    background:#fff; border:1px solid #E6E0D2; border-top:3px solid var(--gold);
-    padding:26px 20px 24px;
-    position:relative; transition:transform .3s ease, box-shadow .3s ease;
-    display:flex; flex-direction:column;
+    background:linear-gradient(160deg, #fff 55%, #FBF6EA 100%);
+    border:1px solid #E6E0D2; border-radius:16px; padding:30px 22px 24px;
+    position:relative; overflow:hidden; text-decoration:none; text-align:center;
+    display:flex; flex-direction:column; align-items:center;
+    box-shadow:0 14px 32px -26px rgba(11,14,19,0.35);
+    transition:transform .3s ease, box-shadow .3s ease, border-color .3s ease;
   }
-  .pcard:hover{transform:translateY(-6px); box-shadow:0 24px 50px rgba(20,20,10,0.1);}
-  .pcard .num{
-    font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted-light);
-    margin-bottom:18px; letter-spacing:0.05em;
+  .pcard::before{
+    content:''; position:absolute; left:0; right:0; top:0; height:4px;
+    background:linear-gradient(90deg, var(--gold-light), var(--gold));
   }
-  .pcard h3{
-    font-family:'Fraunces', serif; font-size:21px; font-weight:500; margin-bottom:4px;
+  .pcard:hover{transform:translateY(-6px); border-color:var(--gold); box-shadow:0 26px 50px -24px rgba(201,162,75,0.55);}
+  .pcard-abbr{
+    font-family:'Fraunces', serif; font-weight:600; font-size:40px; line-height:1.05;
+    letter-spacing:-0.01em; color:var(--ink-text);
   }
-  .pcard .tagline{
-    color:var(--gold); font-size:10.5px; font-weight:700; letter-spacing:0.05em;
-    text-transform:uppercase; margin-bottom:14px;
+  .pcard-name{
+    margin:10px 0 24px; font-size:14px; font-weight:600; line-height:1.45; color:var(--muted);
   }
-  .pcard p{color:var(--muted); font-size:13.5px; line-height:1.6; margin-bottom:18px;}
-  .pcard a.more{
-    display:inline-flex; align-items:center; gap:8px;
-    font-size:12.5px; font-weight:700; color:var(--ink-text);
-    border-bottom:1px solid var(--ink-text); padding-bottom:2px;
-    margin-top:auto; align-self:flex-start;
+  .pcard-btn{
+    margin-top:auto; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    background:linear-gradient(135deg, var(--gold-light), var(--gold)); color:var(--ink);
+    font-size:13.5px; font-weight:700; padding:12px 22px; border-radius:999px; width:100%;
+    box-shadow:0 10px 22px -12px rgba(201,162,75,0.9);
+    transition:background .2s ease, color .2s ease, box-shadow .2s ease;
   }
-  .pcard a.more:hover{color:var(--gold); border-color:var(--gold);}
+  .pcard-btn span{transition:transform .2s ease;}
+  .pcard:hover .pcard-btn{background:var(--ink); color:var(--gold-light); box-shadow:0 12px 26px -12px rgba(11,14,19,0.6);}
+  .pcard:hover .pcard-btn span{transform:translateX(4px);}
   @media (max-width:1180px){
     .pillar-cards{grid-template-columns:repeat(2,1fr);}
   }
@@ -833,7 +837,11 @@
   }
   @media (max-width:640px){
     .wrap{padding:0 20px;}
-    .pillar-cards{grid-template-columns:1fr;}
+    .pillar-cards{grid-template-columns:1fr 1fr; gap:12px;}
+    .pcard{padding:24px 12px 16px;}
+    .pcard-abbr{font-size:26px; white-space:nowrap;}
+    .pcard-name{font-size:12px; margin:8px 0 16px;}
+    .pcard-btn{font-size:11.5px; padding:10px 6px; gap:5px; white-space:nowrap;}
     .reasons-grid{grid-template-columns:1fr;}
     .partner-grid{grid-template-columns:repeat(2,1fr);}
     .foot-grid{grid-template-columns:1fr;}
@@ -1161,34 +1169,26 @@
       <h2>Offering products by myAlternates.</h2>
     </div>
     <div class="pillar-cards">
-      <div class="pcard reveal">
-        <div class="num">PMS</div>
-        <h3>Portfolio Management</h3>
-        <div class="tagline">Lowest fee, on record</div>
-        <p>Concentrated, transparent portfolios — at the lowest PMS fees on the platform, so more of the return stays with you.</p>
-        <a href="pms" class="more">Explore PMS →</a>
-      </div>
-      <div class="pcard reveal">
-        <div class="num">AIF</div>
-        <h3>Alternative Investment Funds</h3>
-        <div class="tagline">Bespoke, diversified</div>
-        <p>Category I, II and III strategies, engineered for investors with a defined risk appetite and a longer horizon.</p>
-        <a href="aif" class="more">Explore AIF →</a>
-      </div>
-      <div class="pcard reveal">
-        <div class="num">GIFT IFSC</div>
-        <h3>GIFT City</h3>
-        <div class="tagline">Offshore, compliant</div>
-        <p>Route eligible capital into GIFT City structures for global exposure, without leaving the myAlternates dashboard.</p>
-        <a href="gift-city" class="more">Explore GIFT City →</a>
-      </div>
-      <div class="pcard reveal">
-        <div class="num">SIF</div>
-        <h3>Specialised Investment Fund</h3>
-        <div class="tagline">Newly regulated, curated</div>
-        <p>Access to SIF strategies as they open up, vetted by the same research desk before they reach your dashboard.</p>
-        <a href="sif" class="more">Explore SIF →</a>
-      </div>
+      <a href="pms" class="pcard reveal">
+        <span class="pcard-abbr">PMS</span>
+        <span class="pcard-name">Portfolio Management Services</span>
+        <span class="pcard-btn">Explore PMS <span aria-hidden="true">→</span></span>
+      </a>
+      <a href="aif" class="pcard reveal">
+        <span class="pcard-abbr">AIF</span>
+        <span class="pcard-name">Alternative Investment Funds</span>
+        <span class="pcard-btn">Explore AIF <span aria-hidden="true">→</span></span>
+      </a>
+      <a href="gift-city" class="pcard reveal">
+        <span class="pcard-abbr">GIFT City</span>
+        <span class="pcard-name">GIFT IFSC Funds</span>
+        <span class="pcard-btn">Explore GIFT City <span aria-hidden="true">→</span></span>
+      </a>
+      <a href="sif" class="pcard reveal">
+        <span class="pcard-abbr">SIF</span>
+        <span class="pcard-name">Specialised Investment Funds</span>
+        <span class="pcard-btn">Explore SIF <span aria-hidden="true">→</span></span>
+      </a>
     </div>
   </div>
 </section>
