@@ -35,7 +35,7 @@
     '</div></div>' +
     '<div class="sif-toolbar">' +
     '<div class="ps-search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="18" y1="18" x2="13.6" y2="13.6"/></svg>' +
-    '<input type="search" id="sifSearch" placeholder="Search by scheme, SIF or strategy" aria-label="Search SIF schemes"></div>' +
+    '<input type="search" id="sifSearch" placeholder="Search by scheme, AMC or strategy" aria-label="Search SIF schemes"></div>' +
     '<div class="pss-pills" id="sifAsset"></div>' +
     '</div>' +
     '<div class="scheme-list" id="sifList"><div class="ps-empty">Loading SIF schemes…</div></div>' +
@@ -50,9 +50,9 @@
     var siVal = !si ? 'NA' : (si.pct >= 0 ? '+' : '') + si.pct.toFixed(2) + '%';
     var siLbl = !si ? 'Since incep.' : (si.annualised ? 'SI (p.a.)' : 'Since incep.');
     return '<div class="scheme-row">' +
-      '<div class="sr-id"><div class="sr-logo-fallback">' + esc(brandLabel(s.sifBrand).charAt(0)) + '</div>' +
+      '<div class="sr-id"><div class="sr-logo-fallback">' + esc((s.amcName || brandLabel(s.sifBrand)).charAt(0).toUpperCase()) + '</div>' +
       '<div class="sr-id-text">' +
-      '<div class="sr-toprow"><span class="sc-amc">' + esc(brandLabel(s.sifBrand)) + '</span></div>' +
+      '<div class="sr-toprow"><span class="sc-amc">' + esc(s.amcName || brandLabel(s.sifBrand)) + '</span></div>' +
       '<div class="sr-scheme-name">' + esc(s.schemeName) + '</div>' +
       '<div class="sr-tags">' +
       (s.strategy ? '<span class="sr-tag">' + esc(s.strategy.replace(/\s+Fund$/i, '')) + '</span>' : '') +
@@ -77,7 +77,7 @@
     var rows = all.filter(function (s) {
       if (state.asset !== 'All' && s.assetClass !== state.asset) return false;
       if (!q) return true;
-      return [s.schemeName, s.sifBrand, s.strategy].join(' ').toLowerCase().indexOf(q) > -1;
+      return [s.schemeName, s.sifBrand, s.amcName, s.strategy].join(' ').toLowerCase().indexOf(q) > -1;
     });
     listEl.innerHTML = rows.length ? rows.map(rowHtml).join('')
       : '<div class="ps-empty">No SIF schemes match your search.</div>';
