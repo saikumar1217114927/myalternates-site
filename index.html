@@ -561,35 +561,32 @@
   .pillars{padding:104px 0 96px; background:var(--paper);}
   .pillar-cards{display:grid; grid-template-columns:repeat(4,1fr); gap:18px; max-width:1000px; margin:0 auto;}
   .pcard{
-    background:linear-gradient(160deg, #fff 55%, #FBF6EA 100%);
-    border:1px solid #E6E0D2; border-radius:16px; padding:30px 22px 24px;
-    position:relative; overflow:hidden; text-decoration:none; text-align:center;
-    display:flex; flex-direction:column; align-items:center;
-    box-shadow:0 14px 32px -26px rgba(11,14,19,0.35);
-    transition:transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+    background:#fff; border:1px solid #E6E0D2; border-top:3px solid var(--gold);
+    padding:24px 22px 22px; position:relative; text-decoration:none;
+    display:flex; flex-direction:column;
+    transition:transform .3s ease, box-shadow .3s ease;
   }
-  .pcard::before{
-    content:''; position:absolute; left:0; right:0; top:0; height:4px;
-    background:linear-gradient(90deg, var(--gold-light), var(--gold));
+  .pcard:hover{transform:translateY(-6px); box-shadow:0 24px 50px rgba(20,20,10,0.1);}
+  .pcard-no{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:600;
+    color:var(--gold); letter-spacing:0.05em; margin-bottom:22px;
   }
-  .pcard:hover{transform:translateY(-6px); border-color:var(--gold); box-shadow:0 26px 50px -24px rgba(201,162,75,0.55);}
   .pcard-abbr{
-    font-family:'Fraunces', serif; font-weight:600; font-size:40px; line-height:1.05;
+    font-family:'Fraunces', serif; font-weight:500; font-size:34px; line-height:1.1;
     letter-spacing:-0.01em; color:var(--ink-text);
   }
   .pcard-name{
-    margin:10px 0 24px; font-size:14px; font-weight:600; line-height:1.45; color:var(--muted);
+    margin:8px 0 26px; font-size:13.5px; line-height:1.5; color:var(--muted);
   }
   .pcard-btn{
-    margin-top:auto; display:inline-flex; align-items:center; justify-content:center; gap:8px;
-    background:linear-gradient(135deg, var(--gold-light), var(--gold)); color:var(--ink);
-    font-size:13.5px; font-weight:700; padding:12px 22px; border-radius:999px; width:100%;
-    box-shadow:0 10px 22px -12px rgba(201,162,75,0.9);
-    transition:background .2s ease, color .2s ease, box-shadow .2s ease;
+    margin-top:auto; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--ink); color:var(--paper); padding:13px 16px;
+    font-size:13px; font-weight:700; letter-spacing:0.02em;
+    transition:background .2s ease, color .2s ease;
   }
-  .pcard-btn span{transition:transform .2s ease;}
-  .pcard:hover .pcard-btn{background:var(--ink); color:var(--gold-light); box-shadow:0 12px 26px -12px rgba(11,14,19,0.6);}
-  .pcard:hover .pcard-btn span{transform:translateX(4px);}
+  .pcard-btn span{color:var(--gold); transition:transform .2s ease, color .2s ease;}
+  .pcard:hover .pcard-btn{background:var(--gold); color:var(--ink);}
+  .pcard:hover .pcard-btn span{color:var(--ink); transform:translateX(4px);}
   @media (max-width:1180px){
     .pillar-cards{grid-template-columns:repeat(2,1fr);}
   }
@@ -838,10 +835,11 @@
   @media (max-width:640px){
     .wrap{padding:0 20px;}
     .pillar-cards{grid-template-columns:1fr 1fr; gap:12px;}
-    .pcard{padding:24px 12px 16px;}
-    .pcard-abbr{font-size:26px; white-space:nowrap;}
-    .pcard-name{font-size:12px; margin:8px 0 16px;}
-    .pcard-btn{font-size:11.5px; padding:10px 6px; gap:5px; white-space:nowrap;}
+    .pcard{padding:18px 14px 14px;}
+    .pcard-no{margin-bottom:14px;}
+    .pcard-abbr{font-size:25px; white-space:nowrap;}
+    .pcard-name{font-size:12px; margin:6px 0 16px;}
+    .pcard-btn{font-size:11.5px; padding:10px 10px; white-space:nowrap;}
     .reasons-grid{grid-template-columns:1fr;}
     .partner-grid{grid-template-columns:repeat(2,1fr);}
     .foot-grid{grid-template-columns:1fr;}
@@ -1170,21 +1168,25 @@
     </div>
     <div class="pillar-cards">
       <a href="pms" class="pcard reveal">
+        <span class="pcard-no">01</span>
         <span class="pcard-abbr">PMS</span>
         <span class="pcard-name">Portfolio Management Services</span>
         <span class="pcard-btn">Explore PMS <span aria-hidden="true">→</span></span>
       </a>
       <a href="aif" class="pcard reveal">
+        <span class="pcard-no">02</span>
         <span class="pcard-abbr">AIF</span>
         <span class="pcard-name">Alternative Investment Funds</span>
         <span class="pcard-btn">Explore AIF <span aria-hidden="true">→</span></span>
       </a>
       <a href="gift-city" class="pcard reveal">
+        <span class="pcard-no">03</span>
         <span class="pcard-abbr">GIFT City</span>
         <span class="pcard-name">GIFT IFSC Funds</span>
         <span class="pcard-btn">Explore GIFT City <span aria-hidden="true">→</span></span>
       </a>
       <a href="sif" class="pcard reveal">
+        <span class="pcard-no">04</span>
         <span class="pcard-abbr">SIF</span>
         <span class="pcard-name">Specialised Investment Funds</span>
         <span class="pcard-btn">Explore SIF <span aria-hidden="true">→</span></span>
