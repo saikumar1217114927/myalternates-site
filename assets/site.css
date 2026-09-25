@@ -689,6 +689,14 @@ nav.links a:hover::after{width:100%;}
   .sr-actions{margin-left:0; padding-left:0; padding-top:14px; width:100%;}
   .sr-actions .sc-discover{width:100%; text-align:center;}
 }
+/* SIF list (sif.html, assets/sif-schemes.js): search + asset-class pills
+   above the shared .scheme-row cards; two figures (NAV, since inception)
+   instead of the PMS list's four returns. */
+.sif-toolbar{display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin:26px 0 18px;}
+.sif-toolbar .ps-search{flex:1 1 280px; max-width:460px; background:#fff;}
+@media (max-width:760px){
+  .sr-rets.sif-rets{grid-template-columns:repeat(2, 1fr);}
+}
 @media (max-width:600px){
   /* Stacked: flex bases are heights now, so size everything to its content. */
   .p-schemes-sidebar{flex-direction:column; align-items:stretch; gap:16px;}
