@@ -664,6 +664,11 @@ nav.links a:hover::after{width:100%;}
   .p-schemes-sidebar{position:static; max-height:none; overflow-y:visible; flex-direction:row; flex-wrap:wrap; align-items:flex-end;}
   .p-schemes-sidebar .ps-search{flex:1 1 220px;}
   .pss-group{padding-top:0; border-top:0; flex:1 1 160px;}
+  /* The groups live inside #pssFilterPanel, not directly in the sidebar —
+     lay that panel out as its own wrapping row, or the 160px basis above
+     becomes a 160px *height* per group in its column (big empty gaps). */
+  #pssFilterPanel{flex:1 1 100%; flex-direction:row; flex-wrap:wrap; align-items:flex-start; gap:16px;}
+  #pssFilterPanel > .pss-clear, #pssFilterPanel > .pss-ft-head{flex:1 1 100%; text-align:left;}
 }
 @media (max-width:760px){
   .scheme-row{gap:14px; padding:18px 20px;}
@@ -685,7 +690,11 @@ nav.links a:hover::after{width:100%;}
   .sr-actions .sc-discover{width:100%; text-align:center;}
 }
 @media (max-width:600px){
-  .p-schemes-sidebar{flex-direction:column; align-items:stretch;}
+  /* Stacked: flex bases are heights now, so size everything to its content. */
+  .p-schemes-sidebar{flex-direction:column; align-items:stretch; gap:16px;}
+  .p-schemes-sidebar .ps-search{flex:none;}
+  #pssFilterPanel{flex-direction:column; align-items:stretch;}
+  .pss-group{flex:none;}
 }
 
 /* ---------- REGISTRATION GATE (shared: pms.html schemes, scheme.html) ----------
