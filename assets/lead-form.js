@@ -454,7 +454,7 @@
       state: (stateInput && stateInput.value.trim()) || detected.state || '',
       interest: form.getAttribute('data-interest') || 'Not sure yet — need guidance',
       visitorId: getVid(),
-      path: location.pathname,
+      path: location.pathname + location.search,
       rowNumber: null
     };
   }
@@ -951,7 +951,7 @@
       lead = {
         role: 'Investor', name: stored.name || '', email: stored.email || '',
         mobileCountryCode: stored.mobileCountryCode || '', mobile: stored.mobile || '', interest: interest || '',
-        leadId: stored.leadId, visitorId: getVid(), path: location.pathname,
+        leadId: stored.leadId, visitorId: getVid(), path: location.pathname + location.search,
         rescheduleMeetingId: rescheduleId || '', mode: (mtg && mtg.mode) || '', rowNumber: null
       };
       submitPromise = Promise.resolve();
@@ -1087,7 +1087,7 @@
       lead = {
         role: 'Investor', name: sess.name || '', email: sess.email || '',
         mobileCountryCode: sess.mobileCountryCode || '', mobile: sess.mobile || '', interest: interest || '',
-        leadId: sess.leadId, visitorId: getVid(), path: location.pathname,
+        leadId: sess.leadId, visitorId: getVid(), path: location.pathname + location.search,
         rescheduleMeetingId: rescheduleId || '', mode: (mtg && mtg.mode) || '', rowNumber: null
       };
       submitPromise = Promise.resolve();
@@ -1178,7 +1178,7 @@
         role: 'Investor', name: r.name || '', email: document.getElementById('lf-email').value.trim(),
         mobileCountryCode: ccSel ? ccSel.value : '', mobile: mobileEl ? mobileEl.value.trim() : '',
         interest: form.getAttribute('data-interest') || '', leadId: r.leadId, visitorId: getVid(),
-        path: location.pathname, rescheduleMeetingId: m.meetingId, mode: m.mode || '', rowNumber: null
+        path: location.pathname + location.search, rescheduleMeetingId: m.meetingId, mode: m.mode || '', rowNumber: null
       };
       submitPromise = Promise.resolve();
       openSchedule();
@@ -1238,7 +1238,7 @@
     verifyOtp: function (email, mobileCc, mobile, otp, extra) {
       var payload = {
         action: 'verifyLeadOtp', email: email, mobileCountryCode: mobileCc, mobile: mobile, otp: otp,
-        visitorId: getVid(), path: location.pathname, role: 'Investor'
+        visitorId: getVid(), path: location.pathname + location.search, role: 'Investor'
       };
       if (extra) for (var k in extra) if (extra.hasOwnProperty(k) && extra[k] !== undefined) payload[k] = extra[k];
       return send(payload);
@@ -1253,7 +1253,7 @@
         role: 'Investor', name: sess.name || '', email: sess.email || '',
         mobileCountryCode: sess.mobileCountryCode || '', mobile: sess.mobile || '',
         interest: interest || (form ? form.getAttribute('data-interest') : '') || '',
-        leadId: sess.leadId, visitorId: getVid(), path: location.pathname,
+        leadId: sess.leadId, visitorId: getVid(), path: location.pathname + location.search,
         rescheduleMeetingId: rescheduleMeetingId || '', mode: (sess.upcomingMeeting && sess.upcomingMeeting.mode) || '', rowNumber: null
       };
       // sess (from getLeadSessionStatus / verifyLeadEmailOtp) carries the

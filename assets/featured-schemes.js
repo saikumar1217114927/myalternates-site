@@ -1042,6 +1042,26 @@
     return '<table class="cmp-table cols-' + n + '"><thead>' + head + '</thead><tbody>' + rows.join('') + '</tbody></table>';
   }
 
+  // Records the comparison for the admin "Scheme comparisons" report.
+  // Fire-and-forget — the comparison never waits on or fails because of it.
+  function logComparison(picked) {
+    var vid = '';
+    try { vid = localStorage.getItem('maVid') || ''; } catch (e) {}
+    try {
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'logSchemeComparison',
+          token: (window.MASession && window.MASession.getToken()) || '',
+          vid: vid, productCode: productCode, group: compareGroupLabel(picked[0].group),
+          planIds: picked.map(function (c) { return c.planId; }),
+          page: location.pathname + location.search
+        })
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   var cmpModal = null;
   function closeCompare() {
     if (!cmpModal) return;
@@ -1067,6 +1087,7 @@
     cmpModal.querySelector('.cmp-modal-backdrop').onclick = closeCompare;
     cmpModal.querySelector('.cmp-modal-close').onclick = closeCompare;
     document.addEventListener('keydown', onCompareKey);
+    logComparison(picked);
     var modalRef = cmpModal;
     Promise.all(picked.map(function (c) {
       return fetch(API_URL + '?action=getPublicSchemeDetail&id=' + encodeURIComponent(c.planId))
