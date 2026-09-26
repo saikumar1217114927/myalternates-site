@@ -64,12 +64,9 @@
 
   function loadScheme() {
     if (sifCode) {
-      fetch(API_URL + '?action=getPublicSifSchemes')
+      fetch(API_URL + '?action=getPublicSifScheme&code=' + encodeURIComponent(sifCode))
         .then(function (r) { return r.json(); })
-        .then(function (d) {
-          var s = d && d.ok && (d.schemes || []).filter(function (x) { return x.schemeCode === sifCode; })[0];
-          if (s) renderSif(s); else notFound();
-        })
+        .then(function (d) { if (d && d.ok && d.scheme) renderSif(d.scheme); else notFound(); })
         .catch(notFound);
       return;
     }
@@ -921,36 +918,61 @@
     });
   }
 
-  // SIF profile — everything AMFI gives us today (NAV history-based returns,
-  // strategy, launch date) plus any SID details an admin has entered. The
-  // fuller SIF page design comes later; this reuses the PMS page's blocks.
+  // SIF profile (scheme?sif=<code>) — same body order and blocks as the PMS
+  // page (render below): scheme profile, investment objective, scheme
+  // returns (table/graph), fund managers, then the rest. Data is AMFI's:
+  // NAV-history returns plus the strategy details from AMFI's Investment
+  // Strategy Details / Scheme Summary Document (getPublicSifScheme).
+  // AMFI gives SIF managers' names only (no photo/bio like Finalyca's PMS
+  // managers), so a compact grid of name cards instead of fundManagersSection.
+  function sifManagersSection(names) {
+    if (!names || !names.length) return '';
+    return '<div class="scm-section"><h2>' + (names.length > 1 ? 'Fund managers' : 'Fund manager') + '</h2>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">' +
+      names.map(function (n) {
+        return '<div class="scm-fm-card" style="padding:14px 16px;align-items:center;gap:12px;">' +
+          '<div class="scm-fm-photo-fallback" style="width:40px;height:40px;min-width:40px;font-size:16px;">' + esc(n.charAt(0)) + '</div>' +
+          '<div class="scm-fm-name" style="margin:0;">' + esc(n) + '</div></div>';
+      }).join('') + '</div></div>';
+  }
+
   function renderSif(s) {
     s.isSif = true;
     document.title = s.schemeName + ' — myAlternates';
-    var r = s.returns || {};
+    var d = s.details || {};
     function fmtD(iso) {
       if (!iso) return '';
-      var d = new Date(iso + 'T00:00:00');
-      return isNaN(d) ? iso : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      var dt = new Date(iso + 'T00:00:00');
+      return isNaN(dt) ? iso : dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     }
-    var chips = [['NAV · ' + fmtD(s.navDate), '₹' + s.nav.toFixed(4)]];
-    if (s.launchDate) chips.push(['Launch date', fmtD(s.launchDate)]);
-    chips.push(['Min. investment', '₹10 lakh']);
-    if (s.benchmark) chips.push(['Benchmark', s.benchmark]);
+    // Shapes the shared PMS helpers (schemeReturnsSection, fundManagersSection,
+    // fundHouseSection) expect. No benchmark returns for SIF — AMFI only
+    // names the benchmark.
+    s.benchmark = { name: '' };
+    s.asOf = fmtD(s.navDate);
+    s.productName = 'SIF';
+    s.profile = { activeFundManagers: (d.fundManagers || []).map(function (n) { return { name: n }; }) };
+
+    // SEBI's SIF minimum is ₹10 lakh per investor per AMC — AMFI's own
+    // minimum-amount field is blank for a few houses.
+    var minInv = d.minInvestment ? money(d.minInvestment) : '₹10,00,000';
+    var chips = [];
+    if (d.benchmark) chips.push(['Benchmark', d.benchmark]);
+    if (s.launchDate) chips.push(['Inception date', fmtD(s.launchDate)]);
+    chips.push(['Min. investment', minInv]);
+    chips.push(['NAV · ' + fmtD(s.navDate), '₹' + s.nav.toFixed(4)]);
 
     var facts = [];
-    if (s.strategy) facts.push(['Investment strategy', s.strategy]);
     if (s.assetClass) facts.push(['Asset class', s.assetClass]);
-    if (s.fundType) facts.push(['Structure', s.fundType]);
+    if (s.strategy) facts.push(['Investment strategy', s.strategy]);
+    if (s.fundType) facts.push(['Scheme type', s.fundType]);
+    if (d.fundManagers && d.fundManagers.length) facts.push(['Fund manager' + (d.fundManagers.length > 1 ? 's' : ''), d.fundManagers.join(', ')]);
+    facts.push(['Minimum investment', minInv]);
+    if (d.ter) facts.push(['Expense ratio (max.)', d.ter.replace(/\n/g, ' · ')]);
+    if (d.riskometer) facts.push(['Riskometer', d.riskometer]);
     facts.push(['Plan', 'Regular · ' + (s.option || 'Growth')]);
-    if (s.sifBrand) facts.push(['SIF brand', s.sifBrand]);
-    if (s.fundManager) facts.push(['Fund manager(s)', s.fundManager]);
-    if (s.ter) facts.push(['Expense ratio (TER)', s.ter]);
-    if (s.exitLoad) facts.push(['Exit load', s.exitLoad]);
 
-    var periods = [['1 Month', r.r1m], ['3 Months', r.r3m], ['6 Months', r.r6m],
-      ['1 Year', r.r1y], ['3 Years', r.r3y], ['5 Years', r.r5y],
-      ['Since inception' + (s.si && !s.si.annualised ? ' (absolute)' : ''), r.si]];
+    var text = function (v) { return '<p class="scm-objective" style="white-space:pre-line;">' + esc(v) + '</p>'; };
 
     root.innerHTML =
       '<div class="scm-hero"><div class="wrap">' +
@@ -964,19 +986,28 @@
       }).join('') + '</div>' +
       '</div></div>' +
       '<div class="scm-body wrap">' +
-      '<div class="scm-section"><h2>Returns</h2><div class="scm-facts">' +
-      periods.map(function (p) {
-        var cls = p[1] == null ? ' style="color:var(--muted-light);font-weight:400;"'
-          : (p[1] >= 0 ? ' style="color:var(--emerald);"' : ' style="color:#B5502E;"');
-        return '<div class="scm-fact"><span>' + esc(p[0]) + '</span><b' + cls + '>' + (p[1] == null ? 'NA' : pct(p[1])) + '</b></div>';
-      }).join('') +
-      '</div><p style="margin-top:12px;font-size:12.5px;line-height:1.5;color:var(--muted);">Regular plan, from AMFI\'s daily NAVs. Returns under a year are absolute, a year and over annualised; ' +
-      'NA means the strategy is younger than that period. Past performance is not indicative of future returns.</p></div>' +
       '<div class="scm-section"><h2>Scheme profile</h2><div class="scm-facts">' +
       facts.map(function (f) { return '<div class="scm-fact"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; }).join('') +
       '</div></div>' +
+      (d.objective ? '<div class="scm-section"><h2>Investment objective</h2>' + text(d.objective) + '</div>' : '') +
+      schemeReturnsSection(s).replace(/<\/div>$/,
+        '<p style="margin-top:12px;font-size:12px;line-height:1.5;color:var(--muted);">Regular plan, from AMFI\'s daily NAVs. ' +
+        'Returns under a year are absolute, a year and over annualised; NA means the strategy is younger than that period. ' +
+        'Past performance is not indicative of future returns.</p></div>') +
+      sifManagersSection(d.fundManagers) +
+      (d.assetAllocation ? '<div class="scm-section"><h2>Asset allocation</h2>' + text(d.assetAllocation) + '</div>' : '') +
+      (d.exitLoad ? '<div class="scm-section"><h2>Exit load</h2>' + text(d.exitLoad) + '</div>' : '') +
+      (d.documents && d.documents.length ? '<div class="scm-section"><h2>Scheme documents</h2><div class="scm-facts">' +
+        d.documents.map(function (doc) {
+          return '<div class="scm-fact"><span>' + esc(doc.label) + '</span><b><a href="' + esc(doc.url) +
+            '" target="_blank" rel="noopener" style="color:var(--emerald);">View PDF ↗</a></b></div>';
+        }).join('') + '</div></div>' : '') +
+      fundHouseSection(s) +
       '</div>';
 
+    var chartWrap = document.getElementById('scmChartWrap');
+    if (chartWrap) wireTooltip(chartWrap);
+    wireReturnsToggle(s);
     loadMeetingAction(s);
     document.addEventListener('ma:scheduled', function (e) {
       if (e.detail && e.detail.scheduled) loadMeetingAction(s);
