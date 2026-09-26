@@ -948,7 +948,8 @@
     if (s.ter) facts.push(['Expense ratio (TER)', s.ter]);
     if (s.exitLoad) facts.push(['Exit load', s.exitLoad]);
 
-    var periods = [['1 Year', r.r1y], ['3 Years', r.r3y], ['5 Years', r.r5y],
+    var periods = [['1 Month', r.r1m], ['3 Months', r.r3m], ['6 Months', r.r6m],
+      ['1 Year', r.r1y], ['3 Years', r.r3y], ['5 Years', r.r5y],
       ['Since inception' + (s.si && !s.si.annualised ? ' (absolute)' : ''), r.si]];
 
     root.innerHTML =
@@ -969,7 +970,7 @@
           : (p[1] >= 0 ? ' style="color:var(--emerald);"' : ' style="color:#B5502E;"');
         return '<div class="scm-fact"><span>' + esc(p[0]) + '</span><b' + cls + '>' + (p[1] == null ? 'NA' : pct(p[1])) + '</b></div>';
       }).join('') +
-      '</div><p style="margin-top:12px;font-size:12.5px;line-height:1.5;color:var(--muted);">Regular plan, from AMFI\'s daily NAVs. Returns over a year are annualised; ' +
+      '</div><p style="margin-top:12px;font-size:12.5px;line-height:1.5;color:var(--muted);">Regular plan, from AMFI\'s daily NAVs. Returns under a year are absolute, a year and over annualised; ' +
       'NA means the strategy is younger than that period. Past performance is not indicative of future returns.</p></div>' +
       '<div class="scm-section"><h2>Scheme profile</h2><div class="scm-facts">' +
       facts.map(function (f) { return '<div class="scm-fact"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; }).join('') +

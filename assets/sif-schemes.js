@@ -71,7 +71,9 @@
       '<span>Option <b>' + esc(s.option || '–') + '</b></span>' +
       (s.ter ? '<span>TER <b>' + esc(s.ter) + '</b></span>' : '') +
       '</div></div></div>' +
-      '<div class="sr-rets">' + retCol('1Y', r.r1y) + retCol('3Y', r.r3y) + retCol('5Y', r.r5y) + retCol('SI', siPct) + '</div>' +
+      // SIFs only began in 2025, so the list shows short periods; the
+      // Discover page (scheme?sif=) carries every period up to 5Y.
+      '<div class="sr-rets">' + retCol('1M', r.r1m) + retCol('3M', r.r3m) + retCol('6M', r.r6m) + retCol('SI', siPct) + '</div>' +
       '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.schemeCode) + '">Discover →</button></div>' +
       '</div>';
   }
@@ -143,8 +145,8 @@
       }
       var navDate = all.map(function (s) { return s.navDate; }).filter(Boolean).sort().pop();
       host.querySelector('#sifDisc').textContent =
-        'NAV source: AMFI, latest as of ' + fmtDate(navDate) + '. Regular plans shown. Returns over a year are annualised; since-inception (SI) is measured from ' +
-        'the launch NAV and is absolute for strategies under a year old. NA means the strategy is younger than that period. Minimum investment ₹10 lakh per investor across an AMC\'s SIF strategies. ' +
+        'NAV source: AMFI, latest as of ' + fmtDate(navDate) + '. Regular plans shown. 1M / 3M / 6M returns are absolute; since-inception (SI) is measured from ' +
+        'the launch NAV — absolute for strategies under a year old, annualised after. NA means the strategy is younger than that period. Minimum investment ₹10 lakh per investor across an AMC\'s SIF strategies. ' +
         'Past performance is not indicative of future returns; please read the scheme documents carefully.';
       renderPills(); render();
     })
