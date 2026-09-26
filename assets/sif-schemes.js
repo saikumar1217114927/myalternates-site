@@ -71,7 +71,6 @@
       '</div>' +
       '<div class="sr-meta">' +
       '<span>Inception <b>' + esc(fmtDate(s.launchDate)) + '</b></span>' +
-      '<span>NAV <b>₹' + esc(s.nav.toFixed(4)) + '</b></span>' +
       '<span>Type <b>' + esc(s.fundType || '–') + '</b></span>' +
       '<span>Option <b>' + esc(s.option || '–') + '</b></span>' +
       '</div></div></div>' +
@@ -135,12 +134,10 @@
       '<button type="button" class="pss-dir-btn' + (state.sortDir === 'asc' ? ' active' : '') + '" data-dir="asc">Low to High</button>' +
       '</div></div>' +
       '<div class="pss-group">' +
-      '<label>Strategy</label>' +
-      '<div class="pss-pills" id="pssStrategy">' +
-      ['All'].concat(strategies).map(function (v) {
-        return '<button type="button" class="pss-pill' + (v === state.strategy ? ' active' : '') + '" data-val="' + esc(v) + '">' + esc(v) + '</button>';
-      }).join('') +
-      '</div></div>' +
+      '<label>Strategy type</label>' +
+      '<select id="pssStrategy">' + opt('All', 'All strategy types', state.strategy) +
+      strategies.map(function (v) { return opt(v, v, state.strategy); }).join('') + '</select>' +
+      '</div>' +
       '<div class="pss-group">' +
       '<label>Asset class</label>' +
       '<select id="pssAsset">' + opt('All', 'All asset classes', state.asset) +
@@ -161,9 +158,7 @@
     panel.querySelectorAll('.pss-dir-btn').forEach(function (btn) {
       btn.onclick = function () { state.sortDir = btn.dataset.dir; renderFilterPanel(); applyFilters(); };
     });
-    panel.querySelectorAll('.pss-pill').forEach(function (btn) {
-      btn.onclick = function () { state.strategy = btn.dataset.val; renderFilterPanel(); applyFilters(); };
-    });
+    panel.querySelector('#pssStrategy').onchange = function () { state.strategy = this.value; applyFilters(); };
     panel.querySelector('#pssAsset').onchange = function () { state.asset = this.value; applyFilters(); };
     panel.querySelector('#pssAmc').onchange = function () { state.amc = this.value; applyFilters(); };
     panel.querySelector('#pssClear').onclick = function () {
