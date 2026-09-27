@@ -127,7 +127,7 @@
       '.date-nav{flex:0 0 auto;width:30px;height:30px;border-radius:50%;border:1.5px solid #ded6c2;background:#fff;color:var(--muted,#6C7178);cursor:pointer;font-size:14px;font-family:inherit}' +
       '.date-nav:hover{border-color:var(--gold,#C9A24B);color:var(--ink-text,#181B20)}' +
       '.date-nav:disabled{opacity:.35;cursor:default}' +
-      '.time-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}' +
+      '.time-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}' +
       '.time-slot{min-width:0;text-align:center;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;border:1.5px solid #ded6c2;background:#fff;color:var(--ink-text,#181B20);border-radius:9px;padding:10px 4px;transition:border-color .15s ease,background .15s ease,color .15s ease}' +
       '.time-slot:hover{border-color:var(--gold-light,#E9D19E)}' +
       '.time-slot.active{border-color:var(--gold,#C9A24B);background:var(--gold,#C9A24B);color:var(--ink,#0B0E13)}' +
@@ -159,7 +159,7 @@
   var ZIPCODEBASE_API_KEY = 'e7760cf0-6fd0-11f1-85e2-ffa5f29d7b10';
   var ZIPCODEBASE_URL = 'https://app.zipcodebase.com/api/v1/search';
 
-  var TIME_SLOTS = ['10:30 AM', '11:30 AM', '12:30 PM', '01:30 PM', '02:30 PM', '03:30 PM', '04:30 PM', '05:30 PM'];
+  var TIME_SLOTS = ['10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM'];
   var MODES = ['Phone Call', 'Zoom Call', 'Google Meet'];
 
   var COUNTRIES = [

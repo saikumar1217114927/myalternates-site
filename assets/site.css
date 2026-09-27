@@ -1422,7 +1422,7 @@ nav.links a:hover::after{width:100%;}
 .date-nav:hover{border-color:var(--gold); color:var(--ink-text);}
 .date-nav:disabled{opacity:.35; cursor:default;}
 
-.time-grid{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px;}
+.time-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px;}
 .time-slot{
   min-width:0;
   text-align:center; cursor:pointer; font-size:12.5px; font-weight:600; font-family:inherit;

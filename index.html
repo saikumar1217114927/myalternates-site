@@ -488,7 +488,7 @@
   }
   .date-scroller-arrow:hover{border-color:var(--gold); color:var(--ink-text);}
   .date-scroller-arrow:disabled{opacity:0.35; cursor:default; pointer-events:none;}
-  .time-grid{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:6px;}
+  .time-grid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px;}
   .time-slot{
     min-width:0;
     text-align:center; cursor:pointer; font-size:11.5px; font-weight:600;
@@ -2170,7 +2170,7 @@
   const timeGrid = document.getElementById('timeGrid');
   const modeGrid = document.getElementById('modeGrid');
 
-  const TIME_SLOTS = ['10:30 AM','11:30 AM','12:30 PM','01:30 PM','02:30 PM','03:30 PM','04:30 PM','05:30 PM'];
+  const TIME_SLOTS = ['10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM', '05:00 PM', '06:00 PM'];
   let selectedDate = null;   // ISO yyyy-mm-dd
   let selectedDateLabel = ''; // display label
   let selectedTime = TIME_SLOTS[0];
