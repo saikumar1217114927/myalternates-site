@@ -527,18 +527,50 @@
   // exactly as authored. Applies to every data-ma-talk element on the page
   // uniformly (not just the hero), so pms.html and aif.html both get this
   // for free without a page-specific widget for each.
-  function applyTalkToExpertLabels(links, scheduled) {
+  function applyTalkToExpertLabels(links, mtg) {
+    var scheduled = !!mtg;
     links.forEach(function (el) {
       if (!el.hasAttribute('data-ma-talk-orig')) el.setAttribute('data-ma-talk-orig', el.textContent);
       var orig = el.getAttribute('data-ma-talk-orig');
       el.textContent = scheduled ? ('Reschedule' + (/→\s*$/.test(orig) ? ' →' : '')) : orig;
+      applyLeadCardMeeting(el.closest('.lead-card'), mtg);
     });
+  }
+  // The calculator pages' "Talk to an expert" card (.lead-card): with a call
+  // already booked, show that call's date, time and mode first, with the
+  // Reschedule button below it — not a bare Reschedule under copy that
+  // still says "Register or log in".
+  function applyLeadCardMeeting(card, mtg) {
+    if (!card) return;
+    var h3 = card.querySelector('h3'), sub = card.querySelector('.sub');
+    if (!h3 || !sub) return;
+    if (!card.hasAttribute('data-orig-h3')) {
+      card.setAttribute('data-orig-h3', h3.textContent);
+      card.setAttribute('data-orig-sub', sub.textContent);
+    }
+    var label = card.querySelector('.lc-mlabel');
+    if (!mtg) {
+      if (label) label.remove();
+      h3.textContent = card.getAttribute('data-orig-h3');
+      sub.textContent = card.getAttribute('data-orig-sub');
+      return;
+    }
+    if (!label) {
+      label = document.createElement('div');
+      label.className = 'lc-mlabel';
+      label.style.cssText = 'font:600 12px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--gold,#C9A24B);margin-bottom:8px';
+      label.textContent = 'Your call is scheduled';
+      card.insertBefore(label, h3);
+    }
+    h3.textContent = fmtMtgDate(mtg.date);
+    sub.textContent = [mtg.time ? mtg.time + ' IST' : '', mtg.mode || ''].filter(Boolean).join(' · ');
   }
   function refreshTalkToExpertState(links) {
     var token = window.MASession && window.MASession.getToken();
-    if (!token) { applyTalkToExpertLabels(links, false); return; }
+    if (!token) { applyTalkToExpertLabels(links, null); return; }
     window.MASession.checkStatus(token).then(function (sess) {
-      applyTalkToExpertLabels(links, !!(sess && sess.ok && sess.loggedIn && sess.upcomingMeeting && sess.upcomingMeeting.date));
+      var mtg = sess && sess.ok && sess.loggedIn && sess.upcomingMeeting;
+      applyTalkToExpertLabels(links, mtg && mtg.date ? mtg : null);
     });
   }
 

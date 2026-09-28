@@ -1110,11 +1110,8 @@
           '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
           '<button type="button" class="lr-link" data-no>Not now</button></div></div>';
     }
-    html += '<div class="lr-notyou"><button type="button" class="lr-link" data-notyou>Not you? Sign out</button></div>';
+    // No "Not you? Sign out" here — signing out lives in the profile page.
     bodyEl.innerHTML = html;
-
-    var nu = bodyEl.querySelector('[data-notyou]');
-    if (nu) nu.onclick = signOut;
 
     var ask = bodyEl.querySelector('.lr-ask');
     var yes = bodyEl.querySelector('[data-yes]');

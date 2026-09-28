@@ -1947,12 +1947,11 @@
         '<p style="font-size:13.5px;color:var(--muted,#6C7178);margin:0 0 16px;line-height:1.55">No need to fill the form again — just pick a time and your expert will call you.</p>' +
         '<button type="button" id="maBook" style="background:var(--gold,#c9a24b);color:#1a1400;border:0;border-radius:8px;padding:10px 20px;font-weight:700;font-size:14px;cursor:pointer">Schedule a call →</button>';
     }
-    b.innerHTML = inner +
-      '<div style="margin-top:16px"><button type="button" id="maSignOut" style="background:none;border:0;color:var(--muted,#6C7178);text-decoration:underline;font-size:12.5px;cursor:pointer">Not you? Sign out</button></div>';
+    // No "Not you? Sign out" here — signing out lives in the profile page.
+    b.innerHTML = inner;
 
     card.style.display = 'none';
     card.parentNode.insertBefore(b, card);
-    document.getElementById('maSignOut').onclick = () => { maClearSession(); b.remove(); card.style.display = ''; };
 
     const startBooking = (reschId) => {
       leadRecord = {
