@@ -63,7 +63,7 @@
   }
 
   function rowHtml(s) {
-    return '<div class="scheme-row">' + compareBtnHtml(s) +
+    return '<div class="scheme-row' + (Number(s.featured) > 0 ? ' featured' : '') + '">' + compareBtnHtml(s) +
       '<div class="sr-id"><div class="sr-logo-fallback">' + esc(amcOf(s).charAt(0).toUpperCase()) + '</div>' +
       '<div class="sr-id-text">' +
       '<div class="sr-toprow"><span class="sc-amc">' + esc(amcOf(s)) + '</span></div>' +
@@ -180,9 +180,16 @@
       if (!q) return true;
       return [s.schemeName, s.sifBrand, s.amcName, s.strategy].join(' ').toLowerCase().indexOf(q) > -1;
     });
-    // NA returns always sink to the bottom, whichever direction
+    // Featured picks lead in their admin-set position (1, 2, 3...), like the
+    // PMS list; the rest follow the chosen sort. NA returns always sink to
+    // the bottom, whichever direction.
     var dir = state.sortDir === 'asc' ? 1 : -1;
     list.sort(function (a, b) {
+      var af = Number(a.featured) || 0, bf = Number(b.featured) || 0;
+      if (af > 0 || bf > 0) {
+        if (af > 0 && bf > 0) return af - bf;
+        return af > 0 ? -1 : 1;
+      }
       var x = retOf(a, state.sortKey), y = retOf(b, state.sortKey);
       if (x == null && y == null) return 0;
       if (x == null) return 1;

@@ -7,7 +7,7 @@
 
    Typing >=2 letters queries searchPublicSchemes (across every product, not
    just the current page's), and the results dropdown shows each scheme's
-   name + AMC alongside a PMS/AIF/GIFT City tag. Picking one goes to
+   name + AMC alongside a PMS/AIF/GIFT City/SIF tag. Picking one goes to
    scheme.html — through the same registration gate the "Discover" button
    uses, when that's available on the page (a couple of the lighter
    calculator/about pages don't load session-gate.js, so this degrades to a
@@ -22,7 +22,7 @@
     PMS: 'Portfolio Management Services (PMS)',
     AIF: 'Alternative Investment Fund (AIF)',
     GIFT_IFSC: 'GIFT City products',
-    SIF: 'Specialized Investment Fund (SIF)'
+    SIF: 'Specialised Investment Fund (SIF)'
   };
 
   function esc(s) {
@@ -108,7 +108,11 @@
     }
 
     function goToScheme(planId, productCode) {
-      var url = 'scheme?id=' + encodeURIComponent(planId);
+      // SIFs come from AMFI, keyed by their AMFI code ('SIF-3') — they open
+      // the SIF profile (scheme?sif=) rather than a Finalyca plan.
+      var url = productCode === 'SIF'
+        ? 'scheme?sif=' + encodeURIComponent(planId)
+        : 'scheme?id=' + encodeURIComponent(planId);
       var token = window.MASession && window.MASession.getToken && window.MASession.getToken();
       if (token || !window.maOpenGateModal) { location.href = url; return; }
       var interest = PRODUCT_INTEREST[productCode] || 'Investing with myAlternates';
