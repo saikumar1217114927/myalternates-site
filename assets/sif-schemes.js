@@ -19,12 +19,15 @@
   var INTEREST = 'Specialised Investment Fund (SIF)';
   var OTHER_PRODUCTS = [['pms', 'PMS'], ['aif', 'AIF'], ['gift-city', 'GIFT City']];
   var SORT_OPTIONS = [
-    { value: 'si', label: 'Since Inception' },
     { value: 'r1m', label: '1 Month Return' },
     { value: 'r3m', label: '3 Month Return' },
-    { value: 'r6m', label: '6 Month Return' }
+    { value: 'r6m', label: '6 Month Return' },
+    { value: 'si', label: 'Since Inception' }
   ];
-  var DEFAULTS = { q: '', strategy: 'All', asset: 'All', amc: 'All', sortKey: 'si', sortDir: 'desc' };
+  var DEFAULTS = { q: '', strategy: 'All', asset: 'All', amc: 'All', sortKey: 'r1m', sortDir: 'desc' };
+  // Like the PMS list: at most 50 cards unless the visitor is searching —
+  // a search always looks through every SIF, not just the 50 shown.
+  var LIST_LIMIT = 50;
 
   var all = [];
   var state = Object.assign({}, DEFAULTS);
@@ -60,7 +63,7 @@
   }
 
   function rowHtml(s) {
-    return '<div class="scheme-row">' +
+    return '<div class="scheme-row">' + compareBtnHtml(s) +
       '<div class="sr-id"><div class="sr-logo-fallback">' + esc(amcOf(s).charAt(0).toUpperCase()) + '</div>' +
       '<div class="sr-id-text">' +
       '<div class="sr-toprow"><span class="sc-amc">' + esc(amcOf(s)) + '</span></div>' +
@@ -186,9 +189,14 @@
       if (y == null) return -1;
       return (x - y) * dir;
     });
+    var shown = q ? list : list.slice(0, LIST_LIMIT);
     var listEl = host.querySelector('.scheme-list');
-    listEl.innerHTML = list.map(rowHtml).join('');
+    listEl.innerHTML = shown.map(rowHtml).join('') +
+      (shown.length < list.length
+        ? '<p class="ps-empty">Showing the top ' + shown.length + ' of ' + list.length + ' SIF plans — search by scheme or AMC name to find any of them.</p>'
+        : '');
     host.querySelector('#sifEmpty').hidden = list.length > 0;
+    syncCompareButtons();
   }
 
   // Heading row stays pinned under the nav while the cards scroll — the
@@ -205,6 +213,214 @@
   var resizeTimer = null;
   window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(updateStickyOffsets, 150); });
   document.addEventListener('ma:scheduled', function () { setTimeout(updateStickyOffsets, 150); });
+
+  // ---- Compare (2–3 SIF plans) — same tray, modal and table styles as the
+  // PMS/AIF compare in featured-schemes.js; data from getPublicSifScheme.
+  // Any SIF can sit next to any other (they share the same metrics).
+  var COMPARE_MAX = 3, COMPARE_MIN = 2, COMPARE_KEY = 'maCompare:SIF';
+  var compareSel = (function () {
+    try { var v = JSON.parse(sessionStorage.getItem(COMPARE_KEY) || '[]'); return Array.isArray(v) ? v.slice(0, COMPARE_MAX) : []; }
+    catch (e) { return []; }
+  })();
+  var compareMsgTimer = null, trayEl = null, cmpModal = null;
+  function saveCompareSel() { try { sessionStorage.setItem(COMPARE_KEY, JSON.stringify(compareSel)); } catch (e) {} }
+  var COMPARE_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h11m0 0-3-3m3 3-3 3M16 13H5m0 0 3-3m-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function compareBtnHtml(s) {
+    return '<button type="button" class="sr-compare" data-compare="' + esc(s.schemeCode) + '" title="Add to compare" aria-label="Add ' +
+      esc(s.schemeName) + ' to compare" aria-pressed="false">' + COMPARE_ICON + '</button>';
+  }
+  function syncCompareButtons() {
+    var picked = {};
+    compareSel.forEach(function (c) { picked[c.code] = 1; });
+    host.querySelectorAll('[data-compare]').forEach(function (btn) {
+      var on = !!picked[btn.getAttribute('data-compare')];
+      btn.classList.toggle('on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.title = on ? 'Remove from compare' : 'Add to compare';
+    });
+  }
+  function toggleCompare(code) {
+    var idx = -1;
+    compareSel.forEach(function (c, i) { if (c.code === code) idx = i; });
+    if (idx > -1) {
+      compareSel.splice(idx, 1);
+    } else {
+      var s = all.filter(function (x) { return x.schemeCode === code; })[0];
+      if (!s) return;
+      if (compareSel.length >= COMPARE_MAX) {
+        showCompareMsg('You can compare up to ' + COMPARE_MAX + ' SIFs at a time. Remove one to add another.');
+        return;
+      }
+      compareSel.push({ code: code, schemeName: s.schemeName + ' – ' + (s.option || 'Growth'), amcName: amcOf(s) });
+    }
+    saveCompareSel(); syncCompareButtons(); renderCompareTray();
+  }
+  function ensureTray() {
+    if (trayEl) return trayEl;
+    trayEl = document.createElement('div');
+    trayEl.className = 'cmp-tray';
+    trayEl.hidden = true;
+    trayEl.innerHTML = '<div class="cmp-tray-in">' +
+      '<div class="cmp-tray-head"><b>Compare SIF</b><span id="cmpTrayCount"></span></div>' +
+      '<div class="cmp-slots" id="cmpSlots"></div>' +
+      '<div class="cmp-tray-actions"><button type="button" class="cmp-clear" id="cmpClear">Clear</button>' +
+      '<button type="button" class="sc-discover cmp-go" id="cmpGo">Compare</button></div>' +
+      '<div class="cmp-msg" id="cmpMsg" role="status" aria-live="polite"></div>' +
+      '</div>';
+    document.body.appendChild(trayEl);
+    trayEl.querySelector('#cmpClear').onclick = function () { compareSel = []; saveCompareSel(); syncCompareButtons(); renderCompareTray(); };
+    trayEl.querySelector('#cmpGo').onclick = function () { if (compareSel.length >= COMPARE_MIN) openCompareGated(); };
+    trayEl.querySelector('#cmpSlots').onclick = function (e) {
+      var x = e.target.closest('[data-cmp-remove]');
+      if (x) toggleCompare(x.getAttribute('data-cmp-remove'));
+    };
+    return trayEl;
+  }
+  function renderCompareTray() {
+    var t = ensureTray();
+    if (!compareSel.length) { t.hidden = true; document.body.classList.remove('cmp-tray-on'); return; }
+    t.querySelector('#cmpTrayCount').textContent = compareSel.length + ' of ' + COMPARE_MAX + ' selected' +
+      (compareSel.length < COMPARE_MIN ? ' · add at least one more' : '');
+    var slots = compareSel.map(function (c) {
+      return '<div class="cmp-slot"><div class="cmp-slot-text"><span>' + esc(c.amcName) + '</span><b>' + esc(c.schemeName) + '</b></div>' +
+        '<button type="button" class="cmp-slot-x" data-cmp-remove="' + esc(c.code) + '" aria-label="Remove ' + esc(c.schemeName) + '">✕</button></div>';
+    });
+    for (var i = compareSel.length; i < COMPARE_MAX; i++) slots.push('<div class="cmp-slot cmp-slot-empty">+ Add a scheme</div>');
+    t.querySelector('#cmpSlots').innerHTML = slots.join('');
+    t.querySelector('#cmpGo').disabled = compareSel.length < COMPARE_MIN;
+    t.hidden = false;
+    document.body.classList.add('cmp-tray-on');
+    document.body.style.setProperty('--cmp-tray-h', t.offsetHeight + 'px');
+  }
+  function showCompareMsg(text) {
+    var t = ensureTray();
+    if (t.hidden) renderCompareTray();
+    var m = t.querySelector('#cmpMsg');
+    m.textContent = text; m.classList.add('show');
+    clearTimeout(compareMsgTimer);
+    compareMsgTimer = setTimeout(function () { m.classList.remove('show'); }, 4500);
+  }
+  // Same rule as Discover: full data is for registered visitors.
+  function openCompareGated() {
+    if (window.MASession && window.MASession.getToken()) { openCompare(); return; }
+    if (!window.maOpenGateModal) { openCompare(); return; }
+    window.maOpenGateModal({
+      message: 'Create your free account to compare SIFs side by side.',
+      interest: INTEREST,
+      onVerified: function (token, r, lead, close) { close(); openCompare(); }
+    });
+  }
+
+  function pct(v) { return (v >= 0 ? '+' : '') + Number(v).toFixed(2) + '%'; }
+  function cmpText(v) { return v == null || v === '' ? '<span class="cmp-na">–</span>' : esc(v); }
+  function cmpRow(label, cells) {
+    return '<tr><th scope="row">' + esc(label) + '</th>' + cells.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>';
+  }
+  function cmpSection(label, n) { return '<tr class="cmp-sec"><th colspan="' + (n + 1) + '">' + esc(label) + '</th></tr>'; }
+  function cmpReturnRow(label, key, list) {
+    var vals = list.map(function (s) { var v = (s.returns || {})[key]; return v == null ? null : Number(v); });
+    var nums = vals.filter(function (v) { return v != null; });
+    if (!nums.length) return '';
+    var best = nums.length > 1 ? Math.max.apply(null, nums) : null;
+    return cmpRow(label, vals.map(function (v) {
+      if (v == null) return '<span class="cmp-na">–</span>';
+      return '<b class="cmp-ret ' + (v >= 0 ? 'pos' : 'neg') + (v === best ? ' best' : '') + '">' + pct(v) + '</b>';
+    }));
+  }
+  function compareTableHtml(list) {
+    var n = list.length;
+    var D = function (s) { return s.details || {}; };
+    var head = '<tr><th class="cmp-corner"></th>' + list.map(function (s) {
+      return '<th class="cmp-head"><div class="sr-logo-fallback">' + esc(amcOf(s).charAt(0).toUpperCase()) + '</div>' +
+        '<div class="sc-amc">' + esc(amcOf(s)) + '</div>' +
+        '<div class="cmp-head-name">' + esc(s.schemeName) + ' – ' + esc(s.option || 'Growth') + '</div>' +
+        '<a class="cmp-head-link" href="scheme?sif=' + encodeURIComponent(s.schemeCode) + '">View details →</a></th>';
+    }).join('') + '</tr>';
+    var rows = [];
+    rows.push(cmpSection('Overview', n));
+    rows.push(cmpRow('Strategy type', list.map(function (s) { return cmpText(strategyOf(s)); })));
+    rows.push(cmpRow('Asset class', list.map(function (s) { return cmpText(s.assetClass); })));
+    rows.push(cmpRow('Structure', list.map(function (s) { return cmpText(s.fundType); })));
+    rows.push(cmpRow('Inception', list.map(function (s) { return cmpText(s.launchDate ? fmtDate(s.launchDate) : null); })));
+    rows.push(cmpRow('NAV', list.map(function (s) { return cmpText(s.nav == null ? null : '₹' + s.nav.toFixed(4) + ' · ' + fmtDate(s.navDate)); })));
+    rows.push(cmpRow('Benchmark', list.map(function (s) { return cmpText(D(s).benchmark); })));
+    rows.push(cmpRow('Riskometer', list.map(function (s) { return cmpText(D(s).riskometer); })));
+    rows.push(cmpRow('Min. investment', list.map(function (s) {
+      var v = D(s).minInvestment;
+      return cmpText(v ? '₹' + Math.round(v).toLocaleString('en-IN') : '₹10,00,000');
+    })));
+    rows.push(cmpSection('Returns', n));
+    [['1 Month', 'r1m'], ['3 Months', 'r3m'], ['6 Months', 'r6m'], ['1 Year', 'r1y'], ['3 Years', 'r3y'],
+     ['5 Years', 'r5y'], ['Since inception', 'si']].forEach(function (r) {
+      var row = cmpReturnRow(r[0], r[1], list);
+      if (row) rows.push(row);
+    });
+    rows.push(cmpSection('Costs & exit', n));
+    rows.push(cmpRow('Expense ratio (max.)', list.map(function (s) { return cmpText(String(D(s).ter || '').replace(/\n/g, ' · ')); })));
+    rows.push(cmpRow('Exit load', list.map(function (s) {
+      return cmpText(String(D(s).exitLoad || '').replace(/^Entry Load:[^\n]*\n?/i, '').replace(/^Exit\s*Load\s*[:–-]\s*/i, ''));
+    })));
+    rows.push(cmpRow('Fund managers', list.map(function (s) {
+      var fm = D(s).fundManagers || [];
+      return fm.length ? esc(fm.join(', ')) : '<span class="cmp-na">–</span>';
+    })));
+    return '<table class="cmp-table cols-' + n + '"><thead>' + head + '</thead><tbody>' + rows.join('') + '</tbody></table>';
+  }
+  // For the admin "Scheme comparisons" report and the Requests activity score.
+  function logComparison(picked) {
+    var vid = '';
+    try { vid = localStorage.getItem('maVid') || ''; } catch (e) {}
+    try {
+      fetch(API_URL, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'logSchemeComparison', token: (window.MASession && window.MASession.getToken()) || '',
+          vid: vid, productCode: 'SIF', group: 'SIF',
+          planIds: picked.map(function (c) { return c.code; }), page: location.pathname + location.search
+        })
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function closeCompare() {
+    if (!cmpModal) return;
+    cmpModal.remove(); cmpModal = null;
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onCompareKey);
+  }
+  function onCompareKey(e) { if (e.key === 'Escape') closeCompare(); }
+  function openCompare() {
+    closeCompare();
+    var picked = compareSel.slice();
+    cmpModal = document.createElement('div');
+    cmpModal.className = 'cmp-modal';
+    cmpModal.innerHTML = '<div class="cmp-modal-backdrop"></div>' +
+      '<div class="cmp-modal-box" role="dialog" aria-modal="true" aria-label="Compare SIFs">' +
+      '<button type="button" class="cmp-modal-close" aria-label="Close">✕</button>' +
+      '<h3>Compare SIF schemes</h3>' +
+      '<div class="cmp-body"><div class="cmp-loading">Loading scheme data…</div></div>' +
+      '<p class="cmp-note">Regular plans, NAV and returns from AMFI; scheme details from AMFI\'s strategy documents. ' +
+      'Returns under a year are absolute. Past performance is not indicative of future returns.</p>' +
+      '</div>';
+    document.body.appendChild(cmpModal);
+    document.body.style.overflow = 'hidden';
+    cmpModal.querySelector('.cmp-modal-backdrop').onclick = closeCompare;
+    cmpModal.querySelector('.cmp-modal-close').onclick = closeCompare;
+    document.addEventListener('keydown', onCompareKey);
+    logComparison(picked);
+    var modalRef = cmpModal;
+    Promise.all(picked.map(function (c) {
+      return fetch(API_URL + '?action=getPublicSifScheme&code=' + encodeURIComponent(c.code))
+        .then(function (r) { return r.json(); })
+        .then(function (d) { return d && d.ok ? d.scheme : null; })
+        .catch(function () { return null; });
+    })).then(function (list) {
+      if (cmpModal !== modalRef) return;
+      list = list.filter(Boolean);
+      modalRef.querySelector('.cmp-body').innerHTML = list.length >= COMPARE_MIN
+        ? '<div class="cmp-scroll">' + compareTableHtml(list) + '</div>'
+        : '<div class="cmp-loading">Couldn\'t load these schemes right now — please try again in a moment.</div>';
+    });
+  }
 
   // Same as the PMS/AIF list's Discover (featured-schemes.js): registered →
   // straight to the scheme page; anonymous → register in the gate modal,
@@ -232,9 +448,12 @@
 
   host.innerHTML = shellHtml();
   host.querySelector('.scheme-list').addEventListener('click', function (e) {
+    var c = e.target.closest('[data-compare]');
+    if (c) { e.stopPropagation(); toggleCompare(c.getAttribute('data-compare')); return; }
     var b = e.target.closest('[data-discover]');
     if (b) goToScheme(b.getAttribute('data-discover'));
   });
+  if (compareSel.length) renderCompareTray();
   host.querySelector('#pssSearch').addEventListener('input', function (e) { state.q = e.target.value; applyFilters(); });
   if (window.maWireTalkToExpertLinks) window.maWireTalkToExpertLinks();
   if (window.maInitHeroMeetingInfo) window.maInitHeroMeetingInfo(INTEREST);

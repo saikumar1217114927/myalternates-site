@@ -32,16 +32,16 @@
     PMS: { href: 'pms-fees', label: 'PMS fee calculator' }
   }[productCode] || null;
   // PMS, AIF and GIFT City have all had their hero removed in favor of this
-  // header CTA — SIF still has its own intact hero with this same button.
+  // header CTA (SIF's own list, sif-schemes.js, builds the same header).
   var SHOW_HEADER_CTA = productCode === 'PMS' || productCode === 'AIF' || productCode === 'GIFT_IFSC';
   // Cross-product switcher — replaces the old static "Live on the platform"
   // eyebrow tag with links to the other two product pages, so a visitor
-  // browsing PMS schemes can jump straight to AIF/GIFT City without going
+  // browsing PMS schemes can jump straight to AIF/GIFT City/SIF without going
   // back through the nav.
   var OTHER_PRODUCTS = {
-    PMS: [['aif', 'AIF'], ['gift-city', 'GIFT City']],
-    AIF: [['pms', 'PMS'], ['gift-city', 'GIFT City']],
-    GIFT_IFSC: [['pms', 'PMS'], ['aif', 'AIF']]
+    PMS: [['aif', 'AIF'], ['gift-city', 'GIFT City'], ['sif', 'SIF']],
+    AIF: [['pms', 'PMS'], ['gift-city', 'GIFT City'], ['sif', 'SIF']],
+    GIFT_IFSC: [['pms', 'PMS'], ['aif', 'AIF'], ['sif', 'SIF']]
   }[productCode] || null;
 
   var allSchemes = [];
