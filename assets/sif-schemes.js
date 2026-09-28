@@ -44,6 +44,14 @@
   }
   function brandLabel(b) { return String(b || '').replace(/\s+SIF$/i, '') + ' SIF'; }
   function amcOf(s) { return s.amcName || brandLabel(s.sifBrand); }
+  // The fund house's official logo (copied once from AMFI, served by our
+  // backend at API_URL + 'sif-logo/<key>'), else the first-letter tile.
+  function logoHtml(s) {
+    var letter = esc(amcOf(s).charAt(0).toUpperCase());
+    if (!s.amcLogo) return '<div class="sr-logo-fallback">' + letter + '</div>';
+    return '<img class="sr-logo" src="' + esc(API_URL + s.amcLogo) + '" alt="" loading="lazy" ' +
+      'onerror="this.outerHTML=\'<div class=&quot;sr-logo-fallback&quot;>' + letter + '</div>\'">';
+  }
   function strategyOf(s) { return String(s.strategy || '').replace(/\s+Fund$/i, ''); }
   function retOf(s, key) {
     var r = s.returns || {};
@@ -64,7 +72,7 @@
 
   function rowHtml(s) {
     return '<div class="scheme-row' + (Number(s.featured) > 0 ? ' featured' : '') + '">' + compareBtnHtml(s) +
-      '<div class="sr-id"><div class="sr-logo-fallback">' + esc(amcOf(s).charAt(0).toUpperCase()) + '</div>' +
+      '<div class="sr-id">' + logoHtml(s) +
       '<div class="sr-id-text">' +
       '<div class="sr-toprow"><span class="sc-amc">' + esc(amcOf(s)) + '</span></div>' +
       '<div class="sr-scheme-name">' + esc(s.schemeName) + '</div>' +
@@ -338,7 +346,7 @@
     var n = list.length;
     var D = function (s) { return s.details || {}; };
     var head = '<tr><th class="cmp-corner"></th>' + list.map(function (s) {
-      return '<th class="cmp-head"><div class="sr-logo-fallback">' + esc(amcOf(s).charAt(0).toUpperCase()) + '</div>' +
+      return '<th class="cmp-head">' + logoHtml(s) +
         '<div class="sc-amc">' + esc(amcOf(s)) + '</div>' +
         '<div class="cmp-head-name">' + esc(s.schemeName) + ' – ' + esc(s.option || 'Growth') + '</div>' +
         '<a class="cmp-head-link" href="scheme?sif=' + encodeURIComponent(s.schemeCode) + '">View details →</a></th>';

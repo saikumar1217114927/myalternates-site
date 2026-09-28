@@ -1091,6 +1091,9 @@
     s.benchmark = { name: '' };
     s.asOf = fmtD(s.navDate);
     s.productName = 'SIF';
+    // Fund-house logo served by our backend (copied once from AMFI); the
+    // shared fundHouseSection reads s.amcLogo as a full URL.
+    s.amcLogo = s.amcLogo ? API_URL + s.amcLogo : '';
     s.profile = { activeFundManagers: (d.fundManagers || []).map(function (n) { return { name: n }; }) };
 
     // SEBI's SIF minimum is ₹10 lakh per investor per AMC — AMFI's own
@@ -1117,7 +1120,9 @@
     root.innerHTML =
       '<div class="scm-hero"><div class="wrap">' +
       '<div class="scm-hero-top">' +
-      '<div class="scm-hero-id"><div><div class="sc-amc">' + esc(s.amcName || s.sifBrand) + '</div>' +
+      '<div class="scm-hero-id">' +
+      (s.amcLogo ? '<img class="scm-hero-logo" src="' + esc(s.amcLogo) + '" alt="" onerror="this.remove()">' : '') +
+      '<div><div class="sc-amc">' + esc(s.amcName || s.sifBrand) + '</div>' +
       '<h1>' + esc(s.schemeName) + '</h1></div></div>' +
       '<div class="scm-hero-meeting" id="scMeetingSection"></div>' +
       '</div>' +
