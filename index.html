@@ -497,6 +497,8 @@
   }
   .time-slot:hover{border-color:var(--gold-light);}
   .time-slot.active{border-color:var(--gold); background:var(--gold); color:var(--ink);}
+  .time-slot.taken{opacity:.4; cursor:not-allowed; text-decoration:line-through; background:#f4f1ea; border-color:#e6dfcf; pointer-events:none;}
+  .time-none{grid-column:1/-1; font-size:12.5px; color:var(--muted); padding:6px 2px;}
   .mode-grid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px;}
   .mode-card{
     min-width:0;
@@ -1847,6 +1849,7 @@
   // ---------- Recognise a returning visitor / new device ----------
   function maRenderKnown(r, opts){
     if(r && r.expert) window.__maExpert = r.expert;
+    maSetBusy(r);
     if(document.querySelector('.ma-known')) return;
     const m = r && r.upcomingMeeting;
     const hasMtg = !!(m && m.date);
@@ -1975,6 +1978,7 @@
     const r = await sendToLeadsSheet({ action:'getLeadSessionStatus', token });
     if(!r || !r.ok || !r.loggedIn){ maClearSession(); return false; }
     if(r.expert) window.__maExpert = r.expert;
+    maSetBusy(r);
     try{ localStorage.setItem('maLead', JSON.stringify({ leadId: r.leadId, name: r.name, email: r.email, mobile: r.mobile, mobileCountryCode: r.mobileCountryCode })); } catch(e){}
     maRenderSession(r, token);
     return true;
@@ -2053,6 +2057,7 @@
         }
         if(res.sessionToken) maSaveSessionToken(res.sessionToken);
         if(res.expert){ window.__maExpert = res.expert; renderExpertScene(); }
+        maSetBusy(res);
         box.remove();
         // verifyLeadOtp's response never says whether this lead already has
         // a call booked — an existing user logging in here (rather than
@@ -2217,6 +2222,7 @@
         chip.classList.add('active');
         selectedDate = iso;
         selectedDateLabel = `${dow}, ${dnum}`;
+        buildTimeSlots();
       });
       dateTrack.appendChild(chip);
     });
@@ -2233,20 +2239,56 @@
   dateScrollLeft.addEventListener('click', () => pageDates(-1));
   dateScrollRight.addEventListener('click', () => pageDates(1));
 
+  // The assigned expert's already-booked call times [{date, time 'HH:MM'}]
+  // (another lead's) — greyed out below. Sent with the same responses as the
+  // expert (maSetBusy); a slot is taken when a call starts less than an hour
+  // either side of it on that date.
+  window.__maBusy = window.__maBusy || [];
+  function maSetBusy(r){
+    if(!r || !Array.isArray(r.busySlots)) return;
+    window.__maBusy = r.busySlots;
+    if(schedOverlay && schedOverlay.classList.contains('show')) buildTimeSlots();
+  }
+  function slotMins(t){
+    const m = /(\d{1,2}):(\d{2})\s*([AP]M)?/i.exec(String(t || ''));
+    if(!m) return -1;
+    let h = +m[1];
+    if(m[3]){ h = h % 12; if(/p/i.test(m[3])) h += 12; }
+    return h * 60 + (+m[2]);
+  }
+  function slotTaken(date, t){
+    const want = slotMins(t);
+    return (window.__maBusy || []).some(b => b.date === date && Math.abs(slotMins(b.time) - want) < 60);
+  }
   function buildTimeSlots(){
     timeGrid.innerHTML = '';
-    TIME_SLOTS.forEach((t, i) => {
+    const keep = selectedTime;
+    let first = null;
+    TIME_SLOTS.forEach((t) => {
       const el = document.createElement('div');
-      el.className = 'time-slot' + (i === 0 ? ' active' : '');
+      const taken = slotTaken(selectedDate, t);
+      el.className = 'time-slot' + (taken ? ' taken' : '');
       el.textContent = t;
+      if(taken) el.title = 'Already booked — please pick another time';
+      else if(first === null) first = t;
       el.addEventListener('click', () => {
+        if(el.classList.contains('taken')) return;
         timeGrid.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
         el.classList.add('active');
         selectedTime = t;
       });
       timeGrid.appendChild(el);
     });
-    selectedTime = TIME_SLOTS[0];
+    // keep the visitor's choice if it's still free, else the first free slot
+    selectedTime = (keep && TIME_SLOTS.includes(keep) && !slotTaken(selectedDate, keep)) ? keep : first;
+    timeGrid.querySelectorAll('.time-slot').forEach(s => s.classList.toggle('active', s.textContent === selectedTime));
+    if(!first){
+      const n = document.createElement('div');
+      n.className = 'time-none';
+      n.textContent = 'No times left on this day — please pick another date.';
+      timeGrid.appendChild(n);
+    }
+    if(schedSubmitBtn && schedSubmitBtn.textContent !== 'Scheduling…') schedSubmitBtn.disabled = !selectedTime;
   }
 
   modeGrid.querySelectorAll('.mode-card').forEach(card => {
@@ -2287,13 +2329,13 @@
     schedEmail.textContent = leadRecord.email || '—';
     schedMobile.textContent = leadRecord.mobileCountryCode ? `${leadRecord.mobileCountryCode} ${leadRecord.mobile}` : (leadRecord.mobile || '—');
     document.getElementById('schedNote').value = '';
-    selectedDate = null; datePage = 0;
+    selectedDate = null; datePage = 0; selectedTime = TIME_SLOTS[0];
     renderDatePage();
     buildTimeSlots();
     selectedMode = maModeCard((leadRecord && leadRecord.rescheduleMeetingId) ? leadRecord.mode : '');
     modeGrid.querySelectorAll('.mode-card').forEach(c => c.classList.toggle('active', c.dataset.mode === selectedMode));
-    schedSubmitBtn.disabled = false;
     schedSubmitBtn.textContent = '📅 Schedule Call →';
+    schedSubmitBtn.disabled = !selectedTime;
     schedOverlay.classList.add('show');
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
@@ -2332,6 +2374,13 @@ scheduleForm.addEventListener('submit', async function(e){
 
   const result = await sendToLeadsSheet(updatePayload);
 
+  if(result && result.slotTaken){
+    schedSubmitBtn.textContent = '📅 Schedule Call →';
+    window.__maBusy = result.busySlots || window.__maBusy;
+    buildTimeSlots();
+    alert(result.error || 'That time was just booked — please pick another time.');
+    return;
+  }
   if(!result || !result.ok){
     schedSubmitBtn.disabled = false;
     schedSubmitBtn.textContent = '📅 Schedule Call →';

@@ -131,6 +131,8 @@
       '.time-slot{min-width:0;text-align:center;cursor:pointer;font-size:12.5px;font-weight:600;font-family:inherit;border:1.5px solid #ded6c2;background:#fff;color:var(--ink-text,#181B20);border-radius:9px;padding:10px 4px;transition:border-color .15s ease,background .15s ease,color .15s ease}' +
       '.time-slot:hover{border-color:var(--gold-light,#E9D19E)}' +
       '.time-slot.active{border-color:var(--gold,#C9A24B);background:var(--gold,#C9A24B);color:var(--ink,#0B0E13)}' +
+      '.time-slot:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through;background:#f4f1ea;border-color:#e6dfcf}' +
+      '.time-none{grid-column:1/-1;font-size:12.5px;color:var(--muted,#6C7178);padding:6px 2px}' +
       '.mode-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}' +
       '.mode-card{min-width:0;border:1.5px solid #ded6c2;background:#fff;border-radius:10px;padding:14px 8px;text-align:center;cursor:pointer;font-family:inherit;transition:border-color .15s ease,background .15s ease}' +
       '.mode-card span{font-size:12.5px;font-weight:600;color:var(--ink-text,#181B20)}' +
@@ -234,6 +236,15 @@
   var submitPromise = null;      // in-flight initial POST (for the row number)
   var googleCred = '';           // Google ID token, if the visitor signed in
   var expert = null;             // assigned user's { name, photo } if they opted to show it
+  // The assigned expert's already-booked call times [{date, time 'HH:MM'}]
+  // (another lead's) — greyed out in the time grid. Comes back with the
+  // same responses as `expert`.
+  var busySlots = [];
+  function setBusy(r) {
+    if (!r || !Array.isArray(r.busySlots)) return;
+    busySlots = r.busySlots;
+    if (sched && sched.classList.contains('show')) renderTimes();
+  }
 
   // ---- returning-visitor identity (shared with index.html's tracking) ----
   function ls(k, v) {
@@ -467,6 +478,7 @@
     }
     if (res && res.sessionToken) saveSessionToken(res.sessionToken);
     if (res && res.expert) { expert = res.expert; if (sched && sched.classList.contains('show')) renderExpertCall(); }
+    setBusy(res);
     return res;
   }
 
@@ -715,6 +727,7 @@
         chip.classList.add('active');
         pick.date = iso;
         pick.dateLabel = dow + ', ' + dnum;
+        renderTimes();
       });
       track.appendChild(chip);
     });
@@ -722,12 +735,31 @@
     sched.querySelector('.date-nav[data-nav="1"]').disabled = pick.page >= datePageCount() - 1;
   }
 
+  // "10:00 AM" -> minutes since midnight
+  function slotMins(t) {
+    var m = /(\d{1,2}):(\d{2})\s*([AP]M)?/i.exec(String(t || ''));
+    if (!m) return -1;
+    var h = +m[1] % 12;
+    if (m[3] && /p/i.test(m[3])) h += 12;
+    if (!m[3]) h = +m[1];
+    return h * 60 + (+m[2]);
+  }
+  // A slot is taken when the expert already has a call (another lead's)
+  // starting less than an hour either side of it on that date.
+  function slotTaken(date, t) {
+    var want = slotMins(t);
+    return busySlots.some(function (b) { return b.date === date && Math.abs(slotMins(b.time) - want) < 60; });
+  }
   function renderTimes() {
     var grid = sched.querySelector('.time-grid');
     grid.innerHTML = '';
-    TIME_SLOTS.forEach(function (t, i) {
-      var s = el('button', 'time-slot' + (i === 0 ? ' active' : ''), t);
+    var keep = pick.time, first = null;
+    TIME_SLOTS.forEach(function (t) {
+      var taken = slotTaken(pick.date, t);
+      var s = el('button', 'time-slot', t);
       s.type = 'button';
+      if (taken) { s.disabled = true; s.title = 'Already booked — please pick another time'; }
+      else if (first === null) first = t;
       s.addEventListener('click', function () {
         grid.querySelectorAll('.time-slot').forEach(function (x) { x.classList.remove('active'); });
         s.classList.add('active');
@@ -735,7 +767,12 @@
       });
       grid.appendChild(s);
     });
-    pick.time = TIME_SLOTS[0];
+    // keep the visitor's choice if it's still free, else the first free slot
+    pick.time = (keep && !slotTaken(pick.date, keep) && TIME_SLOTS.indexOf(keep) > -1) ? keep : first;
+    grid.querySelectorAll('.time-slot').forEach(function (x) { x.classList.toggle('active', x.textContent === pick.time); });
+    if (!first) grid.appendChild(el('div', 'time-none', 'No times left on this day — please pick another date.'));
+    var go = sched.querySelector('.sched-go');
+    if (go && go.textContent !== 'Scheduling…') go.disabled = !pick.time;
   }
 
   // Map any stored meeting-mode string ("Zoom Call", "google meet", "Phone", …) to one of MODES.
@@ -787,10 +824,10 @@
     sched.querySelector('[data-f="mobile"]').textContent = (lead.mobileCountryCode ? lead.mobileCountryCode + ' ' : '') + (lead.mobile || '—');
     sched.querySelector('[data-f="interest"]').textContent = lead.interest || '—';
     sched.querySelector('.sched-note').value = '';
-    pick.date = null; pick.page = 0;
-    renderDates(); renderTimes(); renderModes();
+    pick.date = null; pick.page = 0; pick.time = TIME_SLOTS[0];
     var go = sched.querySelector('.sched-go');
     go.disabled = false; go.textContent = 'Schedule call →';
+    renderDates(); renderTimes(); renderModes();
     sched.classList.add('show');
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
@@ -814,6 +851,13 @@
 
       return send(payload);
     }).then(function (res) {
+      if (res && res.slotTaken) {
+        go.textContent = 'Schedule call →';
+        busySlots = res.busySlots || busySlots;
+        renderTimes();
+        alert(res.error || 'That time was just booked — please pick another time.');
+        return;
+      }
       if (!res || !res.ok) {
         go.disabled = false;
         go.textContent = 'Schedule call →';
@@ -884,6 +928,7 @@
       .then(function (r) {
         if (!r || !r.found) return;             // stale / deleted lead → leave the form
         if (r.expert) expert = r.expert;
+        setBusy(r);
         var host = form.closest('.lead-card') || form.parentNode;
         form.style.display = 'none';
         if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
@@ -1012,6 +1057,7 @@
         return;
       }
       if (r.expert) expert = r.expert;
+      setBusy(r);
       rememberLead({ leadId: r.leadId, name: r.name, email: r.email, mobile: r.mobile, mobileCountryCode: r.mobileCountryCode });
       showSessionPanel(r, token);
     }).catch(function () { /* leave the normal form in place */ });
@@ -1150,6 +1196,7 @@
         .then(function (r) {
           if (!r || !r.found) return;
           if (r.expert) expert = r.expert;
+          setBusy(r);
           rememberLead({ leadId: r.leadId, name: r.name || '', email: email, mobile: mobile, mobileCountryCode: ccSel ? ccSel.value : '' });
           if (r.upcomingMeeting && r.upcomingMeeting.date) showKnownBanner(r);
         });
@@ -1263,6 +1310,7 @@
       // (e.g. scheme.html's meeting-action panel) instead of the enquiry
       // form's own submit flow.
       if (sess.expert) expert = sess.expert;
+      setBusy(sess);
       submitPromise = Promise.resolve();
       openSchedule();
     }
