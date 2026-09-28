@@ -918,9 +918,9 @@
     });
   }
 
-  // SIF profile (scheme?sif=<code>) — same body order and blocks as the PMS
-  // page (render below): scheme profile, investment objective, scheme
-  // returns (table/graph), fund managers, then the rest. Data is AMFI's:
+  // SIF profile (scheme?sif=<code>) — reuses the PMS page's blocks, in the
+  // order the user asked for: scheme profile, investment objective, fund
+  // managers, scheme returns (table/graph), then the rest. Data is AMFI's:
   // NAV-history returns plus the strategy details from AMFI's Investment
   // Strategy Details / Scheme Summary Document (getPublicSifScheme).
   // AMFI gives SIF managers' names only (no photo/bio like Finalyca's PMS
@@ -990,11 +990,11 @@
       facts.map(function (f) { return '<div class="scm-fact"><span>' + esc(f[0]) + '</span><b>' + esc(f[1]) + '</b></div>'; }).join('') +
       '</div></div>' +
       (d.objective ? '<div class="scm-section"><h2>Investment objective</h2>' + text(d.objective) + '</div>' : '') +
+      sifManagersSection(d.fundManagers) +
       schemeReturnsSection(s).replace(/<\/div>$/,
         '<p style="margin-top:12px;font-size:12px;line-height:1.5;color:var(--muted);">Regular plan, from AMFI\'s daily NAVs. ' +
         'Returns under a year are absolute, a year and over annualised; NA means the strategy is younger than that period. ' +
         'Past performance is not indicative of future returns.</p></div>') +
-      sifManagersSection(d.fundManagers) +
       (d.assetAllocation ? '<div class="scm-section"><h2>Asset allocation</h2>' + text(d.assetAllocation) + '</div>' : '') +
       (d.exitLoad ? '<div class="scm-section"><h2>Exit load</h2>' + text(d.exitLoad) + '</div>' : '') +
       (d.documents && d.documents.length ? '<div class="scm-section"><h2>Scheme documents</h2><div class="scm-facts">' +
