@@ -923,6 +923,146 @@
   // managers, scheme returns (table/graph), then the rest. Data is AMFI's:
   // NAV-history returns plus the strategy details from AMFI's Investment
   // Strategy Details / Scheme Summary Document (getPublicSifScheme).
+  // ---- SIF exit load / asset allocation -> cards ----
+  // AMFI gives both as free text, written differently by every house
+  // (bullets as "-", "•", "?", "i.", "1."; PDF line-wraps; one-line lists).
+  // These pull out the structured part — each exit-load slab and each
+  // asset's range — and anything left over becomes a small note. Checked
+  // against all 33 live strategies (Sep 2026); unparseable text falls back
+  // to plain paragraphs in the section renderers below.
+  // Undo PDF line-wrapping and the usual typos, one bullet per line.
+  function sifTidy(raw) {
+    var t = String(raw || '').replace(/\r/g, '')
+      .replace(/[?•·]\s*(?=\S)/g, '\n• ')                 // "?" / "•" bullets (some houses' "•" arrives as "?")
+      .replace(/^\s*(?:-|–|i{1,3}\.|iv\.|\(\w\)|\d{1,2}\.(?=\s))\s*/gm, '• ')  // "-", "i.", "(a)", "1." bullets at line start
+      .replace(/([a-z])(\d)/g, '$1 $2')                  // "after12" -> "after 12"
+      .replace(/daysfrom/gi, 'days from').replace(/fromthe/gi, 'from the').replace(/risk\s*efficiently/gi, 'risk efficiently');
+    var lines = t.split('\n').map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+    var out = [];
+    lines.forEach(function (l) {
+      var prev = out[out.length - 1];
+      var starts = /^(•|entry load\b|exit\s*load\s*[:\-–]|no exit load|nil\b|the trustees|#|\*)/i.test(l);
+      // a wrapped continuation: previous line didn't end a sentence and this one doesn't start a new item
+      if (prev && !starts && !/[.:;]$/.test(prev) && /^[a-z0-9(]/.test(l)) out[out.length - 1] = prev + ' ' + l;
+      else out.push(l);
+    });
+    return out;
+  }
+
+  function cap(s) { s = String(s || '').trim(); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+  // Exit load -> { entry: 'Nil'|'', slabs: [{load, when}], notes: [] }
+  function sifParseExitLoad(raw) {
+    var res = { entry: '', slabs: [], notes: [] };
+    var segs = [];
+    sifTidy(raw).forEach(function (l) {
+      l = l.replace(/^•\s*/, '');
+      // "Entry Load: X" can share a line with exit text
+      var em = /^(?:no entry load[^.]*\.?|entry load\s*[:\-–]?\s*(nil|not applicable|na)\.?)/i.exec(l);
+      if (em) { res.entry = 'Nil'; l = l.slice(em[0].length).trim(); if (!l) return; }
+      l = l.replace(/^exit\s*load\s*[:\-–]+\s*/i, '').replace(/^exit\s*load\s+(?=nil\b)/i, '');
+      if (!l) return;
+      // split sentences / ", NIL thereafter" so each slab stands alone
+      // (no regex lookbehind — older Safari can't parse it)
+      l.split(/\.\s+(?=[A-Z0-9])|,\s*(?=nil\b)/i).forEach(function (x) { if (x.trim()) segs.push(x.trim()); });
+    });
+    segs.forEach(function (s) {
+      var plain = s.replace(/\.$/, '');
+      var free = /without any exit load|may be redeemed without/i.test(plain);
+      var pm = /(\d+(?:\.\d+)?)\s*%/.exec(plain);
+      var isNil = /(^|\W)(nil|no exit load)(\W|$)/i.test(plain);
+      var timed = /\b(day|days|month|months|year|years|thereafter)\b/i.test(plain);
+      if (!free && (pm || isNil) && (timed || /^nil$/i.test(plain))) {
+        var load = pm && !(isNil && plain.search(/nil|no exit load/i) < plain.search(/\d+(?:\.\d+)?\s*%/)) ? pm[1] + '%' : 'Nil';
+        var when = plain
+          .replace(/(\d+(?:\.\d+)?)\s*%\s*(of\s+(the\s+)?applicable\s+(net\s+asset\s+value|nav))?/i, '')
+          .replace(/\b(nil|no exit load( is payable)?)\b/i, '')
+          .replace(/^[\s:\-–,]+|[\s:\-–,]+$/g, '')
+          .replace(/^(if|for)\s+/i, '')
+          .replace(/^(the\s+)?(amount sought to be|units are|units)\s+/i, '')
+          .replace(/\s*[:\-–]\s*$/, '');
+        if (/^thereafter$/i.test(when) || !when) when = /^nil$/i.test(plain) ? 'At any time' : 'After that';
+        res.slabs.push({ load: load, when: cap(when) });
+      } else {
+        res.notes.push(cap(plain) + (/[.:;]$/.test(plain) ? '' : '.'));
+      }
+    });
+    return res;
+  }
+
+  // Asset allocation -> { items: [{label, sub, min, max}], notes: [] }
+  function sifParseAllocation(raw) {
+    var res = { items: [], notes: [] };
+    var text = sifTidy(raw).join('\n');
+    // "80% - 100%", "0-100%", "35 % to 65%", and Titanium's bare "80 -100"
+    var re = /(\d{1,3})\s*%?\s*(?:-|–|to)\s*(\d{1,3})\s*(?:%|(?=[\s,.;]|$))/g;
+    var m, last = 0;
+    while ((m = re.exec(text))) {
+      var label = text.slice(last, m.index);
+      last = re.lastIndex;
+      label = label.replace(/^[\s,;:.\-–]*(of net assets)?[\s,;:.\-–]*/i, '')
+        .replace(/\n/g, ' ').replace(/[\s:;,\-–]+$/, '').replace(/^•\s*/, '')
+        .replace(/,?\s*out of which\s*:?\s*$/i, '').replace(/^out of which\s*:?\s*/i, '');
+      var sub = '';
+      var pm = /\s*\(([^)]*)\)\s*/.exec(label);
+      if (pm) { sub = pm[1]; label = label.replace(pm[0], ' ').trim(); }
+      label = cap(label.replace(/^investments?\s+in\s+/i, '').replace(/\s*[#*]+\s*/g, ' ')
+        .replace(/\bDebt\s+Cash\b/, 'Debt & cash').replace(/\s+,/g, ',').trim());
+      if (!label) continue;
+      if (+m[1] > +m[2] || +m[2] > 100) continue;
+      res.items.push({ label: label, sub: cap(sub), min: +m[1], max: +m[2] });
+    }
+    text.slice(last).split('\n').forEach(function (l) {
+      l = l.replace(/^[\s,;:.\-–]*(of net assets)?[\s,;:.\-–]*/i, '').replace(/^[#*]\s*/, '').trim();
+      if (!l) return;
+      // "Unhedged short exposure … - 25%" — a cap, not a range
+      var one = /^(.{6,160}?)\s*[:\-–]\s*(?:up\s*to\s*)?(\d{1,3})\s*%\.?$/i.exec(l);
+      if (one && res.items.length) res.items.push({ label: cap(one[1].replace(/\s*[#*]+\s*/g, ' ').trim()), sub: '', min: 0, max: +one[2] });
+      else res.notes.push(cap(l));
+    });
+    return res;
+  }
+
+  function sifNotes(notes) {
+    return notes.length ? '<div class="sif-notes">' + notes.map(function (n) { return '<p>' + esc(n) + '</p>'; }).join('') + '</div>' : '';
+  }
+  function sifPlainText(title, raw) {
+    return '<div class="scm-section"><h2>' + title + '</h2><p class="scm-objective" style="white-space:pre-line;">' + esc(raw) + '</p></div>';
+  }
+  // One card per asset: the allowed range ("Up to 20%" when it starts at
+  // zero), what it is, and a 0–100% bar showing where the band sits.
+  function sifAllocationSection(raw) {
+    if (!raw) return '';
+    var a = sifParseAllocation(raw);
+    if (!a.items.length) return sifPlainText('Asset allocation', raw);
+    return '<div class="scm-section"><h2>Asset allocation</h2><div class="sif-alloc-grid">' +
+      a.items.map(function (it) {
+        return '<div class="sif-alloc-card">' +
+          '<div class="sif-alloc-range">' + (it.min === 0 ? 'Up to ' + it.max + '%' : it.min + '–' + it.max + '%') + '</div>' +
+          '<div class="sif-alloc-label">' + esc(it.label) + '</div>' +
+          (it.sub ? '<div class="sif-alloc-sub">' + esc(it.sub) + '</div>' : '') +
+          '<div class="sif-alloc-bar" aria-hidden="true"><i style="left:' + it.min + '%;width:' + Math.max(it.max - it.min, 2) + '%"></i></div>' +
+          '<div class="sif-alloc-scale"><span>0%</span><span>100%</span></div>' +
+          '</div>';
+      }).join('') + '</div>' + sifNotes(a.notes) + '</div>';
+  }
+  // Entry load chip, then one card per exit-load slab: the charge, and when.
+  function sifExitLoadSection(raw) {
+    if (!raw) return '';
+    var e = sifParseExitLoad(raw);
+    if (!e.slabs.length) return sifPlainText('Exit load', raw);
+    return '<div class="scm-section"><h2>Exit load</h2>' +
+      (e.entry ? '<div class="sif-entry-chip">Entry load: <b>' + esc(e.entry) + '</b></div>' : '') +
+      '<div class="sif-load-grid">' + e.slabs.map(function (sl) {
+        var nil = /^nil$/i.test(sl.load);
+        return '<div class="sif-load-card' + (nil ? ' nil' : '') + '">' +
+          '<div class="sif-load-value">' + esc(nil ? 'Nil' : sl.load) + '</div>' +
+          '<div class="sif-load-caption">' + (nil ? 'No exit load' : 'Exit load on NAV') + '</div>' +
+          '<div class="sif-load-when">' + esc(sl.when) + '</div>' +
+          '</div>';
+      }).join('') + '</div>' + sifNotes(e.notes) + '</div>';
+  }
+
   // AMFI gives SIF managers' names only (no photo/bio like Finalyca's PMS
   // managers), so a compact grid of name cards instead of fundManagersSection.
   function sifManagersSection(names) {
@@ -995,8 +1135,8 @@
         '<p style="margin-top:12px;font-size:12px;line-height:1.5;color:var(--muted);">Regular plan, from AMFI\'s daily NAVs. ' +
         'Returns under a year are absolute, a year and over annualised; NA means the strategy is younger than that period. ' +
         'Past performance is not indicative of future returns.</p></div>') +
-      (d.assetAllocation ? '<div class="scm-section"><h2>Asset allocation</h2>' + text(d.assetAllocation) + '</div>' : '') +
-      (d.exitLoad ? '<div class="scm-section"><h2>Exit load</h2>' + text(d.exitLoad) + '</div>' : '') +
+      sifAllocationSection(d.assetAllocation) +
+      sifExitLoadSection(d.exitLoad) +
       (d.documents && d.documents.length ? '<div class="scm-section"><h2>Scheme documents</h2><div class="scm-facts">' +
         d.documents.map(function (doc) {
           return '<div class="scm-fact"><span>' + esc(doc.label) + '</span><b><a href="' + esc(doc.url) +

@@ -964,6 +964,27 @@ nav.links a:hover::after{width:100%;}
 .scm-fee-card.wide{grid-column:1/-1;}
 .scm-fee-card.wide b{font-family:inherit; font-size:13.5px; font-weight:400; line-height:1.6;}
 
+/* SIF asset allocation + exit load cards (scheme-page.js renderSif) — same
+   white-card language as .scm-fee-card above. */
+.sif-alloc-grid, .sif-load-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px;}
+.sif-alloc-card, .sif-load-card{background:#fff; border:1px solid #E4DFD1; border-radius:12px; padding:18px 20px; display:flex; flex-direction:column;}
+.sif-alloc-range{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:26px; line-height:1.1; color:var(--ink-text);}
+.sif-alloc-label{font-size:13.5px; font-weight:600; color:var(--ink-text); line-height:1.45; margin-top:8px;}
+.sif-alloc-sub{font-size:11.5px; color:var(--muted); line-height:1.45; margin-top:4px;}
+.sif-alloc-bar{position:relative; height:6px; border-radius:6px; background:var(--paper-2); margin-top:auto; top:14px;}
+.sif-alloc-bar i{position:absolute; top:0; bottom:0; border-radius:6px; background:linear-gradient(90deg, var(--gold), #DDBB6A);}
+.sif-alloc-scale{display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-top:18px;}
+.sif-entry-chip{display:inline-block; font-size:12.5px; color:var(--muted); background:#fff; border:1px solid #E4DFD1; border-radius:20px; padding:5px 12px; margin-bottom:14px;}
+.sif-entry-chip b{color:var(--emerald); font-weight:700;}
+.sif-load-card{border-top:3px solid var(--gold);}
+.sif-load-card.nil{border-top-color:var(--emerald);}
+.sif-load-value{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:30px; line-height:1.1; color:#B5502E;}
+.sif-load-card.nil .sif-load-value{color:var(--emerald);}
+.sif-load-caption{font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--muted); margin-top:4px;}
+.sif-load-when{font-size:13.5px; color:var(--ink-text); line-height:1.5; margin-top:10px;}
+.sif-notes{margin-top:14px;}
+.sif-notes p{font-size:12px; color:var(--muted); line-height:1.55; margin:0 0 4px;}
+
 /* Cat I/II structured fee classes — an actual table (multiple commitment
    tiers each carrying the same five fields), same light-card language as
    .scm-fee-card above rather than a plain black-on-white grid. */
