@@ -47,6 +47,7 @@
   var allSchemes = [];
   var state = {
     q: '', strategy: 'All', category: 'All', aum: 'All', aifCat: 'All', sortKey: 'r1y', sortDir: 'desc',
+    diyOnly: false,   // "Invest online" toggle — DIY-enabled plans only
     // Cat I/II fund-terms filter panel only:
     asset: 'All', minCommitment: 'All', targetMin: 0, targetMax: null, tenureMin: 0, tenureMax: null
   };
@@ -244,6 +245,7 @@
     var ftMode = isFundTermsMode();
     var q = state.q.trim().toLowerCase();
     var list = allSchemes.filter(function (s) {
+      if (state.diyOnly && !s.diyEligible) return false;
       if (q) {
         var hay = ((s.amcName || '') + ' ' + (s.schemeName || '')).toLowerCase();
         if (hay.indexOf(q) === -1) return false;
@@ -628,6 +630,50 @@
       panel.innerHTML = standardFilterPanelHtml();
       wireStandardFilterPanel(panel);
     }
+    ensureDiyToggle();
+  }
+
+  // ---- "Invest online" filter ----
+  // Only on a product with at least one DIY-enabled plan (hasDiy). The list
+  // itself holds just the top ~50, so loadDiySchemes() separately fetches
+  // every DIY plan of this product — both to decide whether the toggle shows
+  // at all and so turning it on lists all of them, not just those loaded.
+  var hasDiy = false;
+  function ensureDiyToggle() {
+    var panel = host.querySelector('#pssFilterPanel');
+    if (!panel || !hasDiy || panel.querySelector('#pssDiy')) return;
+    var g = document.createElement('div');
+    g.className = 'pss-group pss-diy';
+    g.innerHTML =
+      '<label class="pss-toggle" for="pssDiy">' +
+      '<input type="checkbox" id="pssDiy"' + (state.diyOnly ? ' checked' : '') + '>' +
+      '<span class="pss-toggle-track" aria-hidden="true"></span>' +
+      '<span class="pss-toggle-text"><b>Invest online</b><small>Only schemes you can invest in online</small></span>' +
+      '</label>';
+    var head = panel.querySelector('.pss-ft-head');
+    panel.insertBefore(g, head ? head.nextSibling : panel.firstChild);
+    g.querySelector('#pssDiy').addEventListener('change', function (e) {
+      state.diyOnly = e.target.checked; applyFilters();
+    });
+  }
+  function loadDiySchemes() {
+    fetch(API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) + '&diyOnly=1&limit=200')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        // Keep only DIY plans even so — a backend without diyOnly support
+        // would answer with an ordinary top-N instead.
+        var diy = ((d && d.ok && d.schemes) || []).filter(function (s) { return s.diyEligible; });
+        if (!diy.length) return;
+        var known = {};
+        allSchemes.forEach(function (s) { known[s.planId] = true; });
+        var added = false;
+        diy.forEach(function (s) {
+          if (!known[s.planId]) { allSchemes.push(s); known[s.planId] = true; added = true; }
+        });
+        hasDiy = true;
+        ensureDiyToggle();
+        if (added) applyFilters();
+      }).catch(function () {});
   }
 
   function wireStandardFilterPanel(panel) {
@@ -663,7 +709,7 @@
     aumSel.addEventListener('change', function () { state.aum = aumSel.value; applyFilters(); });
 
     panel.querySelector('#pssClear').onclick = function () {
-      state.strategy = 'All'; state.category = 'All'; state.aum = 'All';
+      state.strategy = 'All'; state.category = 'All'; state.aum = 'All'; state.diyOnly = false;
       state.sortKey = 'r1y'; state.sortDir = 'desc';
       var searchInput = host.querySelector('#pssSearch');
       state.q = ''; searchInput.value = '';
@@ -687,7 +733,7 @@
     });
 
     panel.querySelector('#pssFtClear').onclick = function () {
-      state.asset = 'All'; state.minCommitment = 'All';
+      state.asset = 'All'; state.minCommitment = 'All'; state.diyOnly = false;
       // Left null — fundTermsFilterPanelHtml (called right after via
       // renderFilterPanel) recomputes the right ceiling for whichever
       // category/currency is now active (targetSizeMaxFor).
@@ -763,6 +809,7 @@
   function renderList(schemes) {
     if (!schemes.length) { host.remove(); return; } // nothing curated yet — don't show an empty section
     allSchemes = schemes;
+    hasDiy = schemes.some(function (s) { return s.diyEligible; });
     // The hero's old CTA row (Talk to an expert/Reschedule + a product-
     // specific extra link) and the "your call is scheduled" pieces
     // (#heroMeetingWhen / #heroMeetingAdd, either side of the button) both
@@ -1217,7 +1264,11 @@
     fetch(API_URL + '?action=getPublicFeaturedSchemes&productCode=' + encodeURIComponent(productCode) +
       '&limit=50&sortKey=' + encodeURIComponent(state.sortKey) + '&sortDir=' + encodeURIComponent(state.sortDir))
       .then(function (r) { return r.json(); })
-      .then(function (d) { if (d && d.ok) renderList(d.schemes || []); else host.remove(); })
+      .then(function (d) {
+        if (!(d && d.ok)) { host.remove(); return; }
+        renderList(d.schemes || []);
+        if ((d.schemes || []).length) loadDiySchemes();
+      })
       .catch(function () { host.remove(); });
   }
 

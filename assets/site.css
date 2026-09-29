@@ -1545,6 +1545,27 @@ footer{background:var(--ink); color:var(--muted-light); padding:64px 0 30px; bor
    doesn't load this file at all, so anything the widget needs had to move
    somewhere every page actually loads. */
 
+/* ---- "Invest online" filter toggle (featured-schemes.js) ----
+   Top of the filter panel, only on a product with DIY-enabled schemes. */
+.pss-diy{border-top:0; padding-top:4px;}
+.pss-group label.pss-toggle{
+  position:relative; display:flex; align-items:center; gap:12px; cursor:pointer; user-select:none;
+  font-size:inherit; font-weight:inherit; letter-spacing:0; text-transform:none; color:var(--ink-text);
+  background:rgba(30,111,92,0.06); border:1px solid rgba(30,111,92,0.22); border-radius:12px; padding:12px 14px;
+  transition:background .15s ease, border-color .15s ease;
+}
+.pss-toggle:hover{border-color:rgba(30,111,92,0.45);}
+.pss-toggle input{position:absolute; opacity:0; width:1px; height:1px; pointer-events:none;}
+.pss-toggle-track{position:relative; flex:none; width:38px; height:22px; border-radius:999px; background:#D9D2BF; transition:background .15s ease;}
+.pss-toggle-track::after{content:''; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff;
+  box-shadow:0 1px 3px rgba(11,14,19,0.25); transition:transform .15s ease;}
+.pss-toggle input:checked + .pss-toggle-track{background:var(--emerald);}
+.pss-toggle input:checked + .pss-toggle-track::after{transform:translateX(16px);}
+.pss-toggle input:focus-visible + .pss-toggle-track{outline:2px solid var(--gold); outline-offset:2px;}
+.pss-toggle-text{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.pss-toggle-text b{font-size:13.5px; font-weight:700; color:var(--emerald);}
+.pss-toggle-text small{font-size:11.5px; color:var(--muted); line-height:1.35;}
+
 /* ---- "Invest Now" (DIY via 1 Silver Bullet) ----
    Just before Discover on list cards (featured-schemes.js) and in the scheme
    page's top row (scheme-page.js); only on DIY-eligible plans. Emerald, so
