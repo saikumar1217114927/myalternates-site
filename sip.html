@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIP & Lumpsum Calculator — myAlternates</title>
-<meta name="description" content="Project what a monthly SIP or a one-time lumpsum could grow to — switch modes, enter the amount, an expected annual return, and how long you plan to invest.">
+<title>Lumpsum Calculator — myAlternates</title>
+<meta name="description" content="Project what a one-time lumpsum investment could grow to — enter the amount, an expected annual return, and how long you plan to stay invested.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -56,16 +56,6 @@
   .cr-bar .g{background:linear-gradient(90deg,var(--gold),var(--gold-light)); transition:width .35s ease;}
   .calc-note{font-size:12px; color:var(--muted); line-height:1.6; max-width:720px; margin-top:36px;}
 
-  .calc-toggle{
-    display:inline-flex; gap:4px; margin-bottom:26px;
-    background:var(--paper-2); border:1px solid #ded6c2; border-radius:999px; padding:4px;
-  }
-  .calc-toggle button{
-    border:none; background:none; cursor:pointer; font-family:inherit;
-    font-size:13px; font-weight:700; color:var(--muted); padding:9px 22px; border-radius:999px;
-    transition:background .15s ease, color .15s ease;
-  }
-  .calc-toggle button.on{background:var(--ink); color:var(--paper);}
 
   @media (max-width:820px){ .calc-grid{grid-template-columns:1fr; gap:32px;} }
 </style>
@@ -145,12 +135,11 @@
 <section class="p-hero">
   <div class="wrap">
     <div class="eyebrow">Calculators</div>
-    <h1>SIP &amp; lumpsum <em>calculator.</em></h1>
+    <h1>Lumpsum <em>calculator.</em></h1>
     <p class="lead">
-      A systematic investment plan (SIP) puts a fixed amount to work every month, so you buy
-      through every market; a lumpsum invests it all at once. Switch between the two below,
-      enter the amount, an expected annual return, and how long you plan to stay invested to
-      see what it could grow to.
+      A lumpsum puts your whole amount to work at once and lets it compound. Enter the amount,
+      an expected annual return, and how long you plan to stay invested to see what it could
+      grow to.
     </p>
   </div>
 </section>
@@ -159,16 +148,12 @@
 <section class="calc-section">
   <div class="wrap">
     <div class="section-tag">Work it out</div>
-    <div class="calc-toggle" role="tablist">
-      <button type="button" data-mode="sip" class="on">SIP · monthly</button>
-      <button type="button" data-mode="lumpsum">Lumpsum · one-time</button>
-    </div>
     <div class="calc-grid">
       <div class="calc-inputs">
         <div class="field">
-          <label id="sp-amtLabel" for="sp-monthly">Monthly investment</label>
+          <label id="sp-amtLabel" for="sp-monthly">Amount invested (one-time)</label>
           <div class="calc-input-wrap"><span class="pfx">₹</span>
-            <input id="sp-monthly" type="text" inputmode="numeric" value="25,000">
+            <input id="sp-monthly" type="text" inputmode="numeric" value="10,00,000">
           </div>
         </div>
         <div class="field">
@@ -201,8 +186,7 @@
     </div>
 
     <p class="calc-note">
-      For information only. The projection assumes a constant return, no missed instalments
-      (for SIP), and no taxes or charges — real returns vary year to year and can be negative.
+      For information only. The projection assumes a constant return and no taxes or charges — real returns vary year to year and can be negative.
       Talk to a myAlternates expert before starting or changing a plan.
     </p>
   </div>
@@ -213,10 +197,10 @@
   <div class="wrap enquiry-grid">
     <div class="enquiry-copy">
       <div class="section-tag">Talk to an expert</div>
-      <h2>Want an advisor to build a SIP plan around your goals?</h2>
+      <h2>Want an advisor to put your lumpsum to work?</h2>
       <p>Share a few details and a myAlternates investment expert will call you back within one business day — no obligation.</p>
       <ul>
-        <li>A monthly amount matched to your goal and timeline</li>
+        <li>Products matched to your goal and timeline</li>
         <li>A clear view of costs, and how our pricing compares</li>
         <li>Help with onboarding and paperwork, end to end</li>
       </ul>
@@ -269,7 +253,6 @@
         <h5>Calculators</h5>
         <a href="pms-fees">PMS Calculator</a>
         <a href="cagr">CAGR Calculator</a>
-        <a href="sip">SIP Calculator</a>
         <a href="sip#lumpsum">Lumpsum Calculator</a>
         <a href="xirr">XIRR Calculator</a>
       </div>
@@ -291,7 +274,6 @@
   var monEl = document.getElementById('sp-monthly');
   var retEl = document.getElementById('sp-return');
   var yrEl = document.getElementById('sp-years');
-  var lblEl = document.getElementById('sp-amtLabel');
   var fvEl = document.getElementById('sp-fv');
   var subEl = document.getElementById('sp-sub');
   var invEl = document.getElementById('sp-invested');
@@ -299,12 +281,6 @@
   var multEl = document.getElementById('sp-mult');
   var barP = document.getElementById('sp-barP');
   var barG = document.getElementById('sp-barG');
-  var toggle = document.querySelector('.calc-toggle');
-
-  var DEFAULTS = { sip: '25,000', lumpsum: '10,00,000' };
-  var LABELS = { sip: 'Monthly investment', lumpsum: 'Amount invested (one-time)' };
-  var mode = (location.hash === '#lumpsum') ? 'lumpsum' : 'sip';
-
   function num(el) { return parseFloat((el.value || '').replace(/[^0-9.]/g, '')) || 0; }
   function inr(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
 
@@ -328,19 +304,9 @@
       return;
     }
 
-    var fv, invested;
-    if (mode === 'lumpsum') {
-      fv = p * Math.pow(1 + r / 100, y);
-      invested = p;
-      subEl.textContent = 'from a one-time ' + inr(p) + ' over ' + fmtY(y) + ' at ' + fmtR(r);
-    } else {
-      var n = Math.round(y * 12);
-      var i = r / 100 / 12;
-      fv = i > 0 ? p * ((Math.pow(1 + i, n) - 1) / i) * (1 + i) : p * n;
-      invested = p * n;
-      subEl.textContent = 'from ' + inr(p) + '/month over ' + fmtY(y) + ' at ' + fmtR(r);
-    }
-
+    var fv = p * Math.pow(1 + r / 100, y);
+    var invested = p;
+    subEl.textContent = 'from a one-time ' + inr(p) + ' over ' + fmtY(y) + ' at ' + fmtR(r);
     var gains = fv - invested;
     var mult = invested > 0 ? fv / invested : 1;
 
@@ -355,22 +321,6 @@
     barG.style.width = (100 - pw) + '%';
   }
 
-  function setMode(next) {
-    if (next === mode) return;
-    // swap the amount only if the field is still holding the outgoing mode's default
-    if (monEl.value.replace(/\s/g, '') === DEFAULTS[mode]) monEl.value = DEFAULTS[next];
-    mode = next;
-    lblEl.textContent = LABELS[mode];
-    [].forEach.call(toggle.children, function (b) { b.classList.toggle('on', b.dataset.mode === mode); });
-    try { history.replaceState(null, '', mode === 'lumpsum' ? '#lumpsum' : location.pathname); } catch (e) {}
-    calc();
-  }
-
-  toggle.addEventListener('click', function (e) {
-    var b = e.target.closest('button');
-    if (b) setMode(b.dataset.mode);
-  });
-
   monEl.addEventListener('input', function () {
     var pos = monEl.selectionStart, len = monEl.value.length;
     groupInr(monEl);
@@ -380,12 +330,6 @@
   retEl.addEventListener('input', calc);
   yrEl.addEventListener('input', calc);
 
-  // apply initial mode (handles #lumpsum deep-link)
-  if (mode === 'lumpsum') {
-    monEl.value = DEFAULTS.lumpsum;
-    lblEl.textContent = LABELS.lumpsum;
-    [].forEach.call(toggle.children, function (b) { b.classList.toggle('on', b.dataset.mode === 'lumpsum'); });
-  }
   calc();
 })();
 </script>
