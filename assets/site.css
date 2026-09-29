@@ -1545,6 +1545,35 @@ footer{background:var(--ink); color:var(--muted-light); padding:64px 0 30px; bor
    doesn't load this file at all, so anything the widget needs had to move
    somewhere every page actually loads. */
 
+/* ---- "Invest Now" (DIY via 1 Silver Bullet) ----
+   Just before Discover on list cards (featured-schemes.js) and in the scheme
+   page's top row (scheme-page.js); only on DIY-eligible plans. Emerald, so
+   it reads as the action to invest, next to gold "Discover". */
+.sr-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end;}
+.sc-invest{
+  background:var(--emerald); color:#fff; font-weight:700; font-size:13px; font-family:inherit;
+  padding:11px 22px; border-radius:9px; border:none; cursor:pointer; white-space:nowrap;
+  box-shadow:0 8px 18px -10px rgba(30,111,92,0.7);
+  transition:background .2s ease, transform .15s ease;
+}
+.sc-invest:hover{background:#185c4c; transform:translateY(-1px);}
+.sc-invest:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+.sc-invest:disabled{opacity:0.75; cursor:default; transform:none;}
+.sc-invest-msg{flex:1 1 100%; max-width:260px; margin-left:auto; font-size:12px; line-height:1.45; color:#B5502E; text-align:right;}
+.scm-hero-actions{display:flex; align-items:flex-start; gap:12px; flex:0 0 auto;}
+.scm-hero-invest{display:flex; flex-direction:column; align-items:flex-end; gap:6px; padding-top:2px;}
+.scm-hero-invest .sc-invest{padding:12px 26px; font-size:14px;}
+@media (max-width:900px){
+  .scm-hero-actions{flex-wrap:wrap; width:100%;}
+  .scm-hero-invest{align-items:flex-start;}
+  .scm-hero-invest .sc-invest-msg{text-align:left; margin-left:0;}
+}
+@media (max-width:760px){
+  .sr-actions{flex-direction:column; align-items:stretch;}
+  .sr-actions .sc-invest{width:100%; text-align:center;}
+  .sc-invest-msg{max-width:none; text-align:left; margin-left:0;}
+}
+
 /* ---- Scheme compare (featured-schemes.js, sif-schemes.js) ----
    A labelled "Compare" pill in each scheme card's bottom-right corner (it
    reads "Added" once picked), a tray at the bottom of the screen once

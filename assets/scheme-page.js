@@ -900,6 +900,35 @@
       '</div></div>';
   }
 
+  // "Invest Now" (DIY via 1 Silver Bullet) — only on plans an admin marked
+  // DIY-eligible. The backend asks 1SB for a login URL (its credentials never
+  // reach the browser) and we redirect there.
+  function wireInvestNow(s) {
+    var btn = document.getElementById('scInvestNow');
+    if (!btn) return;
+    btn.onclick = function () {
+      if (btn.disabled) return;
+      var box = btn.parentNode, old = box.querySelector('.sc-invest-msg');
+      if (old) old.remove();
+      btn.disabled = true; btn.textContent = 'Opening…';
+      fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'getDiyInvestUrl', planId: s.planId }) })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok && d.url) { window.location.href = d.url; return; }
+          throw new Error((d && d.error) || 'Online investing isn\'t available right now.');
+        })
+        .catch(function (err) {
+          btn.disabled = false; btn.textContent = 'Invest Now';
+          var m = document.createElement('div');
+          m.className = 'sc-invest-msg';
+          m.textContent = err && err.message ? err.message : 'Online investing isn\'t available right now.';
+          box.appendChild(m);
+          setTimeout(function () { m.remove(); }, 6000);
+        });
+    };
+  }
+
   // The registered visitor's meeting state — schedule a call, or reschedule
   // + a one-click "add this scheme to the meeting" (no free-text box).
   // Refreshes itself after a schedule/reschedule completes anywhere on the
@@ -1177,7 +1206,9 @@
       '<div class="scm-hero-top">' +
       '<div class="scm-hero-id">' + logo + '<div><div class="sc-amc">' + esc(s.amcName || s.productName) + '</div>' +
       '<h1>' + esc(s.schemeName) + '</h1></div></div>' +
-      '<div class="scm-hero-meeting" id="scMeetingSection"></div>' +
+      '<div class="scm-hero-actions">' +
+      (s.diyEligible ? '<div class="scm-hero-invest"><button type="button" class="sc-invest" id="scInvestNow">Invest Now</button></div>' : '') +
+      '<div class="scm-hero-meeting" id="scMeetingSection"></div></div>' +
       '</div>' +
       (chips.length ? '<div class="scm-chips">' + chips.map(function (c) {
         return '<div class="scm-chip"><span>' + esc(c[0]) + '</span><b>' + esc(c[1]) + '</b></div>';
@@ -1208,6 +1239,7 @@
     wireReturnsToggle(s);
     wireCalculator(s);
     loadMeetingAction(s);
+    wireInvestNow(s);
 
     // Scheduling happens through a full-screen modal that lives outside this
     // section (see lead-form.js) — refresh the meeting panel above once it

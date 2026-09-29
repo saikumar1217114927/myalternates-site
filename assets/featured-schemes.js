@@ -191,7 +191,7 @@
       '</div>' +
       '</div></div>' +
       '<div class="sr-rets">' + retCol('1Y', r.r1y) + retCol('3Y', r.r3y) + retCol('5Y', r.r5y) + retCol('SI', r.si) + '</div>' +
-      '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Discover →</button></div>' +
+      '<div class="sr-actions">' + investBtnHtml(s) + '<button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Discover →</button></div>' +
       '</div>';
   }
 
@@ -236,7 +236,7 @@
       '<div class="ft-line"><span>Tentative final closing</span><b>' + esc(closing) + '</b></div>' +
       '</div>' +
       '</div>' +
-      '<div class="sr-actions"><button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Discover →</button></div>' +
+      '<div class="sr-actions">' + investBtnHtml(s) + '<button type="button" class="sc-discover" data-discover="' + esc(s.planId) + '">Discover →</button></div>' +
       '</div>';
   }
 
@@ -305,7 +305,45 @@
     listEl.querySelectorAll('[data-compare]').forEach(function (btn) {
       btn.onclick = function (e) { e.stopPropagation(); toggleCompare(btn.dataset.compare); };
     });
+    listEl.querySelectorAll('[data-invest]').forEach(function (btn) {
+      btn.onclick = function (e) { e.stopPropagation(); investNow(btn.dataset.invest, btn); };
+    });
     syncCompareButtons();
+  }
+
+  // ---- "Invest Now" (DIY via 1 Silver Bullet) ----
+  // Only on plans an admin marked DIY-eligible. The backend asks 1SB for a
+  // login URL (credentials never reach the browser) and we redirect to it.
+  function investBtnHtml(s) {
+    return s.diyEligible
+      ? '<button type="button" class="sc-invest" data-invest="' + esc(s.planId) + '">Invest Now</button>'
+      : '';
+  }
+  function investNow(planId, btn) {
+    if (btn.disabled) return;
+    var label = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Opening…';
+    fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getDiyInvestUrl', planId: planId }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok && d.url) { window.location.href = d.url; return; }
+        throw new Error((d && d.error) || 'Online investing isn\'t available right now.');
+      })
+      .catch(function (err) {
+        btn.disabled = false; btn.textContent = label;
+        showInvestMsg(btn, err && err.message ? err.message : 'Online investing isn\'t available right now.');
+      });
+  }
+  function showInvestMsg(btn, text) {
+    var box = btn.parentNode;
+    var old = box.querySelector('.sc-invest-msg');
+    if (old) old.remove();
+    var m = document.createElement('div');
+    m.className = 'sc-invest-msg';
+    m.textContent = text;
+    box.appendChild(m);
+    setTimeout(function () { m.remove(); }, 6000);
   }
 
   function uniqueSorted(arr) {
