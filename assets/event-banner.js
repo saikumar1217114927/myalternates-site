@@ -1,19 +1,26 @@
 /* ==========================================================================
-   myAlternates — public event / announcement banner.
+   myAlternates — public event / announcement popup (landing page only).
 
    Reads whatever banner an admin has uploaded from the backoffice Settings
    page (Lead Check portal -> Settings -> Event advertisement) and shows it
-   just below the header nav, on every page. No banner set (or the request
-   fails) -> nothing renders, the site looks exactly as it does today.
+   as a centred popup a moment after the landing page loads, with a close
+   button top-right (backdrop click and Esc close it too). No banner set (or
+   the request fails) -> nothing renders.
 
-   Dismissing is remembered per-browser (localStorage) against that specific
-   banner's version, so a *new* upload always shows again even if the last
-   one was dismissed.
+   Once per visit, not on every load: once shown it stays away for the rest
+   of that day in this browser (localStorage, keyed to the banner's version),
+   so going Back to the home page doesn't pop it again. A *new* upload always
+   shows, even the same day.
+
+   Never stacks on another dialog: if the schedule / registration popup is
+   already open when it's due, it's skipped for this load (and not marked
+   seen, so it still gets its turn next time).
    ========================================================================== */
 (function () {
   'use strict';
   var API_URL = 'https://myalternates-backend-c3u7.onrender.com/';
-  var DISMISS_KEY = 'ma_site_banner_dismissed';
+  var SEEN_KEY = 'ma_event_popup_seen';
+  var SHOW_DELAY_MS = 1500;
 
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -21,53 +28,98 @@
     });
   }
 
-  function render(header, d) {
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  function seenToday(version) {
+    try {
+      var s = JSON.parse(localStorage.getItem(SEEN_KEY) || 'null');
+      return !!(s && s.v === version && s.d === today());
+    } catch (e) { return false; }
+  }
+
+  function markSeen(version) {
+    try { localStorage.setItem(SEEN_KEY, JSON.stringify({ v: version, d: today() })); } catch (e) {}
+  }
+
+  function otherDialogOpen() {
+    return !!document.querySelector('.sched-overlay.show, .ma-modal-overlay, .cmp-modal-backdrop, .scm-calc-modal');
+  }
+
+  function injectStyles() {
     var style = document.createElement('style');
     style.textContent =
-      '.ma-event-banner{max-width:1200px; margin:18px auto 0; padding:0 24px; box-sizing:border-box;}' +
-      '.ma-event-banner .ma-eb-inner{position:relative; border-radius:8px; overflow:hidden; box-shadow:0 18px 40px -20px rgba(20,20,10,0.35);}' +
-      '.ma-event-banner img{display:block; width:100%; max-height:260px; object-fit:cover;}' +
-      '.ma-event-banner a.ma-eb-link{display:block;}' +
-      '.ma-event-banner .ma-eb-caption{padding:10px 18px; font-size:13px; font-weight:600; background:#181B20; color:#F7F4ED;}' +
-      '.ma-event-banner .ma-eb-close{' +
-        'position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%;' +
-        'background:rgba(11,14,19,0.55); color:#fff; border:none; cursor:pointer; font-size:15px; line-height:1;' +
-        'display:flex; align-items:center; justify-content:center;' +
-      '}' +
-      '.ma-event-banner .ma-eb-close:hover{background:rgba(11,14,19,0.8);}' +
-      '@media (max-width:640px){ .ma-event-banner{padding:0 16px; margin-top:12px;} .ma-event-banner img{max-height:170px;} }';
+      '.ma-ev-overlay{position:fixed; inset:0; z-index:9000; background:rgba(8,10,14,0.72);' +
+        'display:flex; align-items:center; justify-content:center; padding:24px 16px; box-sizing:border-box;' +
+        'animation:ma-ev-fade .25s ease;}' +
+      '.ma-ev-card{position:relative; max-width:min(720px,100%); max-height:100%; display:flex; flex-direction:column;' +
+        'border-radius:12px; overflow:hidden; background:#181B20; box-shadow:0 30px 70px -20px rgba(0,0,0,0.6);' +
+        'animation:ma-ev-pop .3s ease;}' +
+      '.ma-ev-card a.ma-ev-link{display:block; min-height:0;}' +
+      '.ma-ev-card img{display:block; width:100%; height:auto; max-height:calc(100vh - 120px); object-fit:contain; background:#0B0E13;}' +
+      '.ma-ev-caption{padding:12px 18px; font-size:14px; font-weight:600; color:#F7F4ED; line-height:1.45;}' +
+      '.ma-ev-close{position:absolute; top:10px; right:10px; width:34px; height:34px; border-radius:50%;' +
+        'background:rgba(11,14,19,0.7); color:#fff; border:1px solid rgba(255,255,255,0.25); cursor:pointer;' +
+        'font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center; z-index:1;}' +
+      '.ma-ev-close:hover{background:rgba(11,14,19,0.9);}' +
+      '.ma-ev-close:focus-visible{outline:2px solid #C9A24B; outline-offset:2px;}' +
+      '@keyframes ma-ev-fade{from{opacity:0}to{opacity:1}}' +
+      '@keyframes ma-ev-pop{from{opacity:0; transform:translateY(12px) scale(.98)}to{opacity:1; transform:none}}' +
+      '@media (prefers-reduced-motion:reduce){.ma-ev-overlay,.ma-ev-card{animation:none}}';
     document.head.appendChild(style);
+  }
 
-    var media = '<img src="' + d.image + '" alt="' + escapeHtml(d.title || 'Event') + '">' +
-      (d.title ? '<div class="ma-eb-caption">' + escapeHtml(d.title) + '</div>' : '');
+  function show(d) {
+    injectStyles();
+    var media = '<img src="' + escapeHtml(d.image) + '" alt="' + escapeHtml(d.title || 'Event') + '">';
 
-    var wrap = document.createElement('div');
-    wrap.className = 'ma-event-banner';
-    wrap.innerHTML =
-      '<div class="ma-eb-inner">' +
-      (d.link ? '<a class="ma-eb-link" href="' + escapeHtml(d.link) + '" target="_blank" rel="noopener">' + media + '</a>' : media) +
-      '<button class="ma-eb-close" aria-label="Dismiss" title="Dismiss">✕</button>' +
+    var overlay = document.createElement('div');
+    overlay.className = 'ma-ev-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', d.title || 'Announcement');
+    overlay.innerHTML =
+      '<div class="ma-ev-card">' +
+      '<button type="button" class="ma-ev-close" aria-label="Close" title="Close">✕</button>' +
+      (d.link ? '<a class="ma-ev-link" href="' + escapeHtml(d.link) + '" target="_blank" rel="noopener">' + media + '</a>' : media) +
+      (d.title ? '<div class="ma-ev-caption">' + escapeHtml(d.title) + '</div>' : '') +
       '</div>';
-    header.parentNode.insertBefore(wrap, header.nextSibling);
 
-    wrap.querySelector('.ma-eb-close').addEventListener('click', function () {
-      try { localStorage.setItem(DISMISS_KEY, d.version); } catch (e) {}
-      wrap.remove();
-    });
+    var prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(overlay);
+    markSeen(d.version);
+
+    function close() {
+      overlay.remove();
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+
+    overlay.querySelector('.ma-ev-close').addEventListener('click', close);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', onKey);
+    overlay.querySelector('.ma-ev-close').focus();
   }
 
   function init() {
-    var header = document.querySelector('header.nav');
-    if (!header) return;
-
     fetch(API_URL + '?action=getEventBanner')
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.ok || !d.image) return;
-        var dismissed = '';
-        try { dismissed = localStorage.getItem(DISMISS_KEY) || ''; } catch (e) {}
-        if (dismissed && d.version && dismissed === d.version) return;
-        render(header, d);
+        if (seenToday(d.version)) return;
+        // Preload so the popup opens with the poster already drawn.
+        var img = new Image();
+        img.onload = function () {
+          setTimeout(function () {
+            if (otherDialogOpen()) return;
+            show(d);
+          }, SHOW_DELAY_MS);
+        };
+        img.src = d.image;
       })
       .catch(function () {});   // no banner today shouldn't ever break the page
   }
