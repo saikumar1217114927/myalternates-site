@@ -918,96 +918,6 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
-  /* -------- returning visitor: if we already know this person, skip the form --------
-     - upcoming call  → show it + reschedule
-     - no call        → "welcome back, book a call" (prefilled, no retyping)
-     - "Not you?"     → falls back to the blank form                                 */
-  function checkReturning(stored) {
-    var interest = (form.getAttribute('data-interest') || '').trim();
-    send({ action: 'getLeadPublic', leadId: stored.leadId, email: stored.email, vid: getVid() })
-      .then(function (r) {
-        if (!r || !r.found) return;             // stale / deleted lead → leave the form
-        if (r.expert) expert = r.expert;
-        setBusy(r);
-        var host = form.closest('.lead-card') || form.parentNode;
-        form.style.display = 'none';
-        if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = 'none'; });
-        var first = (stored.name || r.name || '').trim().split(/\s+/)[0];
-        var box = el('div', 'lead-returning');
-        box.innerHTML =
-          '<div class="lr-title">Welcome back' + (first ? ', ' + escHtml(first) : '') + '</div>' +
-          '<div class="lr-body"></div>';
-        host.appendChild(box);
-        renderReturning(box.querySelector('.lr-body'), stored, interest, r.upcomingMeeting || null, r.pendingInterests || [], function backToForm() {
-          box.remove();
-          form.style.display = '';
-          if (host) host.querySelectorAll('h3, .sub').forEach(function (n) { n.style.display = ''; });
-        });
-      })
-      .catch(function () { /* leave the normal form in place */ });
-  }
-
-  function renderReturning(bodyEl, stored, interest, mtg, pendingInterests, backToForm) {
-    // Server truth (getLeadPublic's pendingInterests), not a permanent local
-    // flag — once this topic gets discussed and a new call is booked, it
-    // drops off the list and the "want your expert to cover X" ask returns.
-    var already = interest && (pendingInterests || []).indexOf(interest) >= 0;
-    var html;
-    if (mtg && mtg.date) {
-      html = '<div class="lr-meeting">' +
-        '<div class="lr-mlabel">Your call is scheduled</div>' +
-        '<div class="lr-mwhen">' + escHtml(fmtDate(mtg.date)) + (mtg.time ? ' · ' + escHtml(mtg.time) + ' IST' : '') + '</div>' +
-        (mtg.mode ? '<div class="lr-mmode">' + escHtml(mtg.mode) + '</div>' : '') +
-        '<button type="button" class="lr-link" data-resch>Reschedule this call</button>' +
-        '</div>';
-    } else {
-      html = '<p class="lr-sub">Good to see you again — no need to fill the form. Just pick a time and your expert will call you.</p>' +
-        '<div class="lr-book"><button type="button" class="btn-gold" data-book>Book a call →</button></div>';
-    }
-
-    if (interest) {
-      html += already
-        ? '<div class="lr-done">Your expert already has <b>' + escHtml(interest) + '</b> on the list.</div>'
-        : '<div class="lr-ask">Want your expert to cover <b>' + escHtml(interest) + '</b> ' +
-          (mtg && mtg.date ? 'in this call too?' : 'when they call?') +
-          '<div class="lr-actions"><button type="button" class="btn-gold" data-yes>Yes, add it</button>' +
-          '<button type="button" class="lr-link" data-no>Not now</button></div></div>';
-    }
-    html += '<div class="lr-notyou"><button type="button" class="lr-link" data-notyou>Not you? Start a fresh enquiry</button></div>';
-    bodyEl.innerHTML = html;
-
-    var nu = bodyEl.querySelector('[data-notyou]');
-    if (nu && typeof backToForm === 'function') nu.onclick = backToForm;
-
-    var ask = bodyEl.querySelector('.lr-ask');
-    var yes = bodyEl.querySelector('[data-yes]');
-    if (yes) yes.onclick = function () {
-      yes.disabled = true; yes.textContent = 'Adding…';
-      send({ action: 'addInterest', leadId: stored.leadId, email: stored.email, vid: getVid(), interest: interest, path: location.pathname })
-        .then(function (r) {
-          if (r && r.ok && r.found) { if (ask) ask.innerHTML = '<div class="lr-done">Added — your expert will cover <b>' + escHtml(interest) + '</b> as well.</div>'; }
-          else { yes.disabled = false; yes.textContent = 'Yes, add it'; }
-        });
-    };
-    var no = bodyEl.querySelector('[data-no]');
-    if (no) no.onclick = function () { if (ask) ask.style.display = 'none'; };
-
-    function openBooking(rescheduleId) {
-      lead = {
-        role: 'Investor', name: stored.name || '', email: stored.email || '',
-        mobileCountryCode: stored.mobileCountryCode || '', mobile: stored.mobile || '', interest: interest || '',
-        leadId: stored.leadId, visitorId: getVid(), path: location.pathname + location.search,
-        rescheduleMeetingId: rescheduleId || '', mode: (mtg && mtg.mode) || '', rowNumber: null
-      };
-      submitPromise = Promise.resolve();
-      openSchedule();
-    }
-    var resch = bodyEl.querySelector('[data-resch]');
-    if (resch) resch.onclick = function () { openBooking(mtg.meetingId); };
-    var bookBtn = bodyEl.querySelector('[data-book]');
-    if (bookBtn) bookBtn.onclick = function () { openBooking(''); };
-  }
-
   function build() {
     form = document.getElementById('leadForm');
     if (!form) return;
@@ -1030,21 +940,14 @@
     // carry an Indian SIM, or the reverse, so picking one must never
     // silently overwrite the other.
     if (pinInput) wirePincode();
-    wireKnownContact();
     wireGoogle();
     form.addEventListener('submit', onSubmit);
 
-    // A verified (OTP or Google) session always wins — it's a real, checked
-    // identity, not just a locally-remembered guess. Falls back to the older
-    // unverified "recognize by localStorage" flow for visitors who never went
-    // through verification (e.g. they submitted before this existed).
+    // Only a verified (OTP or Google) session ever skips the form or shows a
+    // booked call. Typing an email/mobile, or a remembered lead in
+    // localStorage, is not proof of identity, so neither reveals anything.
     var token = getSessionToken();
-    if (token) {
-      checkSession(token);
-    } else {
-      var stored = storedLead();
-      if (stored && stored.leadId) checkReturning(stored);
-    }
+    if (token) checkSession(token);
   }
 
   /* -------- verified session: skip the form entirely, show call state -------- */
@@ -1052,8 +955,6 @@
     send({ action: 'getLeadSessionStatus', token: token }).then(function (r) {
       if (!r || !r.ok || !r.loggedIn) {
         clearSession();
-        var stored = storedLead();
-        if (stored && stored.leadId) checkReturning(stored);
         return;
       }
       if (r.expert) expert = r.expert;
@@ -1174,59 +1075,6 @@
         };
       }
     });
-  }
-
-  /* -------- new device: recognise by email / mobile, surface their call -------- */
-  function wireKnownContact() {
-    var emailEl = document.getElementById('lf-email');
-    var mobileEl = document.getElementById('lf-mobile');
-    if (!emailEl) return;
-    var checked = '';
-    function check() {
-      var email = emailEl.value.trim();
-      var mobile = mobileEl ? mobileEl.value.trim() : '';
-      var key = email + '|' + mobile;
-      if (key === checked) return;
-      if (!(email && email.indexOf('@') > 0) && mobile.length < 6) return;
-      checked = key;
-      send({ action: 'getLeadPublic', email: email, mobile: mobile, mobileCountryCode: ccSel ? ccSel.value : '', vid: getVid() })
-        .then(function (r) {
-          if (!r || !r.found) return;
-          if (r.expert) expert = r.expert;
-          setBusy(r);
-          rememberLead({ leadId: r.leadId, name: r.name || '', email: email, mobile: mobile, mobileCountryCode: ccSel ? ccSel.value : '' });
-          if (r.upcomingMeeting && r.upcomingMeeting.date) showKnownBanner(r);
-        });
-    }
-    emailEl.addEventListener('blur', check);
-    if (mobileEl) mobileEl.addEventListener('blur', check);
-  }
-
-  function showKnownBanner(r) {
-    if (document.querySelector('.lf-known')) return;
-    var m = r.upcomingMeeting;
-    var host = form.closest('.lead-card') || form.parentNode;
-    var b = el('div', 'lf-known');
-    b.innerHTML =
-      '<div><b>We found your details.</b> You have a call scheduled for <b>' +
-        escHtml(fmtDate(m.date)) + (m.time ? ' · ' + escHtml(m.time) + ' IST' : '') + '</b>' +
-        (m.mode ? ' (' + escHtml(m.mode) + ')' : '') + '.</div>' +
-      '<div class="lf-known-actions">' +
-        '<button type="button" class="lr-link" data-keep>That\'s fine</button>' +
-        '<button type="button" class="btn-gold" data-resch>Reschedule</button></div>';
-    host.insertBefore(b, form);
-    b.querySelector('[data-keep]').onclick = function () { b.remove(); };
-    b.querySelector('[data-resch]').onclick = function () {
-      var mobileEl = document.getElementById('lf-mobile');
-      lead = {
-        role: 'Investor', name: r.name || '', email: document.getElementById('lf-email').value.trim(),
-        mobileCountryCode: ccSel ? ccSel.value : '', mobile: mobileEl ? mobileEl.value.trim() : '',
-        interest: form.getAttribute('data-interest') || '', leadId: r.leadId, visitorId: getVid(),
-        path: location.pathname + location.search, rescheduleMeetingId: m.meetingId, mode: m.mode || '', rowNumber: null
-      };
-      submitPromise = Promise.resolve();
-      openSchedule();
-    };
   }
 
   if (document.readyState === 'loading') {
