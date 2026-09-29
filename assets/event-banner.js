@@ -7,10 +7,11 @@
    button top-right (backdrop click and Esc close it too). No banner set (or
    the request fails) -> nothing renders.
 
-   Once per visit, not on every load: once shown it stays away for the rest
-   of that day in this browser (localStorage, keyed to the banner's version),
-   so going Back to the home page doesn't pop it again. A *new* upload always
-   shows, even the same day.
+   Once per day, not on every load: once shown it stays away for the rest of
+   that day in this browser (localStorage, keyed to the banner's version),
+   so coming back to the home page by a link or Back doesn't pop it again.
+   Two exceptions: refreshing the landing page itself always shows it, and
+   a *new* upload always shows, even the same day.
 
    Never stacks on another dialog: if the schedule / registration popup is
    already open when it's due, it's skipped for this load (and not marked
@@ -42,6 +43,16 @@
 
   function markSeen(version) {
     try { localStorage.setItem(SEEN_KEY, JSON.stringify({ v: version, d: today() })); } catch (e) {}
+  }
+
+  // A refresh of the landing page itself (F5 / Ctrl+R / Ctrl+Shift+R) always
+  // shows it again; arriving by a link or Back doesn't.
+  function isReload() {
+    try {
+      var nav = performance.getEntriesByType('navigation')[0];
+      if (nav) return nav.type === 'reload';
+      return performance.navigation && performance.navigation.type === 1;
+    } catch (e) { return false; }
   }
 
   function otherDialogOpen() {
@@ -110,7 +121,7 @@
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.ok || !d.image) return;
-        if (seenToday(d.version)) return;
+        if (seenToday(d.version) && !isReload()) return;
         // Preload so the popup opens with the poster already drawn.
         var img = new Image();
         img.onload = function () {
