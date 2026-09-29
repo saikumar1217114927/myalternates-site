@@ -533,16 +533,18 @@
       if (!el.hasAttribute('data-ma-talk-orig')) el.setAttribute('data-ma-talk-orig', el.textContent);
       var orig = el.getAttribute('data-ma-talk-orig');
       el.textContent = scheduled ? ('Reschedule' + (/→\s*$/.test(orig) ? ' →' : '')) : orig;
-      applyLeadCardMeeting(el.closest('.lead-card'), mtg);
+      applyLeadCardMeeting(el.closest('.lead-card, [data-ma-meeting-card]'), mtg);
     });
   }
-  // The calculator pages' "Talk to an expert" card (.lead-card): with a call
+  // The calculator pages' "Talk to an expert" card (.lead-card), or any other
+  // CTA block opted in with data-ma-meeting-card (e.g. pms-fees.html's bottom
+  // "Check your lowest available PMS fee" band — h2 + .sub): with a call
   // already booked, show that call's date, time and mode first, with the
   // Reschedule button below it — not a bare Reschedule under copy that
   // still says "Register or log in".
   function applyLeadCardMeeting(card, mtg) {
     if (!card) return;
-    var h3 = card.querySelector('h3'), sub = card.querySelector('.sub');
+    var h3 = card.querySelector('h3, h2'), sub = card.querySelector('.sub');
     if (!h3 || !sub) return;
     if (!card.hasAttribute('data-orig-h3')) {
       card.setAttribute('data-orig-h3', h3.textContent);
