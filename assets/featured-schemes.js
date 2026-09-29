@@ -323,17 +323,36 @@
     if (btn.disabled) return;
     var label = btn.textContent;
     btn.disabled = true; btn.textContent = 'Opening…';
+    // The new tab has to open inside the click itself (a tab opened after the
+    // fetch would be blocked as a pop-up), so open it now and point it at the
+    // 1SB link once it arrives.
+    var tab = openPendingTab();
     fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'getDiyInvestUrl', planId: planId }) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d && d.ok && d.url) { window.location.href = d.url; return; }
-        throw new Error((d && d.error) || 'Online investing isn\'t available right now.');
+        if (!(d && d.ok && d.url)) throw new Error((d && d.error) || 'Online investing isn\'t available right now.');
+        btn.disabled = false; btn.textContent = label;
+        if (tab && !tab.closed) tab.location.href = d.url;
+        else window.location.href = d.url;   // pop-ups blocked: go in this tab instead
       })
       .catch(function (err) {
+        if (tab && !tab.closed) tab.close();
         btn.disabled = false; btn.textContent = label;
         showInvestMsg(btn, err && err.message ? err.message : 'Online investing isn\'t available right now.');
       });
+  }
+  function openPendingTab() {
+    var tab = null;
+    try { tab = window.open('', '_blank'); } catch (e) { tab = null; }
+    if (!tab) return null;
+    try {
+      tab.opener = null;
+      tab.document.title = 'Opening… — myAlternates';
+      tab.document.body.style.cssText = 'margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font:15px system-ui,sans-serif;color:#555;background:#F7F4ED;';
+      tab.document.body.textContent = 'Taking you to the investment platform…';
+    } catch (e) {}
+    return tab;
   }
   function showInvestMsg(btn, text) {
     var box = btn.parentNode;

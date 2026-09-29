@@ -911,14 +911,29 @@
       var box = btn.parentNode, old = box.querySelector('.sc-invest-msg');
       if (old) old.remove();
       btn.disabled = true; btn.textContent = 'Opening…';
+      // Open the new tab inside the click (one opened after the fetch would
+      // be blocked as a pop-up), then point it at the 1SB link.
+      var tab = null;
+      try { tab = window.open('', '_blank'); } catch (e) { tab = null; }
+      if (tab) {
+        try {
+          tab.opener = null;
+          tab.document.title = 'Opening… — myAlternates';
+          tab.document.body.style.cssText = 'margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font:15px system-ui,sans-serif;color:#555;background:#F7F4ED;';
+          tab.document.body.textContent = 'Taking you to the investment platform…';
+        } catch (e) {}
+      }
       fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'getDiyInvestUrl', planId: s.planId }) })
         .then(function (r) { return r.json(); })
         .then(function (d) {
-          if (d && d.ok && d.url) { window.location.href = d.url; return; }
-          throw new Error((d && d.error) || 'Online investing isn\'t available right now.');
+          if (!(d && d.ok && d.url)) throw new Error((d && d.error) || 'Online investing isn\'t available right now.');
+          btn.disabled = false; btn.textContent = 'Invest Now';
+          if (tab && !tab.closed) tab.location.href = d.url;
+          else window.location.href = d.url;   // pop-ups blocked: go in this tab instead
         })
         .catch(function (err) {
+          if (tab && !tab.closed) tab.close();
           btn.disabled = false; btn.textContent = 'Invest Now';
           var m = document.createElement('div');
           m.className = 'sc-invest-msg';
