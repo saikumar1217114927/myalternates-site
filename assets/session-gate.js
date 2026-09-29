@@ -562,7 +562,7 @@
       label.className = 'lc-mlabel';
       label.style.cssText = 'font:600 12px/1 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--gold,#C9A24B);margin-bottom:8px';
       label.textContent = 'Your call is scheduled';
-      card.insertBefore(label, h3);
+      h3.parentNode.insertBefore(label, h3); // h3 may be nested (e.g. inside .wrap), not a direct child of card
     }
     h3.textContent = fmtMtgDate(mtg.date);
     sub.textContent = [mtg.time ? mtg.time + ' IST' : '', mtg.mode || ''].filter(Boolean).join(' · ');
