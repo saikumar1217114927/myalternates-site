@@ -611,8 +611,14 @@ nav.links a:hover::after{width:100%;}
   writing-mode:vertical-rl; transform:rotate(180deg); border-radius:16px 0 0 16px;
 }
 .sr-id{display:flex; align-items:flex-start; gap:18px; flex:1 1 340px; min-width:240px;}
-.sr-logo{width:68px; height:68px; padding:6px; box-sizing:border-box; border-radius:12px; object-fit:contain; border:1px solid #EAE4D4; background:#fff; flex:none; box-shadow:0 2px 6px -2px rgba(11,14,19,0.1);}
-.sr-logo-fallback{width:68px; height:68px; border-radius:12px; background:var(--paper-2); color:var(--muted); font-weight:700; font-size:22px;
+/* AMC logo tile. Most fund-house logos are images with their own white
+   background, which vanished into a white tile on a white card. The tile is
+   a warm tint with a gold edge instead, and multiply blending drops the
+   logo's white background into that tint so only the mark itself shows. */
+.sr-logo{width:84px; height:84px; padding:5px; box-sizing:border-box; border-radius:14px; object-fit:contain;
+  border:1px solid #DCCB9E; background:#F3ECDC; mix-blend-mode:multiply; flex:none;
+  box-shadow:0 4px 12px -6px rgba(138,106,34,0.35);}
+.sr-logo-fallback{width:84px; height:84px; border-radius:14px; background:#F3ECDC; border:1px solid #DCCB9E; color:#8A6A22; font-weight:700; font-size:26px;
   display:flex; align-items:center; justify-content:center; flex:none;}
 .sr-id-text{min-width:0;}
 .sr-toprow{display:flex; align-items:center; flex-wrap:wrap;}
@@ -1565,7 +1571,7 @@ footer{background:var(--ink); color:var(--muted-light); padding:64px 0 30px; bor
 @media (max-width:760px){
   .scheme-row{padding-bottom:60px;}
   .sr-compare{bottom:14px; right:16px;}
-  .scheme-row .sr-logo, .scheme-row .sr-logo-fallback{width:56px; height:56px;}
+  .scheme-row .sr-logo, .scheme-row .sr-logo-fallback{width:64px; height:64px;}
 }
 
 .cmp-tray{
