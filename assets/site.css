@@ -604,15 +604,15 @@ nav.links a:hover::after{width:100%;}
 .scheme-row:hover{border-color:#DDD4BC; box-shadow:0 16px 32px -22px rgba(11,14,19,0.22); transform:translateY(-1px);}
 .scheme-row.featured{padding-left:56px; background:linear-gradient(90deg, rgba(201,162,75,0.07), #fff 40%);}
 .scheme-row.featured::before{
-  content:'FEATURED'; position:absolute; left:0; top:0; bottom:0; width:34px;
+  content:'FOCUSED'; position:absolute; left:0; top:0; bottom:0; width:34px;
   background:linear-gradient(180deg, var(--gold-light), var(--gold));
   color:var(--ink); font-size:10px; font-weight:800; letter-spacing:0.14em;
   display:flex; align-items:center; justify-content:center;
   writing-mode:vertical-rl; transform:rotate(180deg); border-radius:16px 0 0 16px;
 }
 .sr-id{display:flex; align-items:flex-start; gap:18px; flex:1 1 340px; min-width:240px;}
-.sr-logo{width:48px; height:48px; border-radius:10px; object-fit:contain; border:1px solid #EAE4D4; background:#fff; flex:none; box-shadow:0 2px 6px -2px rgba(11,14,19,0.1);}
-.sr-logo-fallback{width:48px; height:48px; border-radius:10px; background:var(--paper-2); color:var(--muted); font-weight:700; font-size:16px;
+.sr-logo{width:68px; height:68px; padding:6px; box-sizing:border-box; border-radius:12px; object-fit:contain; border:1px solid #EAE4D4; background:#fff; flex:none; box-shadow:0 2px 6px -2px rgba(11,14,19,0.1);}
+.sr-logo-fallback{width:68px; height:68px; border-radius:12px; background:var(--paper-2); color:var(--muted); font-weight:700; font-size:22px;
   display:flex; align-items:center; justify-content:center; flex:none;}
 .sr-id-text{min-width:0;}
 .sr-toprow{display:flex; align-items:center; flex-wrap:wrap;}
@@ -1540,22 +1540,32 @@ footer{background:var(--ink); color:var(--muted-light); padding:64px 0 30px; bor
    doesn't load this file at all, so anything the widget needs had to move
    somewhere every page actually loads. */
 
-/* ---- Scheme compare (featured-schemes.js) ----
-   A small round icon in each scheme card's top-right corner, a tray at the
-   bottom of the screen once something is picked, and a side-by-side popup.
-   Absolutely positioned so the card's own layout is untouched. */
+/* ---- Scheme compare (featured-schemes.js, sif-schemes.js) ----
+   A labelled "Compare" pill in each scheme card's bottom-right corner (it
+   reads "Added" once picked), a tray at the bottom of the screen once
+   something is picked, and a side-by-side popup. Absolutely positioned; the
+   card gets extra bottom padding so the pill never sits on its content. */
+.scheme-row{padding-bottom:58px;}
 .sr-compare{
-  position:absolute; top:12px; right:12px; z-index:2; width:30px; height:30px; padding:0;
-  display:flex; align-items:center; justify-content:center; cursor:pointer;
-  border:1px solid #E2DACA; border-radius:50%; background:#fff; color:var(--muted);
-  transition:border-color .15s ease, color .15s ease, background .15s ease;
+  position:absolute; bottom:14px; right:18px; z-index:2; height:32px; padding:0 14px 0 11px;
+  display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+  border:1px solid #E2DACA; border-radius:999px; background:#fff; color:var(--ink-text);
+  font:700 12px/1 'Manrope', sans-serif; letter-spacing:0.02em;
+  box-shadow:0 2px 6px -3px rgba(11,14,19,0.18);
+  transition:border-color .15s ease, color .15s ease, background .15s ease, box-shadow .15s ease;
 }
-.sr-compare svg{width:16px; height:16px;}
-.sr-compare:hover{border-color:var(--gold); color:var(--ink-text);}
+.sr-compare svg{width:15px; height:15px; color:var(--gold); flex:none;}
+.sr-compare:hover{border-color:var(--gold); background:#FFFBF1; box-shadow:0 6px 14px -8px rgba(201,162,75,0.6);}
+.sr-compare:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+.sr-compare .lbl-on{display:none;}
 .sr-compare.on{background:var(--ink); border-color:var(--ink); color:var(--gold-light);}
+.sr-compare.on svg{color:var(--gold-light);}
+.sr-compare.on .lbl-off{display:none;}
+.sr-compare.on .lbl-on{display:inline;}
 @media (max-width:760px){
-  .sr-compare{top:10px; right:10px;}
-  .scheme-row .sr-id{padding-right:30px;}
+  .scheme-row{padding-bottom:60px;}
+  .sr-compare{bottom:14px; right:16px;}
+  .scheme-row .sr-logo, .scheme-row .sr-logo-fallback{width:56px; height:56px;}
 }
 
 .cmp-tray{

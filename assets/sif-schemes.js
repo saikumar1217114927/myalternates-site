@@ -242,7 +242,8 @@
   var COMPARE_ICON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h11m0 0-3-3m3 3-3 3M16 13H5m0 0 3-3m-3 3 3 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function compareBtnHtml(s) {
     return '<button type="button" class="sr-compare" data-compare="' + esc(s.schemeCode) + '" title="Add to compare" aria-label="Add ' +
-      esc(s.schemeName) + ' to compare" aria-pressed="false">' + COMPARE_ICON + '</button>';
+      esc(s.schemeName) + ' to compare" aria-pressed="false">' + COMPARE_ICON +
+      '<span class="lbl-off">Compare</span><span class="lbl-on">Added</span></button>';
   }
   function syncCompareButtons() {
     var picked = {};
