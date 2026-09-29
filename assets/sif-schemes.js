@@ -357,7 +357,7 @@
     rows.push(cmpRow('Asset class', list.map(function (s) { return cmpText(s.assetClass); })));
     rows.push(cmpRow('Structure', list.map(function (s) { return cmpText(s.fundType); })));
     rows.push(cmpRow('Inception', list.map(function (s) { return cmpText(s.launchDate ? fmtDate(s.launchDate) : null); })));
-    rows.push(cmpRow('NAV', list.map(function (s) { return cmpText(s.nav == null ? null : '₹' + s.nav.toFixed(4) + ' · ' + fmtDate(s.navDate)); })));
+    rows.push(cmpRow('NAV', list.map(function (s) { return cmpText(s.nav == null ? null : '₹' + s.nav.toFixed(2) + ' · ' + fmtDate(s.navDate)); })));
     rows.push(cmpRow('Benchmark', list.map(function (s) { return cmpText(D(s).benchmark); })));
     rows.push(cmpRow('Riskometer', list.map(function (s) { return cmpText(D(s).riskometer); })));
     rows.push(cmpRow('Min. investment', list.map(function (s) {
