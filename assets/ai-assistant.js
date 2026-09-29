@@ -38,7 +38,7 @@
     var style = document.createElement('style');
     style.id = 'maAiStyles';
     style.textContent =
-      '.ma-ai-bubble{position:fixed; right:26px; bottom:26px; z-index:70; width:62px; height:62px; border-radius:50%;' +
+      '.ma-ai-bubble{position:fixed; right:26px; bottom:26px; z-index:1300; width:62px; height:62px; border-radius:50%;' +
         'background:var(--ink); background-image:linear-gradient(135deg,#171B24,var(--ink)); color:var(--gold-light);' +
         'border:1.5px solid rgba(201,162,75,0.55); box-shadow:0 16px 36px -8px rgba(11,14,19,0.55); cursor:pointer;' +
         'display:flex; align-items:center; justify-content:center; transition:transform .18s ease, opacity .18s ease;}' +
@@ -48,7 +48,7 @@
       '.ma-ai-bubble:hover{transform:translateY(-2px);}' +
       '.ma-ai-bubble.hide{opacity:0; pointer-events:none; transform:scale(.7);}' +
       '@keyframes maAiRing{0%{transform:scale(1); opacity:.55;} 100%{transform:scale(1.35); opacity:0;}}' +
-      '.ma-ai-panel{position:fixed; right:26px; bottom:26px; z-index:71; width:min(420px, calc(100vw - 32px));' +
+      '.ma-ai-panel{position:fixed; right:26px; bottom:26px; z-index:1301; width:min(420px, calc(100vw - 32px));' +
         'height:min(650px, calc(100vh - 48px)); background:#fff; border-radius:18px; overflow:hidden;' +
         'box-shadow:0 40px 90px -20px rgba(11,14,19,0.5); border:1px solid rgba(201,162,75,0.25);' +
         'display:flex; flex-direction:column; opacity:0; transform:translateY(20px) scale(.97); pointer-events:none;' +
@@ -90,7 +90,7 @@
       // toggling the --peek-x/--peek-y custom properties on the
       // 'animationiteration' event (see build()), not by juggling separate
       // keyframe sets. Hidden (and paused) while the chat panel is open.
-      '.ma-ai-peekbot{position:fixed; right:40px; bottom:34px; z-index:69; width:34px; height:34px;' +
+      '.ma-ai-peekbot{position:fixed; right:40px; bottom:34px; z-index:1299; width:34px; height:34px;' +
         '--peek-x:-70px; --peek-y:0px; transform:translate(0,0) scale(.5); opacity:0; pointer-events:none;' +
         'animation:maAiPeekaboo 9s ease-in-out infinite; transition:opacity .18s ease;}' +
       '.ma-ai-peekbot svg{width:100%; height:100%; display:block;}' +
