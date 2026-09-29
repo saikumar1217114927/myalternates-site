@@ -1100,10 +1100,10 @@
     // minimum-amount field is blank for a few houses.
     var minInv = d.minInvestment ? money(d.minInvestment) : '₹10,00,000';
     var chips = [];
+    chips.push(['NAV · ' + fmtD(s.navDate), '₹' + s.nav.toFixed(2)]);
     if (d.benchmark) chips.push(['Benchmark', d.benchmark]);
     if (s.launchDate) chips.push(['Inception date', fmtD(s.launchDate)]);
     chips.push(['Min. investment', minInv]);
-    chips.push(['NAV · ' + fmtD(s.navDate), '₹' + s.nav.toFixed(4)]);
 
     var facts = [];
     if (s.assetClass) facts.push(['Asset class', s.assetClass]);
