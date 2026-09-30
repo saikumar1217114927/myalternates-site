@@ -648,7 +648,7 @@
       '<label class="pss-toggle" for="pssDiy">' +
       '<input type="checkbox" id="pssDiy"' + (state.diyOnly ? ' checked' : '') + '>' +
       '<span class="pss-toggle-track" aria-hidden="true"></span>' +
-      '<span class="pss-toggle-text"><b>Invest online</b><small>Only schemes you can invest in online</small></span>' +
+      '<span class="pss-toggle-text"><b>Invest online</b><small>Schemes available to invest online</small></span>' +
       '</label>';
     var head = panel.querySelector('.pss-ft-head');
     panel.insertBefore(g, head ? head.nextSibling : panel.firstChild);
