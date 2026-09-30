@@ -866,13 +866,15 @@
   // .ps-cat-tabs read their sticky `top` from these two custom properties
   // (site.css) instead of a guessed pixel value, since the header/heading's
   // real height varies by product and viewport width.
+  // offsetHeight (layout px), not getBoundingClientRect: under the desktop
+  // 75% zoom (html.ma-zoom) the rect is already scaled and would be scaled twice.
   function updateStickyOffsets() {
     var navEl = document.querySelector('header.nav');
     var headEl = host.querySelector('.p-schemes-head');
     var catEl = host.querySelector('.ps-cat-tabs');
-    var navH = navEl ? navEl.getBoundingClientRect().height : 0;
-    var headH = headEl ? headEl.getBoundingClientRect().height : 0;
-    var catH = catEl ? catEl.getBoundingClientRect().height : 0;
+    var navH = navEl ? navEl.offsetHeight : 0;
+    var headH = headEl ? headEl.offsetHeight : 0;
+    var catH = catEl ? catEl.offsetHeight : 0;
     host.style.setProperty('--schemes-top-1', (navH + headH) + 'px');
     host.style.setProperty('--schemes-top-2', (navH + headH + catH) + 'px');
   }

@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Desktop default: render at 75% (html.ma-zoom). Skipped when the visitor has
+     already zoomed the browser out (devicePixelRatio < 1), so it never stacks
+     to ~56%. Phones/tablets (<1200px) stay at 100%. -->
+<script>(function(){try{if(window.devicePixelRatio>=1&&window.matchMedia('(min-width:1200px)').matches)document.documentElement.classList.add('ma-zoom')}catch(e){}})();</script>
+<style>@media (min-width:1200px){html.ma-zoom{zoom:0.75}}</style>
 <title>GIFT City Products — myAlternates</title>
 <meta name="description" content="Invest through GIFT City with myAlternates — compliant offshore access, expert guidance on structures, and one dashboard for your whole portfolio.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -141,7 +146,7 @@
 <script src="assets/hero-meeting.js?v=212"></script>
 <script src="assets/session-gate.js?v=214"></script>
 <script src="assets/ai-assistant.js?v=213" defer></script>
-<script src="assets/featured-schemes.js?v=212"></script>
+<script src="assets/featured-schemes.js?v=215"></script>
 <script src="assets/nav.js?v=212" defer></script>
 <script src="assets/nav-search.js?v=212" defer></script>
 </body>
