@@ -827,7 +827,11 @@ nav.links a:hover::after{width:100%;}
    below the name entirely on ordinary laptop-width screens. */
 .scm-hero-top{display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:nowrap; margin-bottom:22px;}
 .scm-hero-id{display:flex; align-items:center; gap:12px; min-width:0; flex:1 1 auto;}
-.scm-hero-logo{width:60px; height:60px; border-radius:12px; object-fit:contain; background:#fff; border:1px solid var(--line); flex:none; padding:4px; box-sizing:border-box;}
+/* Same wide wordmark footprint as the scheme lists' .sr-logo (150x72), so
+   names like "MALABAR" read at full size instead of a strip in a 60px
+   square. Keeps a white tile: the hero is dark and most logos are dark text. */
+.scm-hero-logo{width:150px; height:72px; border-radius:12px; object-fit:contain; background:#fff; border:1px solid var(--line); flex:none; padding:6px 10px; box-sizing:border-box;}
+@media (max-width:760px){ .scm-hero-logo{width:110px; height:56px; padding:5px 8px;} }
 .scm-hero h1{font-family:'Fraunces', Georgia, serif; font-weight:500; font-size:clamp(26px,3.4vw,40px); margin:10px 0 0; line-height:1.18;}
 .scm-hero h1 .plan-opt{color:var(--muted-light); font-weight:400; font-size:0.62em;}
 .scm-hero-meeting{flex:0 0 auto; max-width:420px; padding-top:2px;}
