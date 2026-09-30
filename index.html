@@ -3,11 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Desktop default: render at 75% (html.ma-zoom). Skipped when the visitor has
-     already zoomed the browser out (devicePixelRatio < 1), so it never stacks
-     to ~56%. Phones/tablets (<1200px) stay at 100%. -->
-<script>(function(){try{if(window.devicePixelRatio>=1&&window.matchMedia('(min-width:1200px)').matches)document.documentElement.classList.add('ma-zoom')}catch(e){}})();</script>
-<style>@media (min-width:1200px){html.ma-zoom{zoom:0.75}}</style>
 <title>myAlternates — India's Gateway to Alternate Investments</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -2449,11 +2444,8 @@ scheduleForm.addEventListener('submit', async function(e){
   }
 
   function growthProgress(){
+    const vh = window.innerHeight;
     const r = chartBox.getBoundingClientRect();
-    // innerHeight is CSS px, the rect is on-screen px — they differ under the
-    // desktop 75% zoom (html.ma-zoom), so bring the viewport into rect units
-    const sr = sec.getBoundingClientRect();
-    const vh = window.innerHeight * ((sec.offsetHeight && sr.height / sec.offsetHeight) || 1);
     // vertical centre of the chart; fall back to the section if the chart has no height yet
     const mid = r.height ? r.top + r.height / 2 : (function(){ const s = sec.getBoundingClientRect(); return s.top + s.height / 2; })();
     // 0 when the chart's centre is just below the viewport, 1 when it reaches the middle of the screen

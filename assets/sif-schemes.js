@@ -217,13 +217,11 @@
   // Heading row stays pinned under the nav while the cards scroll — the
   // sidebar reads its sticky `top` from this custom property (site.css),
   // same as featured-schemes.js.
-  // offsetHeight (layout px), not getBoundingClientRect: under the desktop
-  // 75% zoom (html.ma-zoom) the rect is already scaled and would be scaled twice.
   function updateStickyOffsets() {
     var navEl = document.querySelector('header.nav');
     var headEl = host.querySelector('.p-schemes-head');
-    var navH = navEl ? navEl.offsetHeight : 0;
-    var headH = headEl ? headEl.offsetHeight : 0;
+    var navH = navEl ? navEl.getBoundingClientRect().height : 0;
+    var headH = headEl ? headEl.getBoundingClientRect().height : 0;
     host.style.setProperty('--schemes-top-1', (navH + headH) + 'px');
     host.style.setProperty('--schemes-top-2', (navH + headH) + 'px');
   }

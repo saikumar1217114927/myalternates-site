@@ -188,11 +188,8 @@
       var v = parseFloat(t.dataset.value);
       tip.innerHTML = (t.dataset.series ? esc(t.dataset.series) + ' · ' : '') + esc(t.dataset.period) + '<br><b>' + pct(v) + '</b>';
       var wrapRect = wrap.getBoundingClientRect();
-      // mouse/rect coords are on-screen px; under the desktop 75% zoom
-      // (html.ma-zoom) CSS px are larger, so convert before positioning
-      var f = (wrap.offsetWidth && wrapRect.width / wrap.offsetWidth) || 1;
-      tip.style.left = (e.clientX - wrapRect.left) / f + 'px';
-      tip.style.top = (e.clientY - wrapRect.top) / f - 10 + 'px';
+      tip.style.left = (e.clientX - wrapRect.left) + 'px';
+      tip.style.top = (e.clientY - wrapRect.top - 10) + 'px';
       tip.classList.add('show');
     }
   }
