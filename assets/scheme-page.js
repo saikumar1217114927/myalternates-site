@@ -870,9 +870,7 @@
           : '<div class="scm-fm-photo-fallback">' + esc((m.name || '?').charAt(0)) + '</div>';
         return '<div class="scm-fm-card">' + photo +
           '<div class="scm-fm-body">' +
-          '<div class="scm-fm-name">' + esc(m.name) +
-          (m.linkedinUrl ? ' <a href="' + esc(m.linkedinUrl) + '" target="_blank" rel="noopener" class="scm-fm-li" aria-label="LinkedIn">in</a>' : '') +
-          '</div>' +
+          '<div class="scm-fm-name">' + esc(m.name) + '</div>' +
           (m.designation ? '<div class="scm-fm-role">' + esc(m.designation) + '</div>' : '') +
           (m.description ? '<p class="scm-fm-desc">' + esc(m.description) + '</p>' : '') +
           '</div></div>';
