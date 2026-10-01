@@ -99,8 +99,8 @@
 
   // ---- trailing-returns bar chart (grouped: scheme vs benchmark, zero baseline) ----
   var RET_COLS = [['1M', 'r1m'], ['3M', 'r3m'], ['6M', 'r6m'], ['1Y', 'r1y'], ['2Y', 'r2y'], ['3Y', 'r3y'], ['5Y', 'r5y'], ['10Y', 'r10y'], ['SI', 'si']];
-  // The chart drops 1M — the Scheme returns table right below it still
-  // carries every period including 1M, this is chart-only.
+  // The chart drops 1M (and so does the Scheme returns table, except for
+  // SIF — see tableRetCols).
   var CHART_RET_COLS = RET_COLS.filter(function (c) { return c[0] !== '1M'; });
 
   function roundedBarPath(x, w, yTop, h, r, roundAtTop) {
@@ -285,16 +285,23 @@
   // numbers twice in two always-visible sections.
   var returnsViewMode = 'table';
 
+  // Scheme returns table columns: 1M only for SIF. PMS and Cat III AIF /
+  // GIFT IFSC (the products that show trailing returns) start at 3M.
+  function tableRetCols(s) {
+    return s.isSif ? RET_COLS : RET_COLS.filter(function (c) { return c[0] !== '1M'; });
+  }
+
   function schemeReturnsTableHtml(s) {
+    var cols = tableRetCols(s);
     function row(label, obj, cls) {
       return '<tr class="' + cls + '"><td>' + esc(label) + '</td>' +
-        RET_COLS.map(function (c) {
+        cols.map(function (c) {
           var v = obj[c[1]];
           return '<td class="' + (v == null ? 'na' : (v >= 0 ? 'pos' : 'neg')) + '">' + (v == null ? 'NA' : pct(v)) + '</td>';
         }).join('') + '</tr>';
     }
     return '<div class="scm-table-wrap"><table class="scm-perf-table"><thead><tr><th>Returns (ann.)</th>' +
-      RET_COLS.map(function (c) { return '<th>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      cols.map(function (c) { return '<th>' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
       row(s.schemeName, s.returns, '') +
       (s.benchmark.name ? row(s.benchmark.name, s.benchmark, 'bench-row') : '') +
       '</tbody></table></div>';
@@ -313,7 +320,7 @@
   }
 
   function schemeReturnsSection(s) {
-    var hasAny = RET_COLS.some(function (c) { return s.returns[c[1]] != null || s.benchmark[c[1]] != null; });
+    var hasAny = tableRetCols(s).some(function (c) { return s.returns[c[1]] != null || s.benchmark[c[1]] != null; });
     if (!hasAny) return ''; // a brand-new, still-fundraising scheme (see fundTermsSection) has nothing here yet
     // The toggle sits right beside the "As of" date (both on the row's right
     // edge, same as the date sat alone before this toggle existed) — not
