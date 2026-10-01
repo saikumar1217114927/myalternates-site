@@ -210,6 +210,18 @@
       '.ma-ai-head-text span{display:block; font-size:11px; color:var(--muted-light); margin-top:2px;}' +
       '.ma-ai-close{background:none; border:none; color:var(--muted-light); font-size:15px; cursor:pointer; padding:4px 6px; flex:none; line-height:1;}' +
       '.ma-ai-close:hover{color:var(--paper);}' +
+      // Header "full screen" toggle — a small outlined icon button.
+      '.ma-ai-max{flex:none; width:30px; height:30px; border-radius:8px; border:1px solid rgba(201,162,75,0.35); background:rgba(201,162,75,0.08);' +
+        'color:var(--gold-light); cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; transition:background .15s ease, border-color .15s ease;}' +
+      '.ma-ai-max:hover{background:rgba(201,162,75,0.2); border-color:var(--gold);}' +
+      '.ma-ai-max svg{width:15px; height:15px;}' +
+      '.ma-ai-max .ic-min{display:none;} .ma-ai-panel.max .ma-ai-max .ic-min{display:block;} .ma-ai-panel.max .ma-ai-max .ic-max{display:none;}' +
+      // Full screen: a large centred panel; bubbles and tables get the room.
+      // Centred with all four edges pinned + margin:auto (no transform, which
+      // the open/close animation already uses).
+      '.ma-ai-panel.max{top:0; left:0; right:0; bottom:0; margin:auto; width:min(1100px, calc(100vw - 48px)); height:calc(100vh - 48px);}' +
+      '.ma-ai-panel.max .ma-ai-msg{max-width:70%;} .ma-ai-panel.max .ma-ai-msg.has-vis{max-width:860px; width:auto;}' +
+      '@media (max-width:600px){.ma-ai-panel.max{width:calc(100vw - 16px); height:calc(100vh - 16px);}}' +
       '.ma-ai-body{flex:1 1 auto; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:12px; background:#fff;}' +
       '.ma-ai-msg{font-size:13.5px; line-height:1.6; padding:11px 14px; border-radius:14px; max-width:86%; white-space:pre-wrap;}' +
       '.ma-ai-msg-assistant{background:var(--paper-2); color:var(--ink-text); align-self:flex-start; border-bottom-left-radius:4px;}' +
@@ -322,6 +334,10 @@
       '<div class="ma-ai-head">' +
       '<div class="ma-ai-head-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l1.8 4.4 4.4 1.8-4.4 1.8L12 15l-1.8-4.5-4.4-1.8 4.4-1.8L12 2.5z" fill="currentColor"/><path d="M19 14.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1z" fill="currentColor"/></svg></div>' +
       '<div class="ma-ai-head-text"><b>myAlternates AI Assistant</b><span>Ask about any PMS, AIF or GIFT City fund</span></div>' +
+      '<button type="button" class="ma-ai-max" aria-label="Full screen" title="Full screen">' +
+        '<svg class="ic-max" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '<svg class="ic-min" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '</button>' +
       '<button type="button" class="ma-ai-close" aria-label="Close">✕</button></div>' +
       '<div class="ma-ai-body" id="maAiBody">' +
       '<div class="ma-ai-msg ma-ai-msg-assistant">Hi! Ask me about any fund or AMC on the platform — returns, fees, rankings, comparisons — or tell me what you are looking for and I will shortlist matching schemes from our data.</div>' +
@@ -400,6 +416,13 @@
 
     bubble.onclick = openPanel;
     panel.querySelector('.ma-ai-close').onclick = closePanel;
+    var maxBtn = panel.querySelector('.ma-ai-max');
+    maxBtn.onclick = function () {
+      var on = panel.classList.toggle('max');
+      maxBtn.setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+      maxBtn.title = on ? 'Exit full screen' : 'Full screen';
+      body.scrollTop = body.scrollHeight;
+    };
 
     // Alternates the peekbot's hiding spot each lap — from the side, then
     // from the top, picked fresh right as each 9s loop restarts (see the
