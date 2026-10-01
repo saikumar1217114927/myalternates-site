@@ -70,6 +70,10 @@
 
   // Compact version, inside the chat bubble.
   function visualCompact(v, ref) {
+    // Hand-off to a person: the expert does the actual suitability check.
+    if (v.type === 'expertCta') {
+      return '<button type="button" class="ma-ai-cta" data-cta="' + esc(v.interest || '') + '">📞 Talk to an expert about these</button>';
+    }
     var head = '', rows = '', title = v.title || '';
     if (v.type === 'rankSchemes') {
       head = '<tr><th>#</th><th>Scheme</th><th style="text-align:right;">Return</th></tr>';
@@ -110,14 +114,25 @@
   }
 
   // Full version, in the pop-up.
+  function fmtInr(n) {
+    if (n == null || isNaN(n)) return '—';
+    n = Number(n);
+    if (n >= 1e7) return '₹' + (n / 1e7).toFixed(n % 1e7 ? 2 : 0) + ' Cr';
+    if (n >= 1e5) return '₹' + (n / 1e5).toFixed(n % 1e5 ? 2 : 0) + ' L';
+    return '₹' + n.toLocaleString('en-IN');
+  }
   function visualFull(v) {
+    var showMin = v.rows && v.rows.some(function (r) { return r.minInvestment != null; });
     if (v.type === 'rankSchemes') {
       return '<h3>' + esc(v.title) + '</h3><p class="ma-ai-ov-note">' + esc(v.order || '') + ' · past performance, not a prediction or recommendation.</p>' +
-        '<table class="ma-ai-tbl"><thead><tr><th>#</th><th>Scheme</th><th>AMC</th><th>Category</th><th style="text-align:right;">Return</th><th>As of</th></tr></thead><tbody>' +
+        '<div style="overflow-x:auto;"><table class="ma-ai-tbl"><thead><tr><th>#</th><th>Scheme</th><th>AMC</th><th>Category</th>' +
+        (showMin ? '<th style="text-align:right;">Min. investment</th>' : '') +
+        '<th style="text-align:right;">Return</th><th>As of</th></tr></thead><tbody>' +
         v.rows.map(function (r) {
           return '<tr><td>' + r.rank + '</td><td>' + schemeLink(r.planId, r.schemeName) + '</td><td>' + esc(r.amcName) + '</td><td>' + esc(r.category || '—') + '</td>' +
+            (showMin ? '<td class="num" style="font-weight:500;">' + esc(fmtInr(r.minInvestment)) + '</td>' : '') +
             pctCell(r.returnPct) + '<td style="white-space:nowrap;">' + esc(r.asOf || '—') + '</td></tr>';
-        }).join('') + '</tbody></table>';
+        }).join('') + '</tbody></table></div>';
     }
     if (v.type === 'rankManagers') {
       return '<h3>' + esc(v.title) + '</h3><p class="ma-ai-ov-note">Ranked by the best-performing scheme each manager currently runs · past performance, not a recommendation.</p>' +
@@ -234,6 +249,9 @@
       '.ma-ai-full{margin-top:8px; background:none; border:1px solid #E4DFD1; border-radius:8px; padding:5px 10px; font:inherit;' +
         'font-size:11.5px; font-weight:700; color:var(--ink-text); cursor:pointer;}' +
       '.ma-ai-full:hover{border-color:var(--gold); background:var(--paper-2);}' +
+      '.ma-ai-cta{margin-top:10px; width:100%; background:var(--gold); color:var(--ink); border:none; border-radius:10px; padding:10px 12px;' +
+        'font:inherit; font-size:13px; font-weight:700; cursor:pointer;}' +
+      '.ma-ai-cta:hover{background:var(--gold-light);}' +
       // "View full" pop-up (above the chat panel, below the site's own modals)
       '.ma-ai-ov{position:fixed; inset:0; z-index:1360; background:rgba(11,14,19,.6); display:flex; align-items:center; justify-content:center; padding:20px;}' +
       '.ma-ai-ov-box{position:relative; background:#fff; border-radius:16px; width:min(1000px,100%); max-height:88vh; overflow:auto; padding:26px 26px 22px;' +
@@ -306,7 +324,7 @@
       '<div class="ma-ai-head-text"><b>myAlternates AI Assistant</b><span>Ask about any PMS, AIF or GIFT City fund</span></div>' +
       '<button type="button" class="ma-ai-close" aria-label="Close">✕</button></div>' +
       '<div class="ma-ai-body" id="maAiBody">' +
-      '<div class="ma-ai-msg ma-ai-msg-assistant">Hi! Ask me about any fund or AMC on the platform — returns, fees, tenure, min. investment, anything we have data on.</div>' +
+      '<div class="ma-ai-msg ma-ai-msg-assistant">Hi! Ask me about any fund or AMC on the platform — returns, fees, rankings, comparisons — or tell me what you are looking for and I will shortlist matching schemes from our data.</div>' +
       '</div>' +
       '<form class="ma-ai-form" id="maAiForm">' +
       '<input type="text" id="maAiInput" placeholder="Ask about a fund or AMC…" autocomplete="off">' +
@@ -344,7 +362,7 @@
     var input = panel.querySelector('#maAiInput');
 
     function renderMessages() {
-      body.innerHTML = '<div class="ma-ai-msg ma-ai-msg-assistant">Hi! Ask me about any fund or AMC on the platform — returns, fees, tenure, min. investment, anything we have data on.</div>' +
+      body.innerHTML = '<div class="ma-ai-msg ma-ai-msg-assistant">Hi! Ask me about any fund or AMC on the platform — returns, fees, rankings, comparisons — or tell me what you are looking for and I will shortlist matching schemes from our data.</div>' +
         messages.map(function (m, mi) {
           if (m.role !== 'assistant') {
             return '<div class="ma-ai-msg ' + (m.role === 'user' ? 'ma-ai-msg-user' : 'ma-ai-msg-error') + '">' + esc(m.text) + '</div>';
@@ -353,6 +371,11 @@
           return '<div class="ma-ai-msg ma-ai-msg-assistant' + (vis ? ' has-vis' : '') + '">' + md(m.text) + vis + '</div>';
         }).join('');
       if (sending) body.innerHTML += '<div class="ma-ai-msg ma-ai-msg-assistant ma-ai-thinking"><span></span><span></span><span></span></div>';
+      body.querySelectorAll('[data-cta]').forEach(function (b) {
+        b.onclick = function () {
+          if (window.maOpenTalkToExpert) window.maOpenTalkToExpert(b.getAttribute('data-cta') || 'Not sure yet — need guidance');
+        };
+      });
       body.querySelectorAll('[data-vis]').forEach(function (b) {
         b.onclick = function () {
           var p = b.getAttribute('data-vis').split(':');
