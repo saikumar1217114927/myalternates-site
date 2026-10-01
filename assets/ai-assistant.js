@@ -33,6 +33,137 @@
     return m ? Number(m[1]) : null;
   }
 
+  // ---- reply formatting: escaped first, then only paragraphs / "- " and
+  // "1. " lists / **bold** are turned into markup, so nothing in a reply can
+  // inject HTML. ----
+  function md(text) {
+    var out = [], para = [], list = null;
+    function flushPara() { if (para.length) { out.push('<p>' + para.join('<br>') + '</p>'); para = []; } }
+    function flushList() {
+      if (list) { out.push('<' + list.tag + '>' + list.items.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</' + list.tag + '>'); list = null; }
+    }
+    esc(text).split('\n').forEach(function (line) {
+      var b = /^\s*[-•*]\s+(.*)$/.exec(line), n = /^\s*\d+[.)]\s+(.*)$/.exec(line);
+      if (b || n) {
+        flushPara();
+        var tag = b ? 'ul' : 'ol';
+        if (!list || list.tag !== tag) { flushList(); list = { tag: tag, items: [] }; }
+        list.items.push((b || n)[1]);
+      } else if (!line.trim()) { flushPara(); flushList(); }
+      else { flushList(); para.push(line); }
+    });
+    flushPara(); flushList();
+    return out.join('').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  }
+
+  // ---- data cards (built from database numbers the backend sends with the
+  // reply — see collectAssistantVisual in handlers-ext.js) ----
+  function pctCell(v) {
+    if (v == null || isNaN(v)) return '<td class="num na">NA</td>';
+    return '<td class="num ' + (v >= 0 ? 'pos' : 'neg') + '">' + (v > 0 ? '+' : '') + Number(v).toFixed(2) + '%</td>';
+  }
+  function schemeLink(planId, name) {
+    return planId ? '<a href="scheme?id=' + encodeURIComponent(planId) + '">' + esc(name) + '</a>' : esc(name);
+  }
+  var RET_COLS = [['3M', 'r3m'], ['6M', 'r6m'], ['1Y', 'r1y'], ['2Y', 'r2y'], ['3Y', 'r3y'], ['5Y', 'r5y'], ['10Y', 'r10y'], ['SI', 'si']];
+  var MINI_COLS = [['1Y', 'r1y'], ['3Y', 'r3y'], ['5Y', 'r5y']];
+
+  // Compact version, inside the chat bubble.
+  function visualCompact(v, ref) {
+    var head = '', rows = '', title = v.title || '';
+    if (v.type === 'rankSchemes') {
+      head = '<tr><th>#</th><th>Scheme</th><th style="text-align:right;">Return</th></tr>';
+      rows = v.rows.slice(0, 5).map(function (r) {
+        return '<tr><td>' + r.rank + '</td><td>' + schemeLink(r.planId, r.schemeName) + '<span class="sub">' + esc(r.amcName) + '</span></td>' + pctCell(r.returnPct) + '</tr>';
+      }).join('');
+    } else if (v.type === 'rankManagers') {
+      head = '<tr><th>#</th><th>Fund manager</th><th style="text-align:right;">Best return</th></tr>';
+      rows = v.rows.slice(0, 5).map(function (r) {
+        return '<tr><td>' + r.rank + '</td><td>' + esc(r.name) + '<span class="sub">' + esc(r.fundHouse || (r.schemes[0] && r.schemes[0].schemeName) || '') + '</span></td>' + pctCell(r.bestReturnPct) + '</tr>';
+      }).join('');
+    } else if (v.type === 'schemes') {
+      title = v.schemes.length > 1 ? 'Comparison · returns' : 'Returns';
+      head = '<tr><th>' + (v.schemes.length > 1 ? 'Scheme' : '') + '</th>' + MINI_COLS.map(function (c) { return '<th style="text-align:right;">' + c[0] + '</th>'; }).join('') + '</tr>';
+      rows = v.schemes.map(function (s) {
+        var r = '<tr><td>' + schemeLink(s.planId, s.schemeName) + '</td>' + MINI_COLS.map(function (c) { return pctCell(s.returns[c[1]]); }).join('') + '</tr>';
+        if (v.schemes.length === 1 && s.benchmark && s.benchmark.name) {
+          r += '<tr class="bench"><td>' + esc(s.benchmark.name) + '</td>' + MINI_COLS.map(function (c) { return pctCell(s.benchmark[c[1]]); }).join('') + '</tr>';
+        }
+        return r;
+      }).join('');
+    } else return '';
+    return '<div class="ma-ai-vis"><div class="ma-ai-vis-title">' + esc(title) + '</div>' +
+      '<table class="ma-ai-tbl"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table>' +
+      '<button type="button" class="ma-ai-full" data-vis="' + ref + '">⛶ View full</button></div>';
+  }
+
+  function barsHtml(items, label, weightKey, subFn) {
+    if (!items || !items.length) return '<div class="ma-ai-bar-sub">No ' + label + ' data.</div>';
+    var max = Math.max.apply(null, items.map(function (i) { return Number(i[weightKey]) || 0; }).concat([1]));
+    return items.map(function (i) {
+      var w = i[weightKey];
+      var hasW = w != null && !isNaN(w);
+      return '<div class="ma-ai-bar"><div class="ma-ai-bar-top"><span>' + esc(i.name) + '</span>' + (hasW ? '<b>' + Number(w).toFixed(2) + '%</b>' : '') + '</div>' +
+        (subFn ? '<div class="ma-ai-bar-sub">' + esc(subFn(i)) + '</div>' : '') +
+        (hasW ? '<div class="ma-ai-bar-track"><div class="ma-ai-bar-fill" style="width:' + Math.max(2, (w / max) * 100) + '%"></div></div>' : '') + '</div>';
+    }).join('');
+  }
+
+  // Full version, in the pop-up.
+  function visualFull(v) {
+    if (v.type === 'rankSchemes') {
+      return '<h3>' + esc(v.title) + '</h3><p class="ma-ai-ov-note">' + esc(v.order || '') + ' · past performance, not a prediction or recommendation.</p>' +
+        '<table class="ma-ai-tbl"><thead><tr><th>#</th><th>Scheme</th><th>AMC</th><th>Category</th><th style="text-align:right;">Return</th><th>As of</th></tr></thead><tbody>' +
+        v.rows.map(function (r) {
+          return '<tr><td>' + r.rank + '</td><td>' + schemeLink(r.planId, r.schemeName) + '</td><td>' + esc(r.amcName) + '</td><td>' + esc(r.category || '—') + '</td>' +
+            pctCell(r.returnPct) + '<td style="white-space:nowrap;">' + esc(r.asOf || '—') + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    if (v.type === 'rankManagers') {
+      return '<h3>' + esc(v.title) + '</h3><p class="ma-ai-ov-note">Ranked by the best-performing scheme each manager currently runs · past performance, not a recommendation.</p>' +
+        '<table class="ma-ai-tbl"><thead><tr><th>#</th><th>Fund manager</th><th>Fund house</th><th style="text-align:right;">Best return</th><th>Scheme(s)</th></tr></thead><tbody>' +
+        v.rows.map(function (r) {
+          return '<tr><td>' + r.rank + '</td><td><b>' + esc(r.name) + '</b></td><td>' + esc(r.fundHouse || '—') + '</td>' + pctCell(r.bestReturnPct) +
+            '<td>' + r.schemes.map(function (s) {
+              return schemeLink(s.planId, s.schemeName) + ' <span class="sub" style="display:inline;">' + (s.returnPct > 0 ? '+' : '') + Number(s.returnPct).toFixed(2) + '%</span>';
+            }).join('<br>') + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    if (v.type === 'schemes') {
+      var many = v.schemes.length > 1;
+      var retRows = v.schemes.map(function (s) {
+        var r = '<tr><td>' + schemeLink(s.planId, s.schemeName) + '<span class="sub">' + esc(s.amcName) + '</span></td>' + RET_COLS.map(function (c) { return pctCell(s.returns[c[1]]); }).join('') + '</tr>';
+        if (s.benchmark && s.benchmark.name) r += '<tr class="bench"><td>' + esc(s.benchmark.name) + '</td>' + RET_COLS.map(function (c) { return pctCell(s.benchmark[c[1]]); }).join('') + '</tr>';
+        return r;
+      }).join('');
+      var asOf = v.schemes.map(function (s) { return s.asOf; }).filter(Boolean)[0] || '';
+      var cols = function (fn) {
+        return '<div class="ma-ai-grid">' + v.schemes.map(function (s) {
+          return '<div class="ma-ai-col"><div class="ma-ai-col-head">' + esc(s.schemeName) + '</div>' + fn(s) + '</div>';
+        }).join('') + '</div>';
+      };
+      return '<h3>' + (many ? 'Scheme comparison' : esc(v.schemes[0].schemeName)) + '</h3>' +
+        '<p class="ma-ai-ov-note">' + (asOf ? 'Returns as of ' + esc(asOf) + ' · ' : '') + 'Under 1 year absolute, 1 year and over annualised · past performance, not a recommendation.</p>' +
+        '<h4>Returns</h4><div style="overflow-x:auto;"><table class="ma-ai-tbl"><thead><tr><th></th>' +
+        RET_COLS.map(function (c) { return '<th style="text-align:right;">' + c[0] + '</th>'; }).join('') + '</tr></thead><tbody>' + retRows + '</tbody></table></div>' +
+        '<h4>Top holdings</h4>' + cols(function (s) { return barsHtml(s.holdings, 'holdings', 'weight', function (h) { return [h.sector, h.cap].filter(Boolean).join(' · '); }); }) +
+        '<h4>Top sectors</h4>' + cols(function (s) { return barsHtml(s.sectors, 'sector', 'weight'); });
+    }
+    return '';
+  }
+
+  function openFull(v) {
+    var ov = document.createElement('div');
+    ov.className = 'ma-ai-ov';
+    ov.innerHTML = '<div class="ma-ai-ov-box" role="dialog" aria-modal="true"><button type="button" class="ma-ai-ov-close" aria-label="Close">✕</button>' + visualFull(v) + '</div>';
+    function close() { ov.remove(); document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+    ov.querySelector('.ma-ai-ov-close').onclick = close;
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(ov);
+  }
+
   (function injectStyles() {
     if (document.getElementById('maAiStyles')) return;
     var style = document.createElement('style');
@@ -82,6 +213,44 @@
         'border:none; font-size:17px; font-weight:700; cursor:pointer; transition:background .15s ease;}' +
       '.ma-ai-send:hover{background:var(--gold-light);}' +
       '@media (max-width:600px){.ma-ai-bubble, .ma-ai-panel{right:14px; bottom:14px;}}' +
+      // Assistant replies: light formatting (paragraphs, bullets, bold)
+      // instead of raw pre-wrapped text, plus the data cards below.
+      '.ma-ai-msg-assistant{white-space:normal;}' +
+      '.ma-ai-msg-assistant p{margin:0 0 8px;} .ma-ai-msg-assistant p:last-child{margin-bottom:0;}' +
+      '.ma-ai-msg-assistant ul, .ma-ai-msg-assistant ol{margin:0 0 8px; padding-left:18px;} .ma-ai-msg-assistant li{margin:2px 0;}' +
+      '.ma-ai-msg-assistant b{font-weight:700; color:var(--ink-text);}' +
+      '.ma-ai-msg.has-vis{max-width:100%; width:100%;}' +
+      '.ma-ai-vis{margin-top:10px; background:#fff; border:1px solid #E8E2D2; border-radius:10px; padding:10px 10px 8px;}' +
+      '.ma-ai-vis-title{font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); margin-bottom:6px;}' +
+      '.ma-ai-tbl{width:100%; border-collapse:collapse; font-size:12px;}' +
+      '.ma-ai-tbl th{font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:700; text-align:left; padding:4px 6px; border-bottom:1px solid #EFEAE0;}' +
+      '.ma-ai-tbl td{padding:6px; border-bottom:1px solid #F4F0E8; vertical-align:top;}' +
+      '.ma-ai-tbl tr:last-child td{border-bottom:none;}' +
+      '.ma-ai-tbl .num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; font-weight:700;}' +
+      '.ma-ai-tbl .pos{color:#15803D;} .ma-ai-tbl .neg{color:#B91C1C;} .ma-ai-tbl .na{color:var(--muted); font-weight:500;}' +
+      '.ma-ai-tbl .sub{display:block; font-size:10.5px; color:var(--muted); font-weight:500;}' +
+      '.ma-ai-tbl .bench td{color:var(--muted); font-style:italic;}' +
+      '.ma-ai-tbl a{color:var(--ink-text); text-decoration:none; font-weight:700;} .ma-ai-tbl a:hover{text-decoration:underline;}' +
+      '.ma-ai-full{margin-top:8px; background:none; border:1px solid #E4DFD1; border-radius:8px; padding:5px 10px; font:inherit;' +
+        'font-size:11.5px; font-weight:700; color:var(--ink-text); cursor:pointer;}' +
+      '.ma-ai-full:hover{border-color:var(--gold); background:var(--paper-2);}' +
+      // "View full" pop-up (above the chat panel, below the site's own modals)
+      '.ma-ai-ov{position:fixed; inset:0; z-index:1360; background:rgba(11,14,19,.6); display:flex; align-items:center; justify-content:center; padding:20px;}' +
+      '.ma-ai-ov-box{position:relative; background:#fff; border-radius:16px; width:min(1000px,100%); max-height:88vh; overflow:auto; padding:26px 26px 22px;' +
+        'box-shadow:0 40px 90px -20px rgba(11,14,19,.55);}' +
+      '.ma-ai-ov-box h3{margin:0 0 4px; font-size:19px; color:var(--ink-text);}' +
+      '.ma-ai-ov-note{font-size:11.5px; color:var(--muted); margin:0 0 16px;}' +
+      '.ma-ai-ov-close{position:absolute; top:14px; right:14px; width:32px; height:32px; border-radius:50%; border:1px solid #E4DFD1; background:#fff; cursor:pointer; font-size:14px;}' +
+      '.ma-ai-ov h4{margin:20px 0 8px; font-size:13px; color:var(--ink-text);}' +
+      '.ma-ai-ov .ma-ai-tbl{font-size:13px;} .ma-ai-ov .ma-ai-tbl td{padding:8px;}' +
+      '.ma-ai-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}' +
+      '.ma-ai-col{border:1px solid #EFEAE0; border-radius:10px; padding:12px;}' +
+      '.ma-ai-col-head{font-size:12.5px; font-weight:700; color:var(--ink-text); margin-bottom:8px;}' +
+      '.ma-ai-bar{margin:0 0 8px;} .ma-ai-bar-top{display:flex; justify-content:space-between; gap:8px; font-size:12px;}' +
+      '.ma-ai-bar-top b{font-variant-numeric:tabular-nums;} .ma-ai-bar-sub{font-size:10.5px; color:var(--muted);}' +
+      '.ma-ai-bar-track{height:6px; background:#F1ECE1; border-radius:4px; margin-top:4px; overflow:hidden;}' +
+      '.ma-ai-bar-fill{height:100%; background:var(--gold); border-radius:4px;}' +
+      '@media (max-width:600px){.ma-ai-ov{padding:0;} .ma-ai-ov-box{width:100%; height:100%; max-height:none; border-radius:0; padding:20px 16px;}}' +
       // Simple, ongoing attention-grabber: a little illustrated bot tucked
       // directly behind the launcher (lower z-index, same spot — fully
       // hidden at rest) peeks out every so often, holds a moment, then
@@ -176,11 +345,21 @@
 
     function renderMessages() {
       body.innerHTML = '<div class="ma-ai-msg ma-ai-msg-assistant">Hi! Ask me about any fund or AMC on the platform — returns, fees, tenure, min. investment, anything we have data on.</div>' +
-        messages.map(function (m) {
-          var cls = m.role === 'user' ? 'ma-ai-msg-user' : m.role === 'error' ? 'ma-ai-msg-error' : 'ma-ai-msg-assistant';
-          return '<div class="ma-ai-msg ' + cls + '">' + esc(m.text) + '</div>';
+        messages.map(function (m, mi) {
+          if (m.role !== 'assistant') {
+            return '<div class="ma-ai-msg ' + (m.role === 'user' ? 'ma-ai-msg-user' : 'ma-ai-msg-error') + '">' + esc(m.text) + '</div>';
+          }
+          var vis = (m.visuals || []).map(function (v, vi) { return visualCompact(v, mi + ':' + vi); }).join('');
+          return '<div class="ma-ai-msg ma-ai-msg-assistant' + (vis ? ' has-vis' : '') + '">' + md(m.text) + vis + '</div>';
         }).join('');
       if (sending) body.innerHTML += '<div class="ma-ai-msg ma-ai-msg-assistant ma-ai-thinking"><span></span><span></span><span></span></div>';
+      body.querySelectorAll('[data-vis]').forEach(function (b) {
+        b.onclick = function () {
+          var p = b.getAttribute('data-vis').split(':');
+          var m = messages[+p[0]];
+          if (m && m.visuals && m.visuals[+p[1]]) openFull(m.visuals[+p[1]]);
+        };
+      });
       body.scrollTop = body.scrollHeight;
     }
 
@@ -253,7 +432,7 @@
         body: JSON.stringify(payload)
       }).then(function (r) { return r.json(); }).then(function (d) {
         sending = false;
-        if (d && d.ok) messages.push({ role: 'assistant', text: d.answer });
+        if (d && d.ok) messages.push({ role: 'assistant', text: d.answer, visuals: Array.isArray(d.visuals) ? d.visuals : [] });
         else messages.push({ role: 'error', text: (d && d.error) || "Something went wrong — please try again." });
         renderMessages();
       }).catch(function () {
